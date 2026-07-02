@@ -1,0 +1,1838 @@
+[
+  {
+    "productId": "ph-banana-owl-tree-60g",
+    "country": "필리핀",
+    "category": "바나나칩",
+    "brandName": "오울트리",
+    "productName": "오울트리 바나나칩 60g",
+    "thumbnailUrl": "/placeholders/ph-owl-tree-banana-chips.png",
+    "packageSize": "60g",
+    "estimatedPrice": {
+      "display": "120~180 PHP",
+      "amountMin": 120,
+      "amountMax": 180,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.6,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 128,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "바삭하고 달콤해 사무실 간식으로 나누기 좋다는 샘플 리뷰가 많다.",
+    "pros": [
+      "낱개 선물에 적당한 용량",
+      "가볍고 휴대성이 좋음",
+      "달콤한 맛으로 호불호가 적은 편"
+    ],
+    "cons": [
+      "단맛과 기름짐이 부담스러울 수 있음",
+      "봉지가 눌리면 부서질 수 있음"
+    ],
+    "bestFor": [
+      "회사 동료",
+      "친구",
+      "가족 전체"
+    ],
+    "caution": "당 함량과 기름짐을 확인하고 캐리어 안쪽에 넣어 파손을 줄인다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "여러 명에게 줄 때는 60g 전후 소포장 묶음을 고른다.",
+    "criteriaTags": [
+      "가성비",
+      "휴대성",
+      "호불호 적음",
+      "대량 선물용"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "ph-banana-jovys-400g",
+    "country": "필리핀",
+    "category": "바나나칩",
+    "brandName": "조비스",
+    "productName": "조비스 바나나칩",
+    "thumbnailUrl": "/placeholders/ph-jovis-banana-chips.png",
+    "packageSize": "400g",
+    "estimatedPrice": {
+      "display": "150~240 PHP",
+      "amountMin": 150,
+      "amountMax": 240,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.5,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 94,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "식감이 단단하고 선물용으로 무난하다는 샘플 리뷰가 많다.",
+    "pros": [
+      "브랜드 인지도가 있는 편",
+      "용량 대비 가격이 안정적",
+      "간식 선물로 설명이 쉬움"
+    ],
+    "cons": [
+      "포장 디자인이 평범할 수 있음",
+      "단맛 선호가 갈릴 수 있음"
+    ],
+    "bestFor": [
+      "회사 동료",
+      "가족 전체",
+      "친구"
+    ],
+    "caution": "대량 구매 시 유통기한과 봉지 밀봉 상태를 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "마트형 매장에서 여러 봉지를 비교하고 찌그러진 포장은 피한다.",
+    "criteriaTags": [
+      "가성비",
+      "브랜드 신뢰도",
+      "대량 선물용",
+      "현지 대표성"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": false,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "ph-banana-cebu-local-80g",
+    "country": "필리핀",
+    "category": "바나나칩",
+    "brandName": "기타 현지 브랜드",
+    "productName": "세부 바나나칩 샘플",
+    "thumbnailUrl": "/placeholders/ph-local-banana-chips.png",
+    "packageSize": "80g",
+    "estimatedPrice": {
+      "display": "80~160 PHP",
+      "amountMin": 80,
+      "amountMax": 160,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.1,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 37,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "저렴하고 현지 느낌이 강하지만 품질 편차가 있다는 샘플 리뷰가 있다.",
+    "pros": [
+      "가격이 낮음",
+      "현지 마켓 느낌이 강함",
+      "대량 구매 부담이 적음"
+    ],
+    "cons": [
+      "브랜드 신뢰도 확인 필요",
+      "포장 품질 편차 가능"
+    ],
+    "bestFor": [
+      "친구",
+      "회사 동료",
+      "나를 위한 기념품"
+    ],
+    "caution": "제조일, 유통기한, 봉지 밀봉 상태를 직접 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "가격이 너무 낮은 제품은 시식 가능 여부나 포장 상태를 먼저 본다.",
+    "criteriaTags": [
+      "가성비",
+      "현지 대표성",
+      "대량 선물용"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": false,
+    "officialPartnerPossible": false,
+    "commerceReady": false,
+    "postTripRepurchase": true,
+    "preTripPurchase": false,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 현지 브랜드/정확 제품 식별 후 국내 유통사 또는 공식 총판 확인이 필요합니다."
+  },
+  {
+    "productId": "ph-banana-sabanana-100g",
+    "country": "필리핀",
+    "category": "바나나칩",
+    "brandName": "Villa Socorro",
+    "productName": "Sabanana 스위트 오리지널 바나나칩 100g",
+    "thumbnailUrl": "/placeholders/ph-sabanana-banana-chips.png",
+    "packageSize": "100g",
+    "estimatedPrice": {
+      "display": "90~150 PHP",
+      "amountMin": 90,
+      "amountMax": 150,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.4,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 72,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "브랜드 스토리와 패키지 인지가 있어 선물용으로 설명하기 좋다는 샘플 리뷰가 많다.",
+    "pros": [
+      "100g 단위로 나누기 좋음",
+      "브랜드형 패키지라 선물 설명이 쉬움",
+      "달콤한 맛으로 호불호가 적은 편"
+    ],
+    "cons": [
+      "프리미엄 포지션이라 현지 저가 제품보다 비쌀 수 있음",
+      "단맛이 강하다고 느낄 수 있음"
+    ],
+    "bestFor": [
+      "친구",
+      "회사 동료",
+      "가족 전체"
+    ],
+    "caution": "설탕 함량과 유통기한, 봉지 밀봉 상태를 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "브랜드명이 보이는 100g 전후 패키지를 고르면 선물 설명이 쉽다.",
+    "criteriaTags": [
+      "브랜드 신뢰도",
+      "대량 선물용",
+      "휴대성",
+      "리뷰 평점"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": false,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": false,
+    "officialSourceNote": "MVP 샘플 플래그입니다. Kultura 상품군에서 제품명/용량을 확인했지만, 실제 판매 가격, 재고, 공식 제휴 가능성은 MD 검증이 필요합니다."
+  },
+  {
+    "productId": "ph-banana-farmony-60g",
+    "country": "필리핀",
+    "category": "바나나칩",
+    "brandName": "Farmony",
+    "productName": "Farmony 스위트 바나나칩 60g",
+    "thumbnailUrl": "/placeholders/ph-farmony-banana-chips.png",
+    "packageSize": "60g",
+    "estimatedPrice": {
+      "display": "100~160 PHP",
+      "amountMin": 100,
+      "amountMax": 160,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.2,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 46,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "소포장이라 캐리어 부담이 낮고, 여러 명에게 나눠 주기 좋다는 샘플 리뷰가 있다.",
+    "pros": [
+      "소포장으로 휴대가 쉬움",
+      "회사/친구 선물용 묶음 구매에 적합",
+      "달콤하고 익숙한 맛"
+    ],
+    "cons": [
+      "용량 대비 가격이 높게 느껴질 수 있음",
+      "프리미엄/공식성 확인 필요"
+    ],
+    "bestFor": [
+      "회사 동료",
+      "친구",
+      "나를 위한 기념품"
+    ],
+    "caution": "당류와 기름짐에 민감한 대상에게는 소량 패키지를 먼저 권한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "여러 명에게 줄 때는 60g 전후 소포장을 묶음으로 비교한다.",
+    "criteriaTags": [
+      "휴대성",
+      "대량 선물용",
+      "가성비",
+      "호불호 적음"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": false,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": false,
+    "officialSourceNote": "MVP 샘플 플래그입니다. Kultura 상품군에서 제품명/용량을 확인했지만, 실제 판매 가격, 재고, 공식 제휴 가능성은 MD 검증이 필요합니다."
+  },
+  {
+    "productId": "ph-mango-philippine-brand-100g",
+    "country": "필리핀",
+    "category": "드라이망고",
+    "brandName": "Philippine Brand",
+    "productName": "드라이망고 100g",
+    "thumbnailUrl": "/placeholders/ph-philippine-brand-dried-mango.png",
+    "packageSize": "100g",
+    "estimatedPrice": {
+      "display": "180~320 PHP",
+      "amountMin": 180,
+      "amountMax": 320,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.7,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 210,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "필리핀 대표 기념품으로 인지도가 높고 선물 실패가 적다는 샘플 리뷰가 많다.",
+    "pros": [
+      "현지 대표성이 높음",
+      "호불호가 적은 편",
+      "가볍고 보관이 쉬움"
+    ],
+    "cons": [
+      "당 함량이 높을 수 있음",
+      "가격이 바나나칩보다 높음"
+    ],
+    "bestFor": [
+      "부모님",
+      "회사 동료",
+      "친구"
+    ],
+    "caution": "무가당/저당 표기가 있는지 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "공항보다 대형 마트에서 가격을 먼저 비교한다.",
+    "criteriaTags": [
+      "현지 대표성",
+      "호불호 적음",
+      "휴대성",
+      "브랜드 신뢰도"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "ph-mango-7d-100g",
+    "country": "필리핀",
+    "category": "드라이망고",
+    "brandName": "7D",
+    "productName": "7D 드라이망고",
+    "thumbnailUrl": "/placeholders/ph-7d-dried-mango.png",
+    "packageSize": "100g",
+    "estimatedPrice": {
+      "display": "200~380 PHP",
+      "amountMin": 200,
+      "amountMax": 380,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.6,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 174,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "쫀득한 식감과 브랜드 인지도를 장점으로 보는 샘플 리뷰가 있다.",
+    "pros": [
+      "브랜드 신뢰도",
+      "선물 설명이 쉬움",
+      "휴대성이 좋음"
+    ],
+    "cons": [
+      "가격이 다소 높을 수 있음",
+      "단맛이 강할 수 있음"
+    ],
+    "bestFor": [
+      "부모님",
+      "상사/거래처",
+      "친구"
+    ],
+    "caution": "당 섭취를 조절해야 하는 대상에게는 소용량을 권한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "여러 브랜드를 같은 용량 기준으로 비교한다.",
+    "criteriaTags": [
+      "브랜드 신뢰도",
+      "현지 대표성",
+      "호불호 적음",
+      "리뷰 평점"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "ph-ube-goldilocks-polvoron",
+    "country": "필리핀",
+    "category": "우베 과자",
+    "brandName": "Goldilocks",
+    "productName": "우베 폴보론 박스",
+    "thumbnailUrl": "/placeholders/ph-goldilocks-ube-polvoron.png",
+    "packageSize": "12개입",
+    "estimatedPrice": {
+      "display": "160~320 PHP",
+      "amountMin": 160,
+      "amountMax": 320,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.3,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 88,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "개별 포장이 편하지만 잘 부서진다는 샘플 리뷰가 있다.",
+    "pros": [
+      "대량 선물에 적합",
+      "현지 디저트 느낌",
+      "가격 부담이 낮음"
+    ],
+    "cons": [
+      "부서짐 주의",
+      "우베 향 호불호"
+    ],
+    "bestFor": [
+      "회사 동료",
+      "아이",
+      "친구"
+    ],
+    "caution": "가루가 잘 흩어질 수 있어 눌리지 않게 포장한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "개별 포장 수량과 박스 내 완충 상태를 확인한다.",
+    "criteriaTags": [
+      "가성비",
+      "대량 선물용",
+      "현지 대표성"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": false,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "ph-coconut-cebu-snack-100g",
+    "country": "필리핀",
+    "category": "코코넛 스낵",
+    "brandName": "Cebu Local",
+    "productName": "코코넛 크런치 스낵",
+    "thumbnailUrl": "/placeholders/ph-coconut-crunch.png",
+    "packageSize": "100g",
+    "estimatedPrice": {
+      "display": "120~260 PHP",
+      "amountMin": 120,
+      "amountMax": 260,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.2,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 52,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "바삭한 식감과 열대 과일 느낌을 장점으로 보는 샘플 리뷰가 있다.",
+    "pros": [
+      "가벼움",
+      "가격 부담이 낮음",
+      "현지 재료 느낌"
+    ],
+    "cons": [
+      "코코넛 향 호불호",
+      "부서질 수 있음"
+    ],
+    "bestFor": [
+      "친구",
+      "가족 전체",
+      "회사 동료"
+    ],
+    "caution": "코코넛 알레르기나 향 취향을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "작은 봉지 여러 개 구성 제품을 고른다.",
+    "criteriaTags": [
+      "가성비",
+      "휴대성",
+      "현지 대표성"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": false,
+    "officialPartnerPossible": false,
+    "commerceReady": false,
+    "postTripRepurchase": false,
+    "preTripPurchase": false,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 현지 브랜드/정확 제품 식별 후 국내 유통사 또는 공식 총판 확인이 필요합니다."
+  },
+  {
+    "productId": "ph-coffee-barako-ground-250g",
+    "country": "필리핀",
+    "category": "필리핀 커피",
+    "brandName": "Barako Sample Roaster",
+    "productName": "바라코 분쇄 커피",
+    "thumbnailUrl": "/placeholders/ph-barako-coffee.png",
+    "packageSize": "250g",
+    "estimatedPrice": {
+      "display": "280~650 PHP",
+      "amountMin": 280,
+      "amountMax": 650,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.4,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 61,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "향이 진하고 필리핀 산지 경험이 난다는 샘플 리뷰가 있다.",
+    "pros": [
+      "현지 대표성",
+      "커피 애호가에게 적합",
+      "선물 격식이 있음"
+    ],
+    "cons": [
+      "카페인 민감 대상 부적합",
+      "취향이 갈릴 수 있음"
+    ],
+    "bestFor": [
+      "부모님",
+      "상사/거래처",
+      "나를 위한 기념품"
+    ],
+    "caution": "분쇄도와 로스팅 날짜를 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "선물용이면 원두 설명이 있는 패키지를 고른다.",
+    "criteriaTags": [
+      "고급스러움",
+      "현지 대표성",
+      "브랜드 신뢰도"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": false,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "ph-kalamay-bohol-jar",
+    "country": "필리핀",
+    "category": "칼라마이",
+    "brandName": "Bohol Local",
+    "productName": "보홀 칼라마이",
+    "thumbnailUrl": "/placeholders/ph-bohol-kalamay.png",
+    "packageSize": "200g",
+    "estimatedPrice": {
+      "display": "120~280 PHP",
+      "amountMin": 120,
+      "amountMax": 280,
+      "currency": "PHP",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 29,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "현지성은 강하지만 달고 끈적하다는 샘플 리뷰가 있다.",
+    "pros": [
+      "현지 대표성",
+      "독특한 기념품",
+      "지역 특산 느낌"
+    ],
+    "cons": [
+      "휴대성이 낮음",
+      "단맛 호불호",
+      "포장 누수 주의"
+    ],
+    "bestFor": [
+      "나를 위한 기념품",
+      "가족 전체",
+      "친구"
+    ],
+    "caution": "밀봉 상태를 확인하고 기내 반입 규정을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "장거리 이동이면 단단히 밀봉된 제품만 고른다.",
+    "criteriaTags": [
+      "현지 대표성"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": false,
+    "officialPartnerPossible": true,
+    "commerceReady": false,
+    "postTripRepurchase": true,
+    "preTripPurchase": false,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 신선도, 파손, 유통기한 이슈가 있어 공식 제조사/국내 유통사 검증 후 커머스 연동을 판단해야 합니다."
+  },
+  {
+    "productId": "jp-matcha-uji-cookie-box",
+    "country": "일본",
+    "category": "말차 과자",
+    "brandName": "Uji Sample Sweets",
+    "productName": "우지 말차 쿠키 박스",
+    "thumbnailUrl": "/placeholders/jp-uji-matcha-cookie.png",
+    "packageSize": "12개입",
+    "estimatedPrice": {
+      "display": "900~1,800 JPY",
+      "amountMin": 900,
+      "amountMax": 1800,
+      "currency": "JPY",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.5,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 143,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "일본 느낌이 분명하고 포장이 깔끔하다는 샘플 리뷰가 있다.",
+    "pros": [
+      "현지 대표성",
+      "낱개 포장",
+      "선물 설명이 쉬움"
+    ],
+    "cons": [
+      "말차 쓴맛 호불호",
+      "유제품 알레르기 확인 필요"
+    ],
+    "bestFor": [
+      "부모님",
+      "회사 동료",
+      "친구"
+    ],
+    "caution": "유제품과 견과 성분을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "공항보다 역 상점가에서 지역 한정 패키지를 비교한다.",
+    "criteriaTags": [
+      "현지 대표성",
+      "호불호 적음",
+      "대량 선물용"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "jp-regional-tokyo-banana-sample",
+    "country": "일본",
+    "category": "지역 한정 과자",
+    "brandName": "Tokyo Sample",
+    "productName": "도쿄 바나나 스타일 케이크",
+    "thumbnailUrl": "/placeholders/jp-regional-cake.png",
+    "packageSize": "8개입",
+    "estimatedPrice": {
+      "display": "1,000~1,700 JPY",
+      "amountMin": 1000,
+      "amountMax": 1700,
+      "currency": "JPY",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.4,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 166,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "부드럽고 무난하지만 유통기한이 짧을 수 있다는 샘플 리뷰가 있다.",
+    "pros": [
+      "호불호 적음",
+      "패키지가 선물용",
+      "지역성"
+    ],
+    "cons": [
+      "유통기한 확인 필요",
+      "눌림 주의"
+    ],
+    "bestFor": [
+      "가족 전체",
+      "회사 동료",
+      "친구"
+    ],
+    "caution": "귀국일과 유통기한을 맞춰 구매한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "출국 직전 공항이나 역에서 구매하면 신선도 관리가 쉽다.",
+    "criteriaTags": [
+      "호불호 적음",
+      "현지 대표성",
+      "대량 선물용"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": false,
+    "officialPartnerPossible": true,
+    "commerceReady": false,
+    "postTripRepurchase": true,
+    "preTripPurchase": false,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 신선도, 파손, 유통기한 이슈가 있어 공식 제조사/국내 유통사 검증 후 커머스 연동을 판단해야 합니다."
+  },
+  {
+    "productId": "jp-tea-hojicha-tin",
+    "country": "일본",
+    "category": "녹차/호지차",
+    "brandName": "Kyoto Tea Sample",
+    "productName": "호지차 틴 케이스",
+    "thumbnailUrl": "/placeholders/jp-hojicha-tin.png",
+    "packageSize": "80g",
+    "estimatedPrice": {
+      "display": "1,500~4,500 JPY",
+      "amountMin": 1500,
+      "amountMax": 4500,
+      "currency": "JPY",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.7,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 72,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "향이 고급스럽고 부모님 선물로 좋다는 샘플 리뷰가 있다.",
+    "pros": [
+      "고급스러움",
+      "현지 대표성",
+      "보관이 쉬움"
+    ],
+    "cons": [
+      "카페인 민감 대상 주의",
+      "차 취향이 갈릴 수 있음"
+    ],
+    "bestFor": [
+      "부모님",
+      "상사/거래처",
+      "나를 위한 기념품"
+    ],
+    "caution": "카페인 민감도와 원산지 표기를 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "틴 케이스나 선물 포장 제품을 고르면 격식이 좋아진다.",
+    "criteriaTags": [
+      "고급스러움",
+      "현지 대표성",
+      "브랜드 신뢰도",
+      "리뷰 평점"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "th-coconut-mae-napa-80g",
+    "country": "태국",
+    "category": "코코넛칩",
+    "brandName": "Mae Napa Sample",
+    "productName": "구운 코코넛칩",
+    "thumbnailUrl": "/placeholders/th-coconut-chip.png",
+    "packageSize": "80g",
+    "estimatedPrice": {
+      "display": "50~160 THB",
+      "amountMin": 50,
+      "amountMax": 160,
+      "currency": "THB",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.4,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 101,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "가볍고 달콤해 친구 선물로 무난하다는 샘플 리뷰가 있다.",
+    "pros": [
+      "가성비",
+      "휴대성",
+      "대량 선물 가능"
+    ],
+    "cons": [
+      "단맛 강도 확인 필요",
+      "부서질 수 있음"
+    ],
+    "bestFor": [
+      "친구",
+      "회사 동료",
+      "가족 전체"
+    ],
+    "caution": "당도와 유통기한을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "낱개 봉지 묶음 상품을 고르면 배분이 편하다.",
+    "criteriaTags": [
+      "가성비",
+      "휴대성",
+      "대량 선물용"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "th-mango-doi-kham-100g",
+    "country": "태국",
+    "category": "말린 망고",
+    "brandName": "Doi Kham Sample",
+    "productName": "말린 망고",
+    "thumbnailUrl": "/placeholders/th-dried-mango.png",
+    "packageSize": "100g",
+    "estimatedPrice": {
+      "display": "100~300 THB",
+      "amountMin": 100,
+      "amountMax": 300,
+      "currency": "THB",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.5,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 90,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "열대 과일 느낌이 강하고 무난한 맛이라는 샘플 리뷰가 있다.",
+    "pros": [
+      "현지 대표성",
+      "호불호 적음",
+      "휴대성"
+    ],
+    "cons": [
+      "당 함량 높을 수 있음",
+      "가격 편차"
+    ],
+    "bestFor": [
+      "부모님",
+      "친구",
+      "회사 동료"
+    ],
+    "caution": "설탕 코팅 정도를 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "무가당 또는 저당 표시 제품을 우선 비교한다.",
+    "criteriaTags": [
+      "호불호 적음",
+      "현지 대표성",
+      "휴대성"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "th-herbal-poy-sian-inhaler",
+    "country": "태국",
+    "category": "허브밤",
+    "brandName": "Poy-Sian Sample",
+    "productName": "허브 인헤일러 세트",
+    "thumbnailUrl": "/placeholders/th-herbal-inhaler.png",
+    "packageSize": "6개 세트",
+    "estimatedPrice": {
+      "display": "60~180 THB",
+      "amountMin": 60,
+      "amountMax": 180,
+      "currency": "THB",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.3,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 130,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "작고 재미있는 태국 선물이라는 샘플 리뷰가 많다.",
+    "pros": [
+      "휴대성 매우 좋음",
+      "가성비",
+      "대량 선물 가능"
+    ],
+    "cons": [
+      "향이 강함",
+      "사용법 설명 필요"
+    ],
+    "bestFor": [
+      "친구",
+      "회사 동료",
+      "나를 위한 기념품"
+    ],
+    "caution": "향에 민감한 사람에게는 피한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "여러 개 세트를 사서 가볍게 나누기 좋다.",
+    "criteriaTags": [
+      "가성비",
+      "휴대성",
+      "현지 대표성",
+      "대량 선물용"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "vn-coffee-g7-3in1",
+    "country": "베트남",
+    "category": "베트남 커피",
+    "brandName": "Trung Nguyen G7 Sample",
+    "productName": "G7 커피믹스",
+    "thumbnailUrl": "/placeholders/vn-g7-coffee.png",
+    "packageSize": "20스틱",
+    "estimatedPrice": {
+      "display": "80,000~180,000 VND",
+      "amountMin": 80000,
+      "amountMax": 180000,
+      "currency": "VND",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.5,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 188,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "베트남 커피 입문용으로 쉽고 나누기 좋다는 샘플 리뷰가 있다.",
+    "pros": [
+      "대량 선물용",
+      "현지 대표성",
+      "가성비"
+    ],
+    "cons": [
+      "단맛이 강할 수 있음",
+      "카페인 주의"
+    ],
+    "bestFor": [
+      "회사 동료",
+      "친구",
+      "가족 전체"
+    ],
+    "caution": "카페인과 당 함량을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "스틱 수와 개별 포장 여부를 비교한다.",
+    "criteriaTags": [
+      "가성비",
+      "대량 선물용",
+      "현지 대표성",
+      "호불호 적음"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "vn-coconut-vinamit-cracker",
+    "country": "베트남",
+    "category": "코코넛 크래커",
+    "brandName": "Vinamit Sample",
+    "productName": "코코넛 크래커",
+    "thumbnailUrl": "/placeholders/vn-coconut-cracker.png",
+    "packageSize": "150g",
+    "estimatedPrice": {
+      "display": "50,000~160,000 VND",
+      "amountMin": 50000,
+      "amountMax": 160000,
+      "currency": "VND",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.2,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 64,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "바삭하고 부담 없는 간식이라는 샘플 리뷰가 있다.",
+    "pros": [
+      "가성비",
+      "호불호 적음",
+      "가벼움"
+    ],
+    "cons": [
+      "부서짐 주의",
+      "코코넛 향 호불호"
+    ],
+    "bestFor": [
+      "회사 동료",
+      "가족 전체",
+      "친구"
+    ],
+    "caution": "파손을 줄이기 위해 박스형 포장을 고른다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "낱개 포장 여부를 확인한다.",
+    "criteriaTags": [
+      "가성비",
+      "호불호 적음",
+      "휴대성"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "vn-cashew-vietfarm-200g",
+    "country": "베트남",
+    "category": "캐슈넛",
+    "brandName": "VietFarm Sample",
+    "productName": "로스티드 캐슈넛",
+    "thumbnailUrl": "/placeholders/vn-cashew.png",
+    "packageSize": "200g",
+    "estimatedPrice": {
+      "display": "120,000~320,000 VND",
+      "amountMin": 120000,
+      "amountMax": 320000,
+      "currency": "VND",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.6,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 78,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "고소하고 부모님 선물로 안정적이라는 샘플 리뷰가 있다.",
+    "pros": [
+      "호불호 적음",
+      "고급스러운 느낌",
+      "실용적"
+    ],
+    "cons": [
+      "견과 알레르기",
+      "무게가 늘 수 있음"
+    ],
+    "bestFor": [
+      "부모님",
+      "상사/거래처",
+      "가족 전체"
+    ],
+    "caution": "견과 알레르기와 소금 함량을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "무염/저염 제품과 포장 밀봉 상태를 비교한다.",
+    "criteriaTags": [
+      "고급스러움",
+      "호불호 적음",
+      "리뷰 평점"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "tw-pineapple-chia-te-sample",
+    "country": "대만",
+    "category": "펑리수",
+    "brandName": "Chia Te Sample",
+    "productName": "펑리수 박스",
+    "thumbnailUrl": "/placeholders/tw-pineapple-cake.png",
+    "packageSize": "12개입",
+    "estimatedPrice": {
+      "display": "350~800 TWD",
+      "amountMin": 350,
+      "amountMax": 800,
+      "currency": "TWD",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.7,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 240,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "대만 대표 선물로 안정적이고 포장이 좋다는 샘플 리뷰가 있다.",
+    "pros": [
+      "현지 대표성",
+      "브랜드 신뢰도",
+      "호불호 적음"
+    ],
+    "cons": [
+      "무게와 부피",
+      "유통기한 확인 필요"
+    ],
+    "bestFor": [
+      "부모님",
+      "회사 동료",
+      "가족 전체"
+    ],
+    "caution": "파인애플 함량과 유통기한을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "낱개 포장과 박스 손상 여부를 확인한다.",
+    "criteriaTags": [
+      "현지 대표성",
+      "브랜드 신뢰도",
+      "리뷰 평점",
+      "호불호 적음"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "tw-nougat-sugar-spice",
+    "country": "대만",
+    "category": "누가 크래커",
+    "brandName": "Sugar & Spice Sample",
+    "productName": "누가 크래커",
+    "thumbnailUrl": "/placeholders/tw-nougat-cracker.png",
+    "packageSize": "20개입",
+    "estimatedPrice": {
+      "display": "180~500 TWD",
+      "amountMin": 180,
+      "amountMax": 500,
+      "currency": "TWD",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.3,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 112,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "개별 포장으로 나누기 좋지만 파 향 호불호가 있다는 샘플 리뷰가 있다.",
+    "pros": [
+      "대량 선물용",
+      "가성비",
+      "휴대성"
+    ],
+    "cons": [
+      "향 호불호",
+      "식감이 끈적할 수 있음"
+    ],
+    "bestFor": [
+      "회사 동료",
+      "친구",
+      "아이"
+    ],
+    "caution": "파 향이 강한 제품은 호불호를 고려한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "맛 구성이 다양한 소포장 제품을 고른다.",
+    "criteriaTags": [
+      "가성비",
+      "대량 선물용",
+      "휴대성"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "tw-tea-oolong-tin",
+    "country": "대만",
+    "category": "우롱차",
+    "brandName": "Taiwan Tea Sample",
+    "productName": "우롱차 틴 세트",
+    "thumbnailUrl": "/placeholders/tw-oolong-tea.png",
+    "packageSize": "100g",
+    "estimatedPrice": {
+      "display": "300~2,000 TWD",
+      "amountMin": 300,
+      "amountMax": 2000,
+      "currency": "TWD",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.6,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 70,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "고급스러운 차 선물로 적합하다는 샘플 리뷰가 있다.",
+    "pros": [
+      "고급스러움",
+      "현지 대표성",
+      "선물 격식"
+    ],
+    "cons": [
+      "차 취향이 갈릴 수 있음",
+      "가격 편차"
+    ],
+    "bestFor": [
+      "부모님",
+      "상사/거래처",
+      "나를 위한 기념품"
+    ],
+    "caution": "카페인 민감도와 산지 표기를 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "소용량 틴 케이스가 선물용으로 안정적이다.",
+    "criteriaTags": [
+      "고급스러움",
+      "현지 대표성",
+      "리뷰 평점"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "sg-kaya-yakun-jar",
+    "country": "싱가포르",
+    "category": "카야잼",
+    "brandName": "Ya Kun Sample",
+    "productName": "카야잼 병",
+    "thumbnailUrl": "/placeholders/sg-kaya-jam.png",
+    "packageSize": "220g",
+    "estimatedPrice": {
+      "display": "5~15 SGD",
+      "amountMin": 5,
+      "amountMax": 15,
+      "currency": "SGD",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.4,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 96,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "싱가포르 아침 식사 문화를 떠올리기 좋다는 샘플 리뷰가 있다.",
+    "pros": [
+      "현지 대표성",
+      "호불호 적음",
+      "가족 선물"
+    ],
+    "cons": [
+      "유리병 파손",
+      "액체류 반입 확인 필요"
+    ],
+    "bestFor": [
+      "부모님",
+      "가족 전체",
+      "친구"
+    ],
+    "caution": "유리병 포장과 액체류 반입 규정을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "작은 병 세트가 선물용으로 좋다.",
+    "criteriaTags": [
+      "현지 대표성",
+      "호불호 적음"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "sg-tea-premium-tin",
+    "country": "싱가포르",
+    "category": "프리미엄 티",
+    "brandName": "Singapore Tea Sample",
+    "productName": "프리미엄 티 틴",
+    "thumbnailUrl": "/placeholders/sg-premium-tea.png",
+    "packageSize": "50g",
+    "estimatedPrice": {
+      "display": "15~60 SGD",
+      "amountMin": 15,
+      "amountMax": 60,
+      "currency": "SGD",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.8,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 84,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "포장이 고급스럽고 격식 있는 선물로 좋다는 샘플 리뷰가 있다.",
+    "pros": [
+      "고급스러움",
+      "브랜드 신뢰도",
+      "선물 격식"
+    ],
+    "cons": [
+      "가격이 높을 수 있음",
+      "향 취향"
+    ],
+    "bestFor": [
+      "상사/거래처",
+      "부모님",
+      "배우자/연인"
+    ],
+    "caution": "카페인과 향 취향을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "틴 케이스와 쇼핑백 포함 여부를 확인한다.",
+    "criteriaTags": [
+      "고급스러움",
+      "브랜드 신뢰도",
+      "리뷰 평점"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "sg-snack-salted-egg",
+    "country": "싱가포르",
+    "category": "솔티드에그 스낵",
+    "brandName": "Salted Egg Sample",
+    "productName": "솔티드에그 감자칩",
+    "thumbnailUrl": "/placeholders/sg-salted-egg-snack.png",
+    "packageSize": "105g",
+    "estimatedPrice": {
+      "display": "6~18 SGD",
+      "amountMin": 6,
+      "amountMax": 18,
+      "currency": "SGD",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.2,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 138,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "맛이 독특하고 재미있지만 짠맛 호불호가 있다는 샘플 리뷰가 있다.",
+    "pros": [
+      "현지 대표성",
+      "친구 선물",
+      "트렌디함"
+    ],
+    "cons": [
+      "짠맛",
+      "향 호불호"
+    ],
+    "bestFor": [
+      "친구",
+      "나를 위한 기념품",
+      "회사 동료"
+    ],
+    "caution": "짠맛과 향이 강한 제품은 대량 선물에서 주의한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "처음 선물할 때는 작은 봉지를 고른다.",
+    "criteriaTags": [
+      "현지 대표성",
+      "가성비",
+      "리뷰 평점"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "hk-cookie-jenny-sample",
+    "country": "홍콩",
+    "category": "에그롤",
+    "brandName": "Jenny Style Sample",
+    "productName": "버터쿠키/에그롤 틴",
+    "thumbnailUrl": "/placeholders/hk-cookie-tin.png",
+    "packageSize": "320g",
+    "estimatedPrice": {
+      "display": "80~220 HKD",
+      "amountMin": 80,
+      "amountMax": 220,
+      "currency": "HKD",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.6,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 201,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "고소하고 무난하지만 틴이 무겁다는 샘플 리뷰가 있다.",
+    "pros": [
+      "호불호 적음",
+      "선물용 포장",
+      "브랜드 신뢰도"
+    ],
+    "cons": [
+      "무게와 부피",
+      "부서짐 주의"
+    ],
+    "bestFor": [
+      "가족 전체",
+      "부모님",
+      "회사 동료"
+    ],
+    "caution": "틴 케이스 찌그러짐과 내용물 파손을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "여러 명에게 나눌 때는 낱개 포장 제품이 더 편하다.",
+    "criteriaTags": [
+      "호불호 적음",
+      "브랜드 신뢰도",
+      "리뷰 평점"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "hk-milktea-kamcha-stick",
+    "country": "홍콩",
+    "category": "밀크티 믹스",
+    "brandName": "KamCha Sample",
+    "productName": "홍콩 밀크티 스틱",
+    "thumbnailUrl": "/placeholders/hk-milk-tea-mix.png",
+    "packageSize": "10스틱",
+    "estimatedPrice": {
+      "display": "30~100 HKD",
+      "amountMin": 30,
+      "amountMax": 100,
+      "currency": "HKD",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.3,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 87,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "홍콩식 밀크티를 간단히 경험할 수 있다는 샘플 리뷰가 있다.",
+    "pros": [
+      "가성비",
+      "휴대성",
+      "대량 선물용"
+    ],
+    "cons": [
+      "단맛",
+      "카페인"
+    ],
+    "bestFor": [
+      "회사 동료",
+      "친구",
+      "나를 위한 기념품"
+    ],
+    "caution": "카페인과 당 함량을 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "스틱형 제품을 고르면 나누기 쉽다.",
+    "criteriaTags": [
+      "가성비",
+      "휴대성",
+      "대량 선물용",
+      "현지 대표성"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  },
+  {
+    "productId": "hk-tea-chinese-gift",
+    "country": "홍콩",
+    "category": "중국차",
+    "brandName": "Hong Kong Tea Sample",
+    "productName": "중국차 선물 세트",
+    "thumbnailUrl": "/placeholders/hk-chinese-tea.png",
+    "packageSize": "120g",
+    "estimatedPrice": {
+      "display": "80~500 HKD",
+      "amountMin": 80,
+      "amountMax": 500,
+      "currency": "HKD",
+      "isEstimated": true
+    },
+    "rating": {
+      "value": 4.5,
+      "max": 5,
+      "source": "mock",
+      "needsVerification": true
+    },
+    "reviewCount": {
+      "value": 57,
+      "source": "sample",
+      "needsVerification": true
+    },
+    "reviewSummary": "격식 있는 선물로 좋지만 차 취향이 갈릴 수 있다는 샘플 리뷰가 있다.",
+    "pros": [
+      "고급스러움",
+      "현지 대표성",
+      "상사 선물 적합"
+    ],
+    "cons": [
+      "카페인",
+      "취향 차이"
+    ],
+    "bestFor": [
+      "상사/거래처",
+      "부모님",
+      "나를 위한 기념품"
+    ],
+    "caution": "차 종류와 카페인 민감도를 확인한다.",
+    "matchScore": 0,
+    "matchReason": "런타임 추천 로직에서 사용자 조건에 따라 계산됩니다.",
+    "purchaseTip": "선물 박스와 원산지 설명이 있는 제품을 고른다.",
+    "criteriaTags": [
+      "고급스러움",
+      "현지 대표성",
+      "브랜드 신뢰도"
+    ],
+    "dataQuality": {
+      "price": "estimated",
+      "rating": "mock",
+      "review": "sample",
+      "needsVerification": true
+    },
+    "domesticAvailable": true,
+    "officialPartnerPossible": true,
+    "commerceReady": true,
+    "postTripRepurchase": true,
+    "preTripPurchase": true,
+    "officialSourceNote": "MVP 샘플 플래그입니다. 실제 국내 판매 여부, 공식 판매처, 총판 계약 가능성은 마이리얼트립 제휴/MD 검증이 필요합니다."
+  }
+]

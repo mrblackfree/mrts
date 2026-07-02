@@ -1,0 +1,46 @@
+{
+  "name": "myrealtrip-souvenir-assistant",
+  "version": "1.9.0",
+  "description": "마이리얼트립의 여행 맥락을 해석해 국가별 기념품을 추천·비교하고, Guide·Passport·Compare 딥링크 액션으로 연결하는 Codex 플러그인",
+  "author": {
+    "name": "MyRealTrip Hackathon Team"
+  },
+  "license": "MIT",
+  "keywords": [
+    "myrealtrip",
+    "souvenir",
+    "travel-context",
+    "product-comparison",
+    "match-score",
+    "pdf-guide",
+    "souvenir-passport"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "마이리얼트립 기념품 도우미",
+    "shortDescription": "여행 맥락으로 기념품을 추천하고 실제 제품까지 비교합니다.",
+    "longDescription": "마이리얼트립의 여행지, 일정, 귀국 전날 여부, 공항 이동 전 상황, 여행 유형, 예약 지역 같은 여행 맥락을 해석해 국가별 기념품을 추천합니다. 사용자는 국가, 여행 상황, 여행 유형, 선물 대상, 추천 기준을 선택하고, 플러그인은 회사 동료/부모님/아이/거래처 같은 대상별 판단 기준과 귀국 전날/출장 같은 상황 기준을 반영해 추천 이유와 Match Score를 설명합니다. 추천 결과는 선택 요약, TOP 5, 한 줄 결론, 액션 카드로 고정 출력하며 Guide(/guide), Passport(/passport/[country]), Compare(/compare) 딥링크로 연결됩니다. product-builder 기능을 통합해 카테고리 안의 실제 제품을 썸네일, 브랜드, 용량, 예상 가격, 평점, 리뷰 요약, 장단점, 추천 대상, 매칭 점수로 비교합니다. MVP에서는 실제 구매, 결제, 배송, 재고, 업체 연결, 실제 회원 계정 연동 기능을 구현하지 않습니다.",
+    "developerName": "MyRealTrip Hackathon Team",
+    "category": "Travel",
+    "capabilities": [
+      "Skill",
+      "Recommendation",
+      "Comparison",
+      "Product Data",
+      "Match Score",
+      "Deep Link Actions",
+      "Travel Context Reasoning",
+      "Product Card UI",
+      "Shop Sample UI",
+      "API Example",
+      "PDF Download",
+      "Souvenir Passport"
+    ],
+    "defaultPrompt": [
+      "이번 여행 기준으로 기념품 제품 비교해줘.",
+      "필리핀 바나나칩을 회사 동료용으로 비교해줘.",
+      "추천 결과를 여행가이드, 패스포트, 전체 비교 페이지로 열어줘."
+    ],
+    "brandColor": "#0077ED"
+  }
+}

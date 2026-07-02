@@ -1,0 +1,51 @@
+[
+  {
+    "code": "JP",
+    "nameKo": "일본",
+    "nameEn": "Japan",
+    "currency": "JPY",
+    "displayOrder": 1
+  },
+  {
+    "code": "TH",
+    "nameKo": "태국",
+    "nameEn": "Thailand",
+    "currency": "THB",
+    "displayOrder": 2
+  },
+  {
+    "code": "VN",
+    "nameKo": "베트남",
+    "nameEn": "Vietnam",
+    "currency": "VND",
+    "displayOrder": 3
+  },
+  {
+    "code": "PH",
+    "nameKo": "필리핀",
+    "nameEn": "Philippines",
+    "currency": "PHP",
+    "displayOrder": 4
+  },
+  {
+    "code": "TW",
+    "nameKo": "대만",
+    "nameEn": "Taiwan",
+    "currency": "TWD",
+    "displayOrder": 5
+  },
+  {
+    "code": "SG",
+    "nameKo": "싱가포르",
+    "nameEn": "Singapore",
+    "currency": "SGD",
+    "displayOrder": 6
+  },
+  {
+    "code": "HK",
+    "nameKo": "홍콩",
+    "nameEn": "Hong Kong",
+    "currency": "HKD",
+    "displayOrder": 7
+  }
+]

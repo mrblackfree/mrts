@@ -1,0 +1,57 @@
+[
+  {
+    "productId": "ph-banana-owl-tree-60g",
+    "status": "verified",
+    "remoteImageUrl": "https://image2.lotteimall.com/goods/84/31/58/1277583184_1.jpg/dims/resizemc/550x550/optimize",
+    "sourceUrl": "https://m.lotteimall.com/goods/viewGoodsDetail.lotte?goods_no=1277583184",
+    "sourceLabel": "Lotte Home Shopping product detail",
+    "sourceType": "retailer_product_page",
+    "lastCheckedAt": "2026-06-29",
+    "needsManualThumbnail": false,
+    "notes": "Verified as an Owl Tree Banana Chips Original 60g product image."
+  },
+  {
+    "productId": "ph-banana-jovys-400g",
+    "status": "verified",
+    "remoteImageUrl": "https://d2j6dbq0eux0bg.cloudfront.net/images/17197054/1761507377.jpg",
+    "sourceUrl": "https://supermarket.staluciagrocers.com/products/Jovys-Banana-Chips-Original-400g-p254677255",
+    "sourceLabel": "St. Lucia Grocers product detail",
+    "sourceType": "retailer_product_page",
+    "lastCheckedAt": "2026-06-29",
+    "needsManualThumbnail": false,
+    "notes": "Verified as a Jovy's Banana Chips Original 400g product image."
+  },
+  {
+    "productId": "ph-banana-cebu-local-80g",
+    "status": "manual_required",
+    "remoteImageUrl": "",
+    "sourceUrl": "",
+    "sourceLabel": "Manual thumbnail required",
+    "sourceType": "manual",
+    "lastCheckedAt": "2026-06-29",
+    "needsManualThumbnail": true,
+    "notes": "This record is a generic local-brand sample, so a precise product thumbnail should be supplied manually."
+  },
+  {
+    "productId": "ph-banana-sabanana-100g",
+    "status": "manual_required",
+    "remoteImageUrl": "",
+    "sourceUrl": "https://www.kulturafilipino.com/collections/banana-chips",
+    "sourceLabel": "Kultura Filipino banana chips collection",
+    "sourceType": "retailer_collection_page",
+    "lastCheckedAt": "2026-06-29",
+    "needsManualThumbnail": true,
+    "notes": "Product name/package observed in retailer collection; register a precise product thumbnail before production use."
+  },
+  {
+    "productId": "ph-banana-farmony-60g",
+    "status": "manual_required",
+    "remoteImageUrl": "",
+    "sourceUrl": "https://www.kulturafilipino.com/collections/banana-chips",
+    "sourceLabel": "Kultura Filipino banana chips collection",
+    "sourceType": "retailer_collection_page",
+    "lastCheckedAt": "2026-06-29",
+    "needsManualThumbnail": true,
+    "notes": "Product name/package observed in retailer collection; register a precise product thumbnail before production use."
+  }
+]

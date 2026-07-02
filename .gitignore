@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Vercel local config
+.vercel/
+
+# Local runtime output
+tmp/
+output/
+*.log
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.env
+.env.local
