@@ -11,7 +11,10 @@ export default function AnalysisProgress({ step }: { step: number }) {
   const { t } = useI18n();
   return (
     <Card className="rise-in no-print p-5">
-      <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6" aria-live="polite">
+      <p className="sr-only" role="status" aria-live="polite">
+        {t(PIPELINE_STEPS[Math.min(step, PIPELINE_STEPS.length - 1)])}
+      </p>
+      <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {PIPELINE_STEPS.map((k, i) => {
           const state = i < step ? 'done' : i === step ? 'active' : 'todo';
           return (
@@ -26,7 +29,10 @@ export default function AnalysisProgress({ step }: { step: number }) {
               >
                 {state === 'done' ? <Check className="size-4" /> : state === 'active' ? <Loader2 className="size-4 animate-spin" /> : i + 1}
               </span>
-              <span className={cx('text-xs font-semibold', state === 'todo' ? 'text-slate-400' : 'text-slate-700 dark:text-slate-200')}>{t(k)}</span>
+              <span className={cx('text-xs font-semibold', state === 'todo' ? 'text-slate-400' : 'text-slate-700 dark:text-slate-200')}>
+                {t(k)}
+                <span className="sr-only"> — {state}</span>
+              </span>
             </li>
           );
         })}

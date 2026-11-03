@@ -600,7 +600,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
       moq: 2000,
       moqUnit: 'kg',
       defaultIncoterm: 'FOB Cebu',
-      incoterms: ['FOB Cebu', 'FOB Davao', 'CFR Busan', 'CIF Busan', 'CIF Incheon'],
+      incoterms: ['FOB Cebu', 'FOB Davao', 'CFR Busan', 'CIF Busan', 'CIF Incheon', 'DDP Seoul'],
       leadTimeDays: 21,
     },
     keyRisks: [
@@ -832,7 +832,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
       moq: 10000,
       moqUnit: 'packs',
       defaultIncoterm: 'FOB Cebu',
-      incoterms: ['FOB Cebu', 'CFR Incheon', 'CIF Incheon', 'CIF Busan'],
+      incoterms: ['FOB Cebu', 'CFR Incheon', 'CIF Incheon', 'CIF Busan', 'DDP Seoul'],
       leadTimeDays: 25,
     },
     keyRisks: [
@@ -1056,7 +1056,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
       moq: 3800,
       moqUnit: 'kg (20 drums)',
       defaultIncoterm: 'FOB Manila',
-      incoterms: ['FOB Manila', 'FOB Cebu', 'CFR Busan', 'CIF Busan', 'CIF Incheon'],
+      incoterms: ['FOB Manila', 'FOB Cebu', 'CFR Busan', 'CIF Busan', 'CIF Incheon', 'DDP Seoul'],
       leadTimeDays: 20,
     },
     keyRisks: [
@@ -1826,7 +1826,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
       },
     ],
     tariffs: [
-      { scheme: 'MFN', rate: 1, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
+      { scheme: 'MFN', rate: 1, roo: '-', certificate: CERT.none, note: b('도어락(8301.40) 기준 — 바닥재(3918.10)는 MFN 15%', 'Door locks (8301.40) only — flooring (3918.10) is 15% MFN') },
       { scheme: 'AKFTA', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('일반품목 철폐 완료', 'Normal-track elimination complete') },
       { scheme: 'RCEP', rate: 1, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('MFN 이하로 상한 — 양허세율 확인 필요', 'Capped at MFN — confirm the scheduled rate') },
       { scheme: 'KRPH', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },

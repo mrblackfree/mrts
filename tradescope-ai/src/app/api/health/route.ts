@@ -23,7 +23,7 @@ export function GET() {
     officialData: {
       generatedAt: OFFICIAL.generatedAt ?? null,
       sources: Object.fromEntries(Object.entries(OFFICIAL.sources).map(([k, v]) => [k, v?.status])),
-      verifiedOverrides: OFFICIAL.overrideCount,
+      verifiedOverrides: OFFICIAL.activeOverrideCount(),
       trustScore: Math.round(PRODUCTS.reduce((s, p) => s + (p.verification?.score ?? 0), 0) / PRODUCTS.length),
       byProduct: Object.fromEntries(PRODUCTS.map((p) => [p.id, p.verification?.score ?? 0])),
     },

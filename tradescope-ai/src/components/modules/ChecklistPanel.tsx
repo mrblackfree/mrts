@@ -88,7 +88,15 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
                         {r.linkCheck && (
                           <p className="mt-1 text-[10.5px] text-slate-400">
                             {t('linkHealth')}:{' '}
-                            {r.linkCheck.state === 'ok' ? t('linkOk') : r.linkCheck.state === 'protected' ? t('linkProtected') : r.linkCheck.state === 'unreachable' ? t('linkUnreachable') : t('linkBroken')} ·{' '}
+                            {r.linkCheck.state === 'ok'
+                              ? t('linkOk')
+                              : r.linkCheck.state === 'protected'
+                                ? t('linkProtected')
+                                : r.linkCheck.state === 'unavailable'
+                                  ? t('linkUnavailable')
+                                  : r.linkCheck.state === 'unreachable'
+                                    ? t('linkUnreachable')
+                                    : t('linkBroken')} ·{' '}
                             {r.linkCheck.checkedAt.slice(0, 10)}
                           </p>
                         )}

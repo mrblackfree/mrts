@@ -19,7 +19,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem('ts-lang');
-      if (saved === 'en' || saved === 'ko') setLangState(saved);
+      if (saved === 'en' || saved === 'ko') {
+        setLangState(saved);
+        document.documentElement.lang = saved;
+      }
     } catch {
       /* storage unavailable */
     }

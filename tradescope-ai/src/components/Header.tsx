@@ -29,7 +29,13 @@ export default function Header({ health, canPrint, trustScore, onOpenTrust }: { 
   };
 
   const aiOn = !!health?.ai.enabled;
-  const sources = [t('srcUnipass'), t('srcComtrade'), t('srcPhFda')];
+  // live = synced from an official API into the snapshot; reference = official site linked, not synced
+  const sources: Array<{ label: string; live: boolean }> = [
+    { label: t('srcComtrade'), live: true },
+    { label: 'World Bank WITS', live: true },
+    { label: t('srcUnipass'), live: false },
+    { label: t('srcPhFda'), live: false },
+  ];
 
   return (
     <header className="no-print sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
@@ -48,9 +54,14 @@ export default function Header({ health, canPrint, trustScore, onOpenTrust }: { 
         <div className="ml-auto flex items-center gap-2">
           <div className="hidden items-center gap-1.5 lg:flex" aria-label={t('sourcesConnected')}>
             {sources.map((s) => (
-              <span key={s} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                <span className="size-1.5 rounded-full bg-emerald-500" />
-                {s}
+              <span
+                key={s.label}
+                title={s.live ? t('srcLiveTitle') : t('srcRefTitle')}
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+              >
+                <span className={cx('size-1.5 rounded-full', s.live ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600')} />
+                {s.label}
+                {!s.live && <span className="font-medium text-slate-400">· {t('srcRef')}</span>}
               </span>
             ))}
           </div>
@@ -58,6 +69,7 @@ export default function Header({ health, canPrint, trustScore, onOpenTrust }: { 
             type="button"
             onClick={onOpenTrust}
             title={t('trustTitle')}
+            aria-label={`${t('trustTitle')} · ${t('trustScore')} ${trustScore}`}
             className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 transition hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30"
           >
             <ShieldCheck className="size-3.5" />
@@ -78,8 +90,9 @@ export default function Header({ health, canPrint, trustScore, onOpenTrust }: { 
             <span className="hidden sm:inline">{t('aiReady')}</span>
             <span className="hidden font-medium opacity-75 md:inline">· {aiOn ? (health?.ai.model ?? 'LLM') : t('aiSim')}</span>
           </span>
-          <span className="hidden items-center gap-1 rounded-full border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 sm:inline-flex lg:hidden dark:border-slate-700 dark:text-slate-400" title={sources.join(' · ')}>
-            <Database className="size-3.5" />3
+          <span className="hidden items-center gap-1 rounded-full border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-500 sm:inline-flex lg:hidden dark:border-slate-700 dark:text-slate-400" title={sources.map((s) => s.label).join(' · ')}>
+            <Database className="size-3.5" />
+            {sources.length}
           </span>
           {canPrint && (
             <button

@@ -16,6 +16,10 @@ const FOCUS_KEYWORDS: Record<IntentFocus, string[]> = {
 };
 
 const IMPORT_HINTS = ['수입', '소싱', '들여', 'import', 'sourcing', 'source from', '한국에', 'into korea', 'to korea'];
+const isAscii = (k: string) => /^[\x20-\x7E]+$/.test(k);
+const escapeRe = (k: string) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** ASCII keywords match on word boundaries ("port" must not hit "import"); Korean keywords match as substrings. */
+const hasKeyword = (text: string, k: string) => (isAscii(k) ? new RegExp(`\\b${escapeRe(k)}\\b`, 'i').test(text) : text.includes(k));
 const EXPORT_HINTS = ['수출', '진출', '판매', '납품', 'export', 'sell to', '필리핀에', 'to the philippines', 'into the philippines', 'to philippines'];
 
 const REGION_PATTERNS: Array<[RegExp, string]> = [
@@ -55,14 +59,15 @@ function scale(n: number, unit?: string): number {
 }
 
 function parseIncoterm(query: string): string | undefined {
-  const m = query.match(/\b(EXW|FCA|FOB|CFR|CIF|CPT|CIP|DAP|DPU|DDP)\b\s*([A-Za-z]+)?/i);
+  // Only known ports / places are attached to the term (so "CIF is ..." does not become "CIF Is").
+  const m = query.match(/\b(EXW|FCA|FOB|CFR|CIF|CPT|CIP|DAP|DPU|DDP)\b(?:\s+(Busan|Incheon|Manila|Cebu|Davao|Batangas|Seoul|Korea|Philippines)\b)?/i);
   if (!m) return undefined;
   return m[2] ? `${m[1].toUpperCase()} ${m[2][0].toUpperCase()}${m[2].slice(1).toLowerCase()}` : m[1].toUpperCase();
 }
 
 export function parseIntent(query: string): QueryIntent {
   const low = query.toLowerCase();
-  const focus = (Object.keys(FOCUS_KEYWORDS) as IntentFocus[]).filter((f) => FOCUS_KEYWORDS[f].some((k) => low.includes(k)));
+  const focus = (Object.keys(FOCUS_KEYWORDS) as IntentFocus[]).filter((f) => FOCUS_KEYWORDS[f].some((k) => hasKeyword(low, k)));
   const region = REGION_PATTERNS.find(([re]) => re.test(query))?.[1];
   return {
     focus: focus.length ? focus : ['tariff', 'regulation', 'market', 'partners', 'logistics'],
@@ -76,8 +81,10 @@ export function parseIntent(query: string): QueryIntent {
 export function inferDirection(query: string): Direction | undefined {
   const low = query.toLowerCase();
   // Ordered country mentions: "필리핀 ... 한국에 수입" => PH_TO_KR
-  const imp = IMPORT_HINTS.some((k) => low.includes(k));
-  const exp = EXPORT_HINTS.some((k) => low.includes(k));
+  // "필리핀에서 …" means FROM the Philippines — drop the "-에서" forms before matching "필리핀에" / "한국에".
+  const cleaned = low.replace(/(필리핀|한국)에서/g, ' ');
+  const imp = IMPORT_HINTS.some((k) => hasKeyword(cleaned, k));
+  const exp = EXPORT_HINTS.some((k) => hasKeyword(cleaned, k));
   if (imp && !exp) return 'PH_TO_KR';
   if (exp && !imp) return 'KR_TO_PH';
   return undefined;
@@ -148,7 +155,7 @@ export function retrieveProduct(query: string, direction: Direction): RetrievalR
     // No keyword/HS hit: fall back to the flagship scenario for the chosen direction.
     const fallbackId = (inferred ?? direction) === 'PH_TO_KR' ? 'banana-chips' : 'seasoned-laver';
     const product = PRODUCTS.find((p) => p.id === fallbackId)!;
-    return { product, score: 0, confidence: 'low', matchedTerms: [], directionAdjusted: false };
+    return { product, score: 0, confidence: 'low', matchedTerms: [], directionAdjusted: product.direction !== direction };
   }
 
   const confidence = best.score >= 40 ? 'high' : best.score >= 18 ? 'medium' : 'low';

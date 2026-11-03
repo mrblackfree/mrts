@@ -34,13 +34,12 @@ export default function HeroSearch({ query, direction, loading, activeDemo, onQu
         <h1 className="mt-4 text-balance text-2xl font-extrabold tracking-tight text-slate-900 sm:text-4xl dark:text-white">{t('heroTitle')}</h1>
         <p className="mx-auto mt-3 max-w-2xl text-pretty text-sm text-slate-500 sm:text-base dark:text-slate-400">{t('heroSub')}</p>
 
-        <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-center" role="radiogroup" aria-label="direction">
+        <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-center" role="group" aria-label="direction">
           {(['PH_TO_KR', 'KR_TO_PH'] as Direction[]).map((d) => (
             <button
               key={d}
               type="button"
-              role="radio"
-              aria-checked={direction === d}
+              aria-pressed={direction === d}
               onClick={() => onDirection(d)}
               className={cx(
                 'w-full rounded-xl border px-4 py-2 text-sm font-bold transition sm:w-auto',
@@ -58,7 +57,7 @@ export default function HeroSearch({ query, direction, loading, activeDemo, onQu
           className="mt-4"
           onSubmit={(e) => {
             e.preventDefault();
-            onSubmit();
+            if (!loading) onSubmit();
           }}
         >
           <div className="flex flex-col gap-2 rounded-2xl border border-slate-300 bg-white p-2 shadow-lg shadow-slate-200/60 transition focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/15 sm:flex-row sm:items-end dark:border-slate-700 dark:bg-slate-950 dark:shadow-none">
@@ -71,7 +70,7 @@ export default function HeroSearch({ query, direction, loading, activeDemo, onQu
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                     e.preventDefault();
-                    onSubmit();
+                    if (!loading) onSubmit();
                   }
                 }}
                 rows={2}

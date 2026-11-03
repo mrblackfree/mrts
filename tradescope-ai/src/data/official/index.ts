@@ -113,6 +113,8 @@ export const OFFICIAL = {
   fx: SNAP.kcs?.fx ?? null,
   links: SNAP.links ?? {},
   overrideCount: OVERRIDES.length,
+  /** overrides whose validUntil has not passed */
+  activeOverrideCount: () => OVERRIDES.filter((e) => !e.validUntil || e.validUntil >= new Date().toISOString().slice(0, 10)).length,
 };
 
 const ymd = (iso?: string) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : undefined);
@@ -149,14 +151,16 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
 
   // 1) statistics ------------------------------------------------------------
   const snapP = SNAP.comtrade?.products?.[p.id];
-  if (snapP && snapP.series.length >= 2) p.market.series = snapP.series;
+  const statsApplied = !!snapP && snapP.series.length >= 2;
+  if (statsApplied) p.market.series = snapP.series;
   items.push({
     key: 'stats',
     category: 'stats',
     label: b('3개년 교역 통계', '3-year trade series'),
-    level: 'official',
-    source: snapP?.seriesSource ?? 'UN Comtrade',
-    checkedAt: syncAt,
+    // Without a snapshot the embedded series is a copy of earlier Comtrade values, not a live sync.
+    level: statsApplied ? 'official' : 'seed',
+    source: statsApplied ? snapP.seriesSource : undefined,
+    checkedAt: statsApplied ? syncAt : undefined,
   });
 
   if (snapP?.market) {
@@ -179,7 +183,14 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     };
     verification.insightStale = p.market.insightYear !== undefined && p.market.insightYear !== m.year;
   }
-  items.push({ key: 'market', category: 'market', label: b('수입시장 규모·경쟁국 점유율', 'Import market size & competitor shares'), level: 'official', source: snapP?.market?.source ?? 'UN Comtrade', checkedAt: syncAt });
+  items.push({
+    key: 'market',
+    category: 'market',
+    label: b('수입시장 규모·경쟁국 점유율', 'Import market size & competitor shares'),
+    level: snapP?.market ? 'official' : 'seed',
+    source: snapP?.market?.source,
+    checkedAt: snapP?.market ? syncAt : undefined,
+  });
 
   const ytd = SNAP.kcs?.ytd?.[p.id];
   if (ytd) p.market.latestMonthly = { from: ytd.from, to: ytd.to, value: p.direction === 'PH_TO_KR' ? ytd.impUsd : ytd.expUsd, source: ytd.source };
@@ -253,17 +264,8 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     verification.priceCheck = { year: uv.year, usdPerKg: uv.usdPerKg, basis: uv.basis, seedPerKg, ratio, status };
   }
 
-  // Preferential rates can never exceed MFN.
-  if (mfn) {
-    for (const t of p.tariffs) {
-      if (t.scheme !== 'MFN' && t.rate > mfn.rate) {
-        t.rate = mfn.rate;
-        t.verifiedNote = 'capped-at-mfn';
-      }
-    }
-  }
-
   // 3) human-verified overrides ------------------------------------------------
+  let rooVerified: string | undefined;
   for (const e of OVERRIDES.filter((o) => o.productId === p.id && isActive(o))) {
     const stamp = `${e.source} · ${e.verifiedBy} · ${e.verifiedAt}`;
     const tg = e.target;
@@ -271,7 +273,10 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       const t = p.tariffs.find((x) => x.scheme === tg.scheme);
       if (t) {
         t.rate = tg.rate;
-        if (tg.roo) t.roo = tg.roo;
+        if (tg.roo) {
+          t.roo = tg.roo;
+          if (t.scheme === p.bestFta.scheme) rooVerified = stamp;
+        }
         t.level = 'verified';
         t.verifiedNote = stamp;
         if (t.scheme === 'MFN') mfnLevel = 'verified';
@@ -281,7 +286,9 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       if (h) h.ruling = { text: tg.ruling, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
     } else if (tg.type === 'partner') {
       const pt = p.partners.find((x) => x.id === tg.id);
-      if (pt) pt.license = { text: tg.license, validUntil: tg.licenseValidUntil, source: e.source, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
+      // An expired licence is not a verification.
+      const licenceActive = !tg.licenseValidUntil || tg.licenseValidUntil >= today();
+      if (pt && licenceActive) pt.license = { text: tg.license, validUntil: tg.licenseValidUntil, source: e.source, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
     } else if (tg.type === 'requirement') {
       const r = p.requirements.find((x) => x.id === tg.id);
       if (r) r.reviewed = { source: e.source, reference: e.reference, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
@@ -296,6 +303,17 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       if (tg.unitPrice) p.pricing.unitPrice = tg.unitPrice;
       if (tg.moq) p.pricing.moq = tg.moq;
       p.pricing.verified = { reference: e.reference, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
+    }
+  }
+
+  // Preferential rates can never exceed MFN — applied after overrides so a verified MFN is respected too.
+  const mfnFinal = p.tariffs.find((t) => t.scheme === 'MFN');
+  if (mfnFinal) {
+    for (const t of p.tariffs) {
+      if (t.scheme !== 'MFN' && t.rate > mfnFinal.rate) {
+        t.rate = mfnFinal.rate;
+        if (t.level !== 'verified') t.verifiedNote = 'capped-at-mfn';
+      }
     }
   }
 
@@ -328,8 +346,7 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
         t.verifiedNote === 'capped-at-mfn' ? b('시드값이 MFN보다 높아 MFN으로 상한 적용', 'Seed exceeded MFN — capped at MFN') : t.scheme === 'AKFTA' ? akftaConflict : undefined,
     });
   }
-  const best = p.tariffs.find((t) => t.scheme === p.bestFta.scheme);
-  items.push({ key: 'roo', category: 'roo', label: b('최적 협정 원산지기준', 'Rule of origin (best FTA)'), level: best?.level === 'verified' ? 'verified' : 'seed', source: best?.level === 'verified' ? best.verifiedNote : undefined });
+  items.push({ key: 'roo', category: 'roo', label: b('최적 협정 원산지기준', 'Rule of origin (best FTA)'), level: rooVerified ? 'verified' : 'seed', source: rooVerified });
   items.push({
     key: 'hs',
     category: 'hs',
@@ -360,9 +377,13 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       category: 'partners',
       label: b(pt.name, pt.name),
       level: pt.license ? 'verified' : webOk ? 'crosscheck' : 'seed',
-      source: pt.license ? `${pt.license.source} · ${pt.license.verifiedBy}` : webOk ? b('공개 웹페이지 응답 확인', 'Public web page responded').ko : undefined,
+      source: pt.license ? `${pt.license.source} · ${pt.license.verifiedBy}` : undefined,
       checkedAt: pt.license?.verifiedAt ?? pt.linkCheck?.checkedAt,
-      detail: pt.license ? b(pt.license.text, pt.license.text) : b('인허가(LTO 등)는 미검증', 'Licences (e.g. LTO) not yet verified'),
+      detail: pt.license
+        ? b(pt.license.text, pt.license.text)
+        : webOk
+          ? b('공개 웹페이지 응답 확인 · 인허가(LTO 등)는 미검증', 'Public web page responded · licences (e.g. LTO) not yet verified')
+          : b('인허가(LTO 등)는 미검증', 'Licences (e.g. LTO) not yet verified'),
     });
   }
   p.logistics.forEach((l, i) =>

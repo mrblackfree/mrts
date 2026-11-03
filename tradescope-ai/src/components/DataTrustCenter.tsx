@@ -1,7 +1,8 @@
 'use client';
 
 import { ChevronDown, Clock, ExternalLink, History, KeyRound, Link2, Map as MapIcon, PenLine, RefreshCw, ShieldCheck, TriangleAlert, X, Zap } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useModalDialog } from './useModalDialog';
 import { PRODUCTS } from '@/data/kr-ph-trade-db';
 import changelogJson from '@/data/official/changelog.json';
 import { CATEGORY_LABEL, categoryBreakdown, OFFICIAL, type SourceStatus } from '@/data/official';
@@ -49,35 +50,25 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
   const overall = useMemo(overallTrustScore, []);
   const feedbackUrl = process.env.NEXT_PUBLIC_DATA_FEEDBACK_URL;
 
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [onClose]);
+  const dialogRef = useModalDialog<HTMLDivElement>(onClose, closeRef);
 
   const src = OFFICIAL.sources;
   const sourceCards: Array<{ id: string; name: string; st?: SourceStatus; extra?: string }> = [
     { id: 'comtrade', name: 'UN Comtrade', st: src.comtrade, extra: src.comtrade?.endpoint },
     { id: 'wits', name: 'World Bank WITS', st: src.wits, extra: 'TRAINS · MFN · HS6' },
-    { id: 'kcs', name: '관세청 (data.go.kr)', st: src.kcs, extra: src.kcs?.status === 'not-configured' ? 'DATA_GO_KR_SERVICE_KEY' : undefined },
+    { id: 'kcs', name: lang === 'ko' ? '관세청 (data.go.kr)' : 'Korea Customs (data.go.kr)', st: src.kcs, extra: src.kcs?.status === 'not-configured' ? 'DATA_GO_KR_SERVICE_KEY' : undefined },
     {
       id: 'links',
       name: t('linkHealth'),
       st: src.links,
       extra: src.links?.counts ? Object.entries(src.links.counts).map(([k, v]) => `${k} ${v}`).join(' · ') : undefined,
     },
-    { id: 'overrides', name: t('overridesLabel'), st: src.overrides, extra: `${OFFICIAL.overrideCount} entries` },
+    { id: 'overrides', name: t('overridesLabel'), st: src.overrides, extra: lang === 'ko' ? `${OFFICIAL.activeOverrideCount()}건 유효` : `${OFFICIAL.activeOverrideCount()} active entries` },
   ];
   const conflicts = PRODUCTS.flatMap((prod) => (prod.verification?.items ?? []).filter((i) => i.conflict).map((i) => ({ prod, item: i })));
 
   return (
-    <div className="no-print fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-3 backdrop-blur-[2px] sm:p-6" role="dialog" aria-modal="true" aria-label={t('trustTitle')}>
+    <div ref={dialogRef} className="no-print fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-3 backdrop-blur-[2px] sm:p-6" role="dialog" aria-modal="true" aria-label={t('trustTitle')}>
       <button type="button" aria-label={t('close')} className="fixed inset-0 cursor-default" onClick={onClose} />
       <div className="rise-in relative w-full min-w-0 max-w-5xl rounded-3xl bg-white shadow-2xl dark:bg-slate-900">
         {/* header */}

@@ -39,7 +39,7 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
               <p className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">{k.value}</p>
               {k.delta !== null && (
                 <p className={k.delta >= 0 ? 'text-xs font-bold text-emerald-600 dark:text-emerald-400' : 'text-xs font-bold text-rose-600 dark:text-rose-400'}>
-                  {formatPct(k.delta, 1, true)} YoY
+                  {t('yoyLabel')} {formatPct(k.delta, 1, true)}
                 </p>
               )}
             </div>
@@ -73,7 +73,9 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
             <h2 className="text-base font-bold text-slate-900 dark:text-white">{t('catalogTitle')}</h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">{t('catalogSub')}</p>
           </div>
-          <Badge tone="brand">{PRODUCTS.length} items · {PRODUCTS.reduce((n, x) => n + x.partners.length, 0)} partners</Badge>
+          <Badge tone="brand">
+            {PRODUCTS.length} {t('itemsUnit')} · {PRODUCTS.reduce((n, x) => n + x.partners.length, 0)} {t('partnersUnit')}
+          </Badge>
         </div>
         <ul className="grid gap-2.5 p-5 sm:grid-cols-2">
           {PRODUCTS.map((prod) => {
@@ -103,7 +105,9 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
                     <Badge tone="green">
                       {mfn.rate}% → {best.rate}%
                     </Badge>
-                    <Badge tone={g >= 0 ? 'brand' : 'red'}>{formatPct(g, 0, true)} YoY</Badge>
+                    <Badge tone={g >= 0 ? 'brand' : 'red'}>
+                      {t('yoyLabel')} {formatPct(g, 0, true)}
+                    </Badge>
                   </div>
                 </button>
               </li>

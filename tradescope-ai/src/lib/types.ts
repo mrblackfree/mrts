@@ -143,7 +143,7 @@ export interface MfnCheck {
 }
 
 export interface LinkCheck {
-  state: 'ok' | 'protected' | 'unreachable' | 'broken';
+  state: 'ok' | 'protected' | 'unavailable' | 'unreachable' | 'broken';
   status: number;
   checkedAt: string;
 }
@@ -269,6 +269,8 @@ export interface EngineInfo {
   model?: string;
   latencyMs: number;
   fallbackReason?: string;
+  /** language of the LLM-generated text (the other language stays simulation output) */
+  llmLang?: Lang;
 }
 
 export interface AnalysisReport {

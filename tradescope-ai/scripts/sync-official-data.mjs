@@ -177,9 +177,14 @@ async function syncComtrade(snapshot) {
     }
   }
 
+  const prev = snapshot.comtrade ?? {};
   for (const m of MANIFEST) {
     const flow = m.direction === 'PH_TO_KR' ? 'M' : 'X';
-    const series = years.map((y) => ({ year: y, value: bilateral[`${flow}:${m.basis}:${y}`]?.value })).filter((s) => typeof s.value === 'number');
+    const prevP = prev.products?.[m.id];
+    const fresh = years.map((y) => ({ year: y, value: bilateral[`${flow}:${m.basis}:${y}`]?.value })).filter((s) => typeof s.value === 'number');
+    // Keep the last good series when this run returned fewer years (partial outage).
+    const series = fresh.length >= (prevP?.series?.length ?? 0) ? fresh : prevP.series;
+    if (fresh.length < years.length) out.errors.push(`series ${m.id}: ${fresh.length}/${years.length} years${series !== fresh ? ' (kept previous)' : ''}`);
     const importer = m.direction === 'PH_TO_KR' ? KR : PH;
     const counterpart = m.direction === 'PH_TO_KR' ? PH : KR;
     const market = markets[`${importer}:${m.basis}`];
@@ -192,7 +197,7 @@ async function syncComtrade(snapshot) {
       unitValue:
         latest && latest.netWgt > 0
           ? { year: lastFull, usdPerKg: Math.round((latest.value / latest.netWgt) * 100) / 100, netWgtKg: Math.round(latest.netWgt), basis: flow === 'M' ? 'CIF' : 'FOB' }
-          : null,
+          : (prevP?.unitValue ?? null),
       seriesSource: `UN Comtrade · reporter ${KR} (Korea) · partner ${PH} · flow ${flow} · HS ${m.basis}`,
       market: market
         ? {
@@ -203,18 +208,24 @@ async function syncComtrade(snapshot) {
             counterpart: counterpartRow ?? { ...partnerInfo(counterpart), value: 0, share: 0 },
             source: `UN Comtrade · reporter ${importer} · partner World · flow M · HS ${m.basis} · ${market.year}`,
           }
-        : null,
+        : (prevP?.market ?? null),
     };
+    if (!market) out.errors.push(`market ${m.id}: no data${prevP?.market ? ' (kept previous)' : ''}`);
   }
 
   // 3) bilateral totals
   const overview = { krExportsToPh: [], krImportsFromPh: [] };
   for (const y of years) {
     const r = await comtrade({ reporterCode: KR, partnerCode: PH, period: y, cmdCode: 'TOTAL', flowCode: 'M,X' });
+    if (!r.data || r.data.length < 2) out.errors.push(`totals ${y}: ${r.data?.length ?? 0}/2 flows (${r.error ?? r.status})`);
     for (const row of r.data ?? []) {
       (row.flowCode === 'X' ? overview.krExportsToPh : overview.krImportsFromPh).push({ year: y, value: Math.round(row.primaryValue) });
     }
     log(`  comtrade totals ${y}: ${r.data?.length ?? 0} rows`);
+  }
+  // Keep the previous totals for a flow that came back incomplete.
+  for (const k of ['krExportsToPh', 'krImportsFromPh']) {
+    if (overview[k].length < years.length && (prev.overview?.[k]?.length ?? 0) > overview[k].length) overview[k] = prev.overview[k];
   }
   out.overview = overview;
 
@@ -239,8 +250,9 @@ async function syncComtrade(snapshot) {
     }
   }
 
+  const anyData = Object.values(out.products).some((p) => p.series.length);
   snapshot.sources.comtrade = {
-    status: out.errors.length ? 'partial' : 'ok',
+    status: !anyData ? 'error' : out.errors.length ? 'partial' : 'ok',
     fetchedAt: new Date().toISOString(),
     endpoint: COMTRADE_KEY ? 'comtradeapi.un.org/data/v1 (keyed)' : 'comtradeapi.un.org/public/v1/preview (keyless)',
     years,
@@ -300,26 +312,40 @@ async function witsPref(reporter, partner, hs6) {
 }
 
 async function syncWits(snapshot) {
+  const prevWits = snapshot.wits ?? {};
+  const prevPref = snapshot.witsPref ?? {};
   const out = {};
   const pref = {};
   const errors = [];
+  let fetched = 0;
   for (const m of MANIFEST) {
     const reporter = m.direction === 'PH_TO_KR' ? KR : PH;
     out[m.id] = {};
     for (const hs6 of m.hs6) {
       const r = await witsMfn(reporter, hs6);
-      if (r) out[m.id][hs6] = { reporter, ...r };
-      else errors.push(`${m.id} ${reporter}/${hs6}: no record`);
+      if (r) {
+        out[m.id][hs6] = { reporter, ...r };
+        fetched++;
+      } else {
+        errors.push(`${m.id} ${reporter}/${hs6}: no record${prevWits[m.id]?.[hs6] ? ' (kept previous)' : ''}`);
+        if (prevWits[m.id]?.[hs6]) out[m.id][hs6] = prevWits[m.id][hs6];
+      }
       log(`  wits ${m.id} ${reporter}/${hs6}: ${r ? `${r.year} avg ${r.avg}% (min ${r.min}–max ${r.max}, ${r.lines} lines)` : 'no record'}`);
     }
     // preferential rate applied by the importing country to the counterpart (primary HS6 only)
     const partner = m.direction === 'PH_TO_KR' ? PH : KR;
     const pr = await witsPref(reporter, partner, m.hs6[0]);
     if (pr) pref[m.id] = { reporter, partner, hs6: m.hs6[0], ...pr };
+    else if (prevPref[m.id]) pref[m.id] = prevPref[m.id];
     log(`  wits pref ${m.id} ${reporter}←${partner}/${m.hs6[0]}: ${pr ? `${pr.year} ${pr.min === pr.max ? pr.min : `${pr.min}–${pr.max}`}% (${pr.prefLines}/${pr.lines} pref lines)` : 'no record'}`);
   }
   snapshot.witsPref = pref;
-  snapshot.sources.wits = { status: errors.length ? 'partial' : 'ok', fetchedAt: new Date().toISOString(), endpoint: 'wits.worldbank.org/API/V1/SDMX (TRAINS, MFN, HS6)', errors };
+  snapshot.sources.wits = {
+    status: fetched === 0 ? 'error' : errors.length ? 'partial' : 'ok',
+    fetchedAt: new Date().toISOString(),
+    endpoint: 'wits.worldbank.org/API/V1/SDMX (TRAINS, MFN + PREF, HS6)',
+    errors,
+  };
   snapshot.wits = out;
 }
 
@@ -377,7 +403,8 @@ async function syncKcs(snapshot) {
 async function checkLink(url) {
   const res = await getText(url, { timeoutMs: 12_000, retries: 0, headers: { Accept: 'text/html,*/*' } });
   const s = res.status;
-  const state = s >= 200 && s < 400 ? 'ok' : s === 401 || s === 403 || s === 429 || s === 503 || s === 423 ? 'protected' : s === 0 ? 'unreachable' : 'broken';
+  const state =
+    s >= 200 && s < 400 ? 'ok' : s === 401 || s === 403 || s === 423 || s === 429 ? 'protected' : s >= 500 ? 'unavailable' : s === 0 ? 'unreachable' : 'broken';
   return { status: s, state };
 }
 
@@ -400,7 +427,7 @@ async function syncLinks(snapshot) {
     status: 'ok',
     fetchedAt: new Date().toISOString(),
     counts,
-    note: 'protected = site answered but blocks automated clients (bot protection / geo-IP); unreachable = no answer from the checker network.',
+    note: 'protected = site answered but blocks automated clients (401/403/429); unavailable = server error (5xx, may be bot protection or downtime); unreachable = no answer from the checker network.',
   };
   snapshot.links = results;
 }
@@ -418,9 +445,53 @@ async function validateOverrides(snapshot) {
   }
   const required = ['productId', 'target', 'source', 'reference', 'verifiedBy', 'verifiedAt'];
   const errors = [];
+  const db = await readFile(DB_FILE, 'utf8');
+  const knownIds = new Set([...db.matchAll(/\bid: '([a-z0-9-]+)'/g)].map((m) => m[1]));
+  const knownHs = new Set([...db.matchAll(/\bcode: '(\d{4}\.\d{2}\.\d{4})'/g)].map((m) => m[1]));
+  const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+  const isNum = (v, lo, hi) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
+  const isRange = (v, hi) => Array.isArray(v) && v.length === 2 && isNum(v[0], 0, hi) && isNum(v[1], 0, hi) && v[0] <= v[1];
+  const placeholder = (v) => typeof v === 'string' && /(O{3}|_{3,}|0000호|TEST)/.test(v);
   (doc.entries ?? []).forEach((e, i) => {
-    for (const k of required) if (!e[k]) errors.push(`entries[${i}] missing ${k}`);
-    if (e.productId && !MANIFEST.some((m) => m.id === e.productId)) errors.push(`entries[${i}] unknown productId ${e.productId}`);
+    const at = `entries[${i}]`;
+    for (const k of required) if (!e[k]) errors.push(`${at} missing ${k}`);
+    if (e.productId && !MANIFEST.some((m) => m.id === e.productId)) errors.push(`${at} unknown productId ${e.productId}`);
+    if (e.verifiedAt && !isDate(e.verifiedAt)) errors.push(`${at} verifiedAt must be YYYY-MM-DD`);
+    if (e.validUntil !== undefined && !isDate(e.validUntil)) errors.push(`${at} validUntil must be YYYY-MM-DD`);
+    for (const k of ['source', 'reference', 'verifiedBy']) if (placeholder(e[k])) errors.push(`${at} ${k} looks like a placeholder`);
+    const t = e.target ?? {};
+    switch (t.type) {
+      case 'tariff':
+        if (!['MFN', 'AKFTA', 'RCEP', 'KRPH'].includes(t.scheme)) errors.push(`${at} target.scheme must be MFN|AKFTA|RCEP|KRPH`);
+        if (!isNum(t.rate, 0, 100)) errors.push(`${at} target.rate must be 0–100`);
+        if (t.roo !== undefined && (typeof t.roo !== 'string' || !t.roo.trim())) errors.push(`${at} target.roo must be a non-empty string`);
+        break;
+      case 'hs':
+        if (!knownHs.has(t.code)) errors.push(`${at} target.code ${t.code} is not an HS candidate of the product`);
+        if (typeof t.ruling !== 'string' || !t.ruling.trim()) errors.push(`${at} target.ruling required`);
+        break;
+      case 'partner':
+        if (!knownIds.has(t.id)) errors.push(`${at} unknown partner id ${t.id}`);
+        if (typeof t.license !== 'string' || !t.license.trim()) errors.push(`${at} target.license required`);
+        if (t.licenseValidUntil !== undefined && !isDate(t.licenseValidUntil)) errors.push(`${at} target.licenseValidUntil must be YYYY-MM-DD`);
+        break;
+      case 'requirement':
+        if (!knownIds.has(t.id)) errors.push(`${at} unknown requirement id ${t.id}`);
+        break;
+      case 'logistics':
+        if (!Number.isInteger(t.index) || t.index < 0 || t.index > 9) errors.push(`${at} target.index must be an integer 0–9`);
+        if (t.cost === undefined && t.transitDays === undefined) errors.push(`${at} target needs cost and/or transitDays`);
+        if (t.cost !== undefined && !isRange(t.cost, 100000)) errors.push(`${at} target.cost must be [min, max]`);
+        if (t.transitDays !== undefined && !isRange(t.transitDays, 120)) errors.push(`${at} target.transitDays must be [min, max]`);
+        break;
+      case 'pricing':
+        if (t.unitPrice === undefined && t.moq === undefined) errors.push(`${at} target needs unitPrice and/or moq`);
+        if (t.unitPrice !== undefined && !isNum(t.unitPrice, 0.0001, 1e6)) errors.push(`${at} target.unitPrice must be > 0`);
+        if (t.moq !== undefined && !isNum(t.moq, 1, 1e9)) errors.push(`${at} target.moq must be ≥ 1`);
+        break;
+      default:
+        errors.push(`${at} target.type must be tariff|hs|partner|requirement|logistics|pricing`);
+    }
   });
   snapshot.sources.overrides = { status: errors.length ? 'error' : 'ok', entries: (doc.entries ?? []).length, errors };
   log(`  overrides: ${(doc.entries ?? []).length} entries, ${errors.length} errors`);

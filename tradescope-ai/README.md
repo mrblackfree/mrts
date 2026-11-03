@@ -63,7 +63,9 @@ cp .env.example .env.local
 
 - 헤더의 `AI Engine Ready` 배지에 현재 엔진(LLM 모델명 또는 Simulation Engine)이 표시됩니다.
 - 키는 서버에서만 읽으며 `/api/health` 등 어떤 응답에도 노출되지 않습니다.
-- `AI_*` 값은 요청 시점에 읽으므로 **키 교체 시 재빌드 불필요**(재시작만).
+- `AI_*` 값은 요청 시점에 읽으므로 **키 교체 시 재빌드는 불필요**합니다. 단 Docker는 `env_file`을 컨테이너 생성 시에만 읽으므로 `docker compose up -d`로 재생성해야 합니다(`restart`만으로는 반영되지 않음).
+- **LLM 비용 보호:** LLM 호출은 POST 요청에서만 일어나며(GET `/api/analyze`는 항상 시뮬레이션), 클라이언트별 시간당 `AI_MAX_CALLS_PER_IP_PER_HOUR`(기본 30회), 인스턴스별 하루 `AI_DAILY_BUDGET`(기본 500회)로 제한됩니다. 한도를 넘으면 시뮬레이션 결과로 응답합니다. 제한은 서버 인스턴스 단위이므로, 엄격한 전역 한도가 필요하면 Upstash·Vercel KV 같은 공유 저장소를 붙이세요.
+- LLM이 다듬은 메일은 단가·인코텀즈·HS·MOQ가 원본 초안과 그대로 일치할 때만 채택합니다(PI와 불일치 방지).
 
 ---
 
@@ -123,7 +125,7 @@ cp .env.example .env.local
 ```bash
 npm run data:sync        # 전체 동기화 (Comtrade · WITS · 링크 · 키가 있으면 관세청)
 npm run data:links       # 링크만 다시 점검
-npm run data:validate    # verified-overrides.json 형식 검증 (CI에서 실행)
+npm run data:validate    # verified-overrides.json 검증: 필수 필드·날짜(YYYY-MM-DD)·target 유형별 필드·수치 범위·ID 존재·placeholder 차단 (CI에서 실행)
 ```
 
 **검증값 입력 예시** (`src/data/verified-overrides.json`의 `examples` 참고):
@@ -196,7 +198,7 @@ docker compose logs -f tradescope   # 로그
 2. 방화벽/보안그룹에서 80, 443 포트 개방
 3. 실행:
 ```bash
-DOMAIN=trade.example.com docker compose --profile https up -d --build
+APP_BIND=127.0.0.1 DOMAIN=trade.example.com docker compose --profile https up -d --build
 ```
 Caddy가 Let's Encrypt 인증서를 자동 발급·갱신합니다 (`deploy/Caddyfile`). 이미 Nginx를 쓰는 서버라면 `deploy/nginx.conf.example` + `certbot --nginx`를 사용하세요.
 
@@ -211,6 +213,7 @@ docker load < tradescope-ai.tar.gz && docker run -d -p 3000:3000 --env-file .env
 npm ci && npm run build
 cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
 sudo mkdir -p /opt/tradescope-ai && sudo cp -r .next/standalone/. /opt/tradescope-ai/
+sudo cp .env.local /opt/tradescope-ai/ 2>/dev/null || true    # (선택) AI 키
 sudo cp deploy/tradescope.service.example /etc/systemd/system/tradescope.service
 sudo systemctl daemon-reload && sudo systemctl enable --now tradescope   # 127.0.0.1:3000
 ```
@@ -269,7 +272,9 @@ npm run build          # Next.js production build — 0 errors
 npm run data:validate  # verified-overrides.json 형식 검증
 ```
 
-GitHub Actions: `.github/workflows/tradescope-ci.yml`(PR마다 검증·타입체크·빌드), `.github/workflows/tradescope-data-sync.yml`(매주 월요일 공식 데이터 동기화 → 데이터가 바뀌면 PR 생성).
+GitHub Actions(저장소 루트): [`../.github/workflows/tradescope-ci.yml`](../.github/workflows/tradescope-ci.yml)은 PR마다 검증·타입체크·빌드를 실행하고, [`../.github/workflows/tradescope-data-sync.yml`](../.github/workflows/tradescope-data-sync.yml)은 매주 월요일 공식 데이터를 동기화해 데이터가 바뀌면 PR을 생성합니다. 원천 동기화가 실패하면 PR을 만들지 않으며, 실패한 원천은 이전 값을 유지합니다.
+
+Docker Compose는 v2.24 이상이 필요합니다(선택형 `env_file`).
 
 검증 범위: 시뮬레이션 모드와 OpenAI 호환 목(mock) 서버 기반 LLM 모드, 401/403/타임아웃 시 폴백, 4개 원클릭 데모, 모바일(390px) 가로 스크롤 없음, 콘솔 에러 0건, `docker build` 및 컨테이너 헬스체크.
 

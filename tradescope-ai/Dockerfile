@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 # TradeScope AI — production image (Next.js standalone, non-root, runs on 2 vCPU / 4 GB VMs)
 
-ARG NODE_VERSION=22-alpine
+# pinned for reproducible builds — bump deliberately
+ARG NODE_VERSION=22.23.4-alpine
 
 # ---------- 1) dependencies ----------
 FROM node:${NODE_VERSION} AS deps

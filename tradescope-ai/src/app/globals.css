@@ -9,10 +9,14 @@
   --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   --color-brand-50: #ecfeff;
   --color-brand-100: #cffafe;
+  --color-brand-200: #a5f3fc;
+  --color-brand-300: #67e8f9;
   --color-brand-400: #22d3ee;
   --color-brand-500: #06b6d4;
   --color-brand-600: #0891b2;
   --color-brand-700: #0e7490;
+  --color-brand-800: #155e75;
+  --color-brand-900: #164e63;
   --color-kr: #cd2e3a;
   --color-ph: #0038a8;
   --color-ph-sun: #fcd116;
@@ -50,7 +54,9 @@ body {
   animation: rise-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 @media (prefers-reduced-motion: reduce) {
-  .rise-in {
+  .rise-in,
+  .animate-pulse,
+  .animate-spin {
     animation: none;
   }
   html {

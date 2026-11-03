@@ -8,8 +8,8 @@ next-env.d.ts
 *.tsbuildinfo
 
 # env files (keep .env.example)
-.env
-.env*.local
+.env*
+!.env.example
 
 # misc
 .DS_Store

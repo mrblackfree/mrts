@@ -82,8 +82,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                   {mfnCheck.status === 'exact-match' ? t('mfnExact') : mfnCheck.status === 'corrected' ? t('mfnCorrected') : mfnCheck.status === 'within-range' ? t('mfnWithin') : t('mfnOut')}
                 </p>
                 <p className="mt-0.5 leading-relaxed">
-                  HS {mfnCheck.hs6.slice(0, 4)}.{mfnCheck.hs6.slice(4)} · {mfnCheck.year} · MFN {mfnCheck.min === mfnCheck.max ? `${mfnCheck.min}%` : `${mfnCheck.min}–${mfnCheck.max}% (avg ${mfnCheck.avg}%)`} · {mfnCheck.lines}
-                  {t('lines')}
+                  HS {mfnCheck.hs6.slice(0, 4)}.{mfnCheck.hs6.slice(4)} · {mfnCheck.year} · MFN {mfnCheck.min === mfnCheck.max ? `${mfnCheck.min}%` : `${mfnCheck.min}–${mfnCheck.max}% (avg ${mfnCheck.avg}%)`} · {mfnCheck.lines} {t('lines')}
                   {mfnCheck.status === 'corrected' ? ` · seed ${mfnCheck.seedRate}% → ${mfnCheck.appliedRate}%` : ''}
                   {mfnCheck.status === 'within-range' ? (lang === 'ko' ? ' · 10단위 세율 확정은 UNI-PASS 조회 필요' : ' · confirm the 10-digit rate in UNI-PASS') : ''}
                 </p>
@@ -174,9 +173,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                   <p className="mt-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
                     {t('krwDuty')}: ₩{Math.round(bestLine.savingVsMfn * fx.usdKrw).toLocaleString('ko-KR')} (USD 1 = ₩{fx.usdKrw.toLocaleString('ko-KR')}, {fx.appliedFrom})
                   </p>
-                ) : (
-                  <p className="mt-1 text-[11px] text-emerald-800/60 dark:text-emerald-300/60">{t('krwHint')}</p>
-                ))}
+                ) : null)}
             </div>
 
             <div className="thin-scroll mt-4 overflow-x-auto">
@@ -234,7 +231,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <SourceTag meta={product.tariffMeta} />
               <a href={officialFinder} target="_blank" rel="noreferrer" className="no-print text-xs font-semibold text-brand-700 hover:underline dark:text-brand-400">
-                {product.direction === 'KR_TO_PH' ? 'PH Tariff Finder (PH-KR FTA) ↗' : '관세청 FTA 포털 ↗'}
+                {product.direction === 'KR_TO_PH' ? 'PH Tariff Finder (PH-KR FTA) ↗' : lang === 'ko' ? '관세청 FTA 포털 ↗' : 'KCS FTA portal ↗'}
               </a>
             </div>
           </div>

@@ -90,9 +90,10 @@ export function rankPartners(product: TradeProduct, intent?: QueryIntent): Array
   return product.partners
     .map((p) => {
       const regionMatch = !!intent?.region && (p.region === intent.region || p.city.includes(intent.region));
-      return { ...p, regionMatch, rankScore: p.score + (regionMatch ? 4 : 0) };
+      return { ...p, regionMatch, rankScore: p.score };
     })
-    .sort((a, b) => b.rankScore - a.rankScore);
+    // order follows the score shown on the card; a region match only breaks ties
+    .sort((a, b) => b.score - a.score || Number(b.regionMatch) - Number(a.regionMatch));
 }
 
 function hash(s: string): number {
@@ -177,7 +178,7 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
         `물류: ${lane.from}→${lane.to} ${lane.mode} $${formatNumber(lane.cost[0])}~${formatNumber(lane.cost[1])}, ${lane.transitDays[0]}~${lane.transitDays[1]}일`,
         ...(v
           ? [
-              `데이터 신뢰도 ${v.score}/100: 통계 공식(UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? '공식 세율 확인(WITS)' : mfnState === 'within-range' ? '공식 HS6 범위 내(WITS)' : '미검증'} · FTA 협정세율 ${ftaSeed ? `${ftaSeed}건 미검증 — UNI-PASS·Tariff Finder 확인 필요` : '모두 공식·전문가 검증'}`,
+              `데이터 신뢰도 ${v.score}/100: 공식 통계(UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? '공식 세율 확인(WITS)' : mfnState === 'within-range' ? '공식 HS6 범위 내(WITS)' : mfnState === 'out-of-range' ? '공식 범위와 불일치 — 확인 필요' : '미검증'} · FTA 협정세율 ${ftaSeed ? `${ftaSeed}건 미검증 — UNI-PASS·Tariff Finder 확인 필요` : '모두 공식·전문가 검증'}`,
             ]
           : []),
       ],
@@ -213,7 +214,7 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
       `Logistics: ${lane.from}→${lane.to} ${lane.mode} $${formatNumber(lane.cost[0])}–${formatNumber(lane.cost[1])}, ${lane.transitDays[0]}–${lane.transitDays[1]} days`,
       ...(v
         ? [
-            `Data trust ${v.score}/100: statistics official (UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? 'official rate confirmed (WITS)' : mfnState === 'within-range' ? 'within official HS6 range (WITS)' : 'unverified'} · FTA rates ${ftaSeed ? `${ftaSeed} unverified — confirm in UNI-PASS / Tariff Finder` : 'all official or expert-verified'}`,
+            `Data trust ${v.score}/100: official statistics (UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? 'official rate confirmed (WITS)' : mfnState === 'within-range' ? 'within official HS6 range (WITS)' : mfnState === 'out-of-range' ? 'conflicts with the official range — review' : 'unverified'} · FTA rates ${ftaSeed ? `${ftaSeed} unverified — confirm in UNI-PASS / Tariff Finder` : 'all official or expert-verified'}`,
           ]
         : []),
     ],
@@ -274,9 +275,11 @@ export function priceForIncoterm(product: TradeProduct, incoterm: string): numbe
   return Math.round(price * 100) / 100;
 }
 
-export function defaultDraftOptions(product: TradeProduct, intent?: QueryIntent): DraftOptions {
+export function defaultDraftOptions(product: TradeProduct, intent?: QueryIntent, partner?: Partner): DraftOptions {
   const fromQuery = intent?.incoterm && product.pricing.incoterms.find((i) => i.toLowerCase().startsWith(intent.incoterm!.toLowerCase()));
-  const incoterm = fromQuery || product.pricing.defaultIncoterm;
+  // Selling imported goods to a Korean buyer is a domestic, delivered sale.
+  const domestic = partner && isDomesticSupply(product, partner) ? product.pricing.incoterms.find((i) => i.startsWith('DDP')) : undefined;
+  const incoterm = fromQuery || domestic || product.pricing.defaultIncoterm;
   return {
     incoterm,
     moq: product.pricing.moq,
@@ -291,6 +294,9 @@ export function defaultDraftOptions(product: TradeProduct, intent?: QueryIntent)
     senderName: '',
   };
 }
+
+/** PH→KR analysis with a Korean buyer: the user is the Korean importer re-selling in Korea. */
+export const isDomesticSupply = (product: TradeProduct, partner: Partner) => product.direction === 'PH_TO_KR' && partner.role === 'buyer' && partner.country === 'KR';
 
 const PAYMENT_TEXT: Record<DraftOptions['payment'], { ko: string; en: string }> = {
   TT_30_70: { ko: 'T/T 30% 선금, 잔금 70% B/L 사본 수령 시', en: 'T/T 30% deposit with order, 70% balance against copy of B/L' },
@@ -333,6 +339,7 @@ export function buildEmail(product: TradeProduct, partner: Partner, o: DraftOpti
   const ftaLabel = SCHEME_LABEL[best.scheme][lang];
   const price = formatUsd(o.unitPrice, { decimals: 2 });
   const isSourcing = partner.role === 'seller';
+  const domestic = isDomesticSupply(product, partner);
   const hs = product.hs[0].code;
   const reqTop = product.requirements.filter((r) => r.mandatory && r.side === (product.direction === 'KR_TO_PH' ? 'PH' : 'KR')).slice(0, 2);
 
@@ -345,7 +352,9 @@ export function buildEmail(product: TradeProduct, partner: Partner, o: DraftOpti
       '',
       isSourcing
         ? `I hope this message finds you well. My name is ${sender} from ${company}, a Korean importer developing a dedicated supply line for ${pick(product.name, 'en')} in the Korean market.`
-        : `I hope this message finds you well. My name is ${sender} from ${company}, a Korea-based exporter of ${pick(product.name, 'en')}.`,
+        : domestic
+          ? `I hope this message finds you well. My name is ${sender} from ${company}, a Korean importer and distributor of ${pick(product.name, 'en')} sourced directly from the Philippines.`
+          : `I hope this message finds you well. My name is ${sender} from ${company}, a Korea-based exporter of ${pick(product.name, 'en')}.`,
       '',
       isSourcing
         ? `Your range (${pick(partner.products, 'en')}) fits our plans well, and we would like to explore a long-term supply partnership for Korea.`
@@ -366,14 +375,18 @@ export function buildEmail(product: TradeProduct, partner: Partner, o: DraftOpti
       lines.push(
         isSourcing
           ? `  • Origin: please issue the ${pick(best.certificate, 'en')} so we can apply ${best.rate}% duty instead of the ${mfn.rate}% MFN rate`
-          : `  • Duty: eligible for ${best.rate}% under the ${ftaLabel} (vs ${mfn.rate}% MFN) — we provide the ${pick(best.certificate, 'en')}`,
+          : domestic
+            ? `  • Landed cost: imported at ${best.rate}% duty under the ${ftaLabel} (vs ${mfn.rate}% MFN) — the saving is reflected in our price`
+            : `  • Duty: eligible for ${best.rate}% under the ${ftaLabel} (vs ${mfn.rate}% MFN) — we provide the ${pick(best.certificate, 'en')}`,
       );
     }
     if (o.includeCertNote && reqTop.length) {
       lines.push(
         isSourcing
           ? `  • Compliance: we will need your support for ${reqTop.map((r) => r.title.en).join(' and ')}`
-          : `  • Compliance: we will support your ${reqTop.map((r) => r.title.en).join(' and ')} with a full document pack`,
+          : domestic
+            ? `  • Compliance: we handle all Korean import clearance (${reqTop.map((r) => r.title.en).join(', ')}) as the importer of record`
+            : `  • Compliance: we will support your ${reqTop.map((r) => r.title.en).join(' and ')} with a full document pack`,
       );
     }
     lines.push(
@@ -396,7 +409,7 @@ export function buildEmail(product: TradeProduct, partner: Partner, o: DraftOpti
   const lines: string[] = [
     `${partner.name} ${isSourcing ? '영업' : '구매'} 담당자님께,`,
     '',
-    `안녕하십니까. ${isSourcing ? '한국 수입·유통' : '한국 수출'} 전문기업 ${company}의 ${sender}입니다.`,
+    `안녕하십니까. ${isSourcing ? '한국 수입·유통' : domestic ? '필리핀산 직수입·유통' : '한국 수출'} 전문기업 ${company}의 ${sender}입니다.`,
     '',
     isSourcing
       ? `귀사의 ${pick(partner.products, 'ko')} 제품에 깊은 관심을 갖고, 한국 시장 장기 공급 파트너십을 제안드리고자 연락드립니다.`
@@ -417,14 +430,18 @@ export function buildEmail(product: TradeProduct, partner: Partner, o: DraftOpti
     lines.push(
       isSourcing
         ? `  · 원산지: ${pick(best.certificate, 'ko')} 발급 요청 — 한국 수입 시 기본 ${mfn.rate}% 대신 ${best.rate}% 적용`
-        : `  · 관세: ${ftaLabel} 적용 시 ${best.rate}% (기본 ${mfn.rate}%) — 원산지증명서 당사 발급`,
+        : domestic
+          ? `  · 원가: ${ftaLabel} ${best.rate}%로 수입(기본 ${mfn.rate}%) — 절감분을 공급가에 반영`
+          : `  · 관세: ${ftaLabel} 적용 시 ${best.rate}% (기본 ${mfn.rate}%) — 원산지증명서 당사 발급`,
     );
   }
   if (o.includeCertNote && reqTop.length) {
     lines.push(
       isSourcing
         ? `  · 인허가: ${reqTop.map((r) => r.title.ko).join(', ')}에 필요한 자료 협조 요청`
-        : `  · 인허가: ${reqTop.map((r) => r.title.ko).join(', ')} 서류 일체 지원`,
+        : domestic
+          ? `  · 인허가: 수입자로서 ${reqTop.map((r) => r.title.ko).join(', ')} 등 국내 통관 절차 일체 당사 수행`
+          : `  · 인허가: ${reqTop.map((r) => r.title.ko).join(', ')} 서류 일체 지원`,
     );
   }
   lines.push(
@@ -460,7 +477,8 @@ export function buildProforma(product: TradeProduct, partner: Partner, o: DraftO
   }
   const total = lines.reduce((s, l) => s + l.amount, 0);
   return {
-    number: `TS-PI-${date.replace(/-/g, '')}-${product.id.slice(0, 3).toUpperCase()}${partner.id.slice(0, 2).toUpperCase()}`,
+    // a per-draft suffix keeps two PIs with different terms from sharing a number
+    number: `TS-PI-${date.replace(/-/g, '')}-${product.id.slice(0, 3).toUpperCase()}${partner.id.slice(0, 2).toUpperCase()}-${hash(JSON.stringify(o)).toString(36).slice(0, 4).toUpperCase()}`,
     date,
     validUntil: todayIso(30),
     seller: isSourcing ? partner.name : company,

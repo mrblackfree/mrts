@@ -11,7 +11,8 @@ import { Badge, Card, cx, ModuleHeader, ProgressBar } from '../ui';
 export default function BriefingModule({ report, product, onOpenTrust }: { report: AnalysisReport; product: TradeProduct; onOpenTrust: () => void }) {
   const { t, p, lang } = useI18n();
   const briefing = report.briefing[lang];
-  const llm = report.engine.mode === 'llm';
+  // The LLM writes only the requested language; the other language is simulation output.
+  const llm = report.engine.mode === 'llm' && (report.engine.llmLang ?? lang) === lang;
   const focusLabel: Record<string, string> = {
     tariff: t('navTariff'),
     regulation: t('checklistTitle'),
@@ -71,7 +72,7 @@ export default function BriefingModule({ report, product, onOpenTrust }: { repor
                   {focusLabel[f] ?? f}
                 </Badge>
               ))}
-              {report.intent.amountUsd && <Badge tone="green">{t('amount')}: {formatUsd(report.intent.amountUsd)}</Badge>}
+              {report.intent.amountUsd !== undefined && <Badge tone="green">{t('amount')}: {formatUsd(report.intent.amountUsd)}</Badge>}
               {report.intent.region && <Badge tone="amber">{t('region')}: {report.intent.region}</Badge>}
               {report.intent.incoterm && <Badge>{report.intent.incoterm}</Badge>}
               {report.intent.matchedTerms.slice(0, 4).map((m) => (
@@ -145,8 +146,7 @@ export default function BriefingModule({ report, product, onOpenTrust }: { repor
                     const off = v?.mfnCheck && v.mfnCheck.hs6 === hs6 ? v.mfnCheck : v?.altMfn?.[hs6];
                     return off ? (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                        {t('officialMfnAlt')} {off.min === off.max ? `${off.min}%` : `${off.min}–${off.max}%`} · WITS {off.year} · {off.lines}
-                        {t('lines')}
+                        {t('officialMfnAlt')} {off.min === off.max ? `${off.min}%` : `${off.min}–${off.max}%`} · WITS {off.year} · {off.lines} {t('lines')}
                       </p>
                     ) : null;
                   })()}

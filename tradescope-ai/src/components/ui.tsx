@@ -145,13 +145,12 @@ export function CopyButton({ text, label, className }: { text: string; label?: s
 
 export function Segmented<T extends string>({ value, options, onChange, size = 'md', className }: { value: T; options: Array<{ value: T; label: React.ReactNode }>; onChange: (v: T) => void; size?: 'sm' | 'md'; className?: string }) {
   return (
-    <div role="radiogroup" className={cx('inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800', className)}>
+    <div role="group" className={cx('inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800', className)}>
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
-          role="radio"
-          aria-checked={value === o.value}
+          aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={cx(
             'rounded-lg font-semibold transition',

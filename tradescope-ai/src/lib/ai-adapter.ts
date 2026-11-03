@@ -41,7 +41,8 @@ export function getAiConfig(): AiConfig {
     apiKey,
     baseUrl,
     model: process.env.AI_MODEL?.trim() || 'gpt-4o-mini',
-    timeoutMs: numberEnv(process.env.AI_TIMEOUT_MS) ?? 15_000,
+    // non-positive values would make every call time out immediately
+    timeoutMs: (numberEnv(process.env.AI_TIMEOUT_MS) ?? 0) > 0 ? numberEnv(process.env.AI_TIMEOUT_MS)! : 15_000,
     temperature: numberEnv(process.env.AI_TEMPERATURE),
     maxTokens: numberEnv(process.env.AI_MAX_TOKENS),
     jsonMode: process.env.AI_JSON_MODE === 'true',
@@ -82,6 +83,7 @@ export async function chatCompletion(messages: ChatMessage[], overrides: Partial
       cache: 'no-store',
     });
     if (!res.ok) {
+      await res.body?.cancel().catch(() => undefined);
       return { ok: false, reason: `http-${res.status}`, latencyMs: Date.now() - started };
     }
     const json = (await res.json()) as { model?: string; choices?: Array<{ message?: { content?: unknown } }> };
@@ -90,7 +92,7 @@ export async function chatCompletion(messages: ChatMessage[], overrides: Partial
     if (!content.trim()) return { ok: false, reason: 'empty-response', latencyMs: Date.now() - started };
     return { ok: true, content, model: json.model || cfg.model, latencyMs: Date.now() - started };
   } catch (err) {
-    const reason = err instanceof Error && err.name === 'AbortError' ? 'timeout' : 'network-error';
+    const reason = err instanceof Error && err.name === 'AbortError' ? 'timeout' : err instanceof SyntaxError ? 'invalid-response' : 'network-error';
     return { ok: false, reason, latencyMs: Date.now() - started };
   } finally {
     clearTimeout(timer);

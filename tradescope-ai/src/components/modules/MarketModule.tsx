@@ -20,7 +20,7 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
 
   const kpis = [
     { label: `${t('latest')} (${last.year})`, value: formatUsd(last.value, { compact: true }), sub: `${t('yoyLabel')} ${formatPct(growth, 1, true)}`, tone: growth >= 0 ? 'up' : 'down' },
-    { label: `CAGR ${s[0].year}–${last.year}`, value: formatPct(cagr, 1, true), sub: m.hsBasis, tone: cagr >= 0 ? 'up' : 'down' },
+    { label: `CAGR ${s[0].year}–${last.year}`, value: formatPct(cagr, 1, true), sub: `HS ${m.hsBasis}`, tone: 'flat' },
     { label: `${t('marketSize')} (${m.marketSize.year})`, value: formatUsd(m.marketSize.value, { compact: true }), sub: highlighted ? `${p(highlighted.country)} ${highlighted.share}%` : '', tone: 'flat' },
     ...(m.unitValue
       ? [{ label: `${lang === 'ko' ? '공식 통관 단가' : 'Official unit value'} (${m.unitValue.year} ${m.unitValue.basis})`, value: `$${m.unitValue.usdPerKg}/kg`, sub: `${(m.unitValue.netWgtKg / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} t · Comtrade`, tone: 'flat' }]

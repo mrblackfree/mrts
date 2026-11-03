@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "start:standalone": "node .next/standalone/server.js",
+    "start:standalone": "node scripts/prepare-standalone.mjs && node .next/standalone/server.js",
     "typecheck": "tsc --noEmit",
     "data:sync": "node scripts/sync-official-data.mjs",
     "data:links": "node scripts/sync-official-data.mjs --only=links",

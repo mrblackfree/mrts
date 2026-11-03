@@ -4,7 +4,7 @@ import { Container, FileDown, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEMO_SCENARIOS, getProduct } from '@/data/kr-ph-trade-db';
 import { analyzeLocal, DIRECTION_LABEL, rankPartners } from '@/lib/engine/simulate';
-import type { AnalysisReport, Direction } from '@/lib/types';
+import type { AnalysisReport, Direction, Lang } from '@/lib/types';
 import AnalysisProgress, { PIPELINE_STEPS } from './AnalysisProgress';
 import AssistantPanel from './AssistantPanel';
 import DataTrustCenter, { overallTrustScore } from './DataTrustCenter';
@@ -46,8 +46,12 @@ function WorkspaceInner() {
   const product = report ? getProduct(report.productId) : undefined;
 
   const run = useCallback(
-    async (rawQuery: string, dir: Direction, demoId: string | null = null) => {
-      const text = rawQuery.trim() || (dir === 'PH_TO_KR' ? '필리핀 바나나칩 한국 수입 관세와 절차' : '한국 조미김 필리핀 수출 FDA와 바이어');
+    async (rawQuery: string, dir: Direction, demoId: string | null = null, reqLang: Lang = lang) => {
+      const defaults = {
+        ko: { PH_TO_KR: '필리핀 바나나칩 한국 수입 관세와 절차', KR_TO_PH: '한국 조미김 필리핀 수출 FDA와 바이어' },
+        en: { PH_TO_KR: 'Duties and procedures to import Philippine banana chips into Korea', KR_TO_PH: 'Export Korean seasoned laver to the Philippines: FDA and buyers' },
+      } as const;
+      const text = rawQuery.trim() || defaults[reqLang][dir];
       const id = ++requestId.current;
       setStatus('loading');
       setStep(0);
@@ -64,7 +68,7 @@ function WorkspaceInner() {
         const res = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: text, direction: dir, lang }),
+          body: JSON.stringify({ query: text, direction: dir, lang: reqLang }),
           signal: ctrl.signal,
         });
         clearTimeout(timeout);
@@ -106,7 +110,15 @@ function WorkspaceInner() {
     if (q) {
       setQuery(q);
       setDirection(dir);
-      void run(q, dir);
+      // The stored language preference is applied by I18nProvider after mount; read it directly so the
+      // first request already asks for the language the user will see.
+      let storedLang: Lang = 'ko';
+      try {
+        storedLang = localStorage.getItem('ts-lang') === 'en' ? 'en' : 'ko';
+      } catch {
+        /* storage unavailable */
+      }
+      void run(q, dir, null, storedLang);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

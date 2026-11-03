@@ -9,6 +9,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/opt/tradescope-ai
+# copy your .env.local to /opt/tradescope-ai first (optional — without it the simulation engine runs)
 EnvironmentFile=-/opt/tradescope-ai/.env.local
 Environment=NODE_ENV=production
 Environment=PORT=3000
@@ -16,6 +17,17 @@ Environment=HOSTNAME=127.0.0.1
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=3
+# hardening — the app writes no files at runtime
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
 
 [Install]
 WantedBy=multi-user.target

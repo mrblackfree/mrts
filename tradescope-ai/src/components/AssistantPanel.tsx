@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Bot, ExternalLink, FileText, Loader2, Mail, MapPin, Send, Sparkles, Star, Target, Wand2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useModalDialog } from './useModalDialog';
 import { formatNumber, formatUsd } from '@/lib/format';
 import { PARTNER_TYPE_LABEL, type DictKey } from '@/lib/i18n';
 import { buildDraftLocal, defaultDraftOptions, partnerFactors, priceForIncoterm, proformaToText } from '@/lib/engine/simulate';
@@ -36,32 +37,26 @@ const APPROACH = {
 export default function AssistantPanel({ product, partner, intent, initialTab, aiEnabled, onClose }: Props) {
   const { t, p, lang } = useI18n();
   const [tab, setTab] = useState<'analysis' | 'email'>(initialTab);
-  const [options, setOptions] = useState<DraftOptions>(() => defaultDraftOptions(product, intent));
+  const [options, setOptions] = useState<DraftOptions>(() => defaultDraftOptions(product, intent, partner));
+  // raw text of the price field, so partially typed decimals ("3.") are not coerced away
+  const [priceText, setPriceText] = useState(() => String(options.unitPrice));
   const [emailLang, setEmailLang] = useState<Lang>(lang);
-  const [polished, setPolished] = useState<{ lang: Lang; email: EmailDraft; model?: string } | null>(null);
+  // a polished email is only valid for the exact options it was requested with
+  const [polished, setPolished] = useState<{ lang: Lang; email: EmailDraft; model?: string; options: DraftOptions } | null>(null);
   const [polishing, setPolishing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [onClose]);
+  const dialogRef = useModalDialog<HTMLDivElement>(onClose, closeRef);
 
   useEffect(() => setTab(initialTab), [initialTab, partner.id]);
 
   const draft = useMemo(() => buildDraftLocal(product.id, partner.id, options), [product.id, partner.id, options]);
   const factors = useMemo(() => partnerFactors(partner), [partner]);
-  const email = polished && polished.lang === emailLang ? polished.email : draft?.email[emailLang];
+  const polishedValid = !!polished && polished.lang === emailLang && polished.options === options;
+  const email = polishedValid ? polished!.email : draft?.email[emailLang];
   const update = (patch: Partial<DraftOptions>) => {
     setOptions((o) => ({ ...o, ...patch }));
+    if (patch.unitPrice !== undefined) setPriceText(String(patch.unitPrice));
     setPolished(null);
     setNotice(null);
   };
@@ -69,15 +64,16 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
   const polish = async () => {
     setPolishing(true);
     setNotice(null);
+    const requested = options;
     try {
       const res = await fetch('/api/draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId: product.id, partnerId: partner.id, options, lang: emailLang, polish: true }),
+        body: JSON.stringify({ productId: product.id, partnerId: partner.id, options: requested, lang: emailLang, polish: true }),
       });
       const json = await res.json();
       if (json?.ok && json.draft?.engine?.mode === 'llm') {
-        setPolished({ lang: emailLang, email: json.draft.email[emailLang], model: json.draft.engine.model });
+        setPolished({ lang: emailLang, email: json.draft.email[emailLang], model: json.draft.engine.model, options: requested });
       } else {
         setNotice(json?.draft?.engine?.fallbackReason === 'no-api-key' ? t('polishNoKey') : t('polishFail'));
       }
@@ -94,7 +90,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
   const labelCls = 'mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-400';
 
   return (
-    <div className="no-print fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={t('m5Title')}>
+    <div ref={dialogRef} className="no-print fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={t('m5Title')}>
       <button type="button" aria-label={t('close')} className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px]" onClick={onClose} />
       <aside className="rise-in relative flex h-full w-full min-w-0 max-w-2xl flex-col bg-white shadow-2xl dark:bg-slate-900">
         {/* Header */}
@@ -230,7 +226,22 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                   </label>
                   <label>
                     <span className={labelCls}>{t('unitPrice')}</span>
-                    <input type="number" min={0} step={0.01} className={inputCls} value={options.unitPrice} onChange={(e) => update({ unitPrice: Math.max(0, Number(e.target.value)) })} />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      className={inputCls}
+                      value={priceText}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9.]/g, '');
+                        setPriceText(raw);
+                        const n = Number(raw);
+                        if (raw !== '' && !raw.endsWith('.') && Number.isFinite(n)) {
+                          setOptions((o) => ({ ...o, unitPrice: n }));
+                          setPolished(null);
+                        }
+                      }}
+                      onBlur={() => setPriceText(String(options.unitPrice))}
+                    />
                   </label>
                   <label>
                     <span className={labelCls}>
@@ -267,7 +278,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                           ['none', t('sampleNone')],
                         ] as const
                       ).map(([v, label]) => (
-                        <label key={v} className={cx('cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-semibold', options.sample === v ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300')}>
+                        <label key={v} className={cx('cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-semibold focus-within:ring-2 focus-within:ring-brand-500/40', options.sample === v ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300')}>
                           <input type="radio" name="sample" className="sr-only" checked={options.sample === v} onChange={() => update({ sample: v })} />
                           {label}
                         </label>
@@ -314,8 +325,8 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                         ]}
                       />
                     </div>
-                    <Badge tone={polished && polished.lang === emailLang ? 'green' : 'brand'}>
-                      {polished && polished.lang === emailLang ? `${t('engineLlm')} · ${polished.model ?? ''}` : t('engineSim')}
+                    <Badge tone={polishedValid ? 'green' : 'brand'}>
+                      {polishedValid ? `${t('engineLlm')} · ${polished!.model ?? ''}` : t('engineSim')}
                     </Badge>
                   </div>
                   <div className="space-y-2 p-4">
