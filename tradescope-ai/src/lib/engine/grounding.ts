@@ -46,9 +46,15 @@ const SAVING_WORDS = /절감|감면|면제|절약|인하|saving|savings|reductio
 
 function percentClaims(text: string): Claim[] {
   const out: Claim[] = [];
-  const re = new RegExp(String.raw`(?<![\d.,])([+\-−]?${NUM})\s*(?:%p|%|퍼센트(?:포인트)?|percentage points?|percent|pp\b)`, 'gi');
+  const re = new RegExp(String.raw`(?<![\d.,%])([+\-−]?${NUM})\s*(?:%p|%|퍼센트(?:포인트)?|percentage points?|percent|pp\b)`, 'gi');
   for (const m of text.matchAll(re)) {
-    const at = m.index ?? 0;
+    let at = m.index ?? 0;
+    let raw = m[1];
+    // a dash right after another figure is a range ("5% - 10%", "5 -10%"), not a minus sign
+    if (/^[+\-−]/.test(raw) && /[\d%]\s*$/.test(text.slice(0, at))) {
+      raw = raw.slice(1);
+      at += 1;
+    }
     const end = at + m[0].length;
     // the words around the figure, within the same clause
     const lead = text.slice(Math.max(0, at - 28), at).split(/[.!?;\n·|]|,\s/).pop() ?? '';
@@ -56,7 +62,7 @@ function percentClaims(text: string): Claim[] {
     const saving = SAVING_WORDS.test(trail) || SAVING_WORDS.test(lead);
     // a duty word just before the figure ("관세 5%", "MFN 45%"), or as the very next word ("5% tariff", "5% 관세")
     const nextWord = /^\s*(?:의\s*)?(?:관세|세율|tariff|duty|duties|ad valorem)/i.test(trail);
-    out.push({ text: m[0], value: toNumber(m[1]), tol: Math.max(tolerance(m[1].replace(/^[+\-−]/, '')), 0.05), tariff: !saving && (TARIFF_WORDS.test(lead) || nextWord) });
+    out.push({ text: text.slice(at, end), value: toNumber(raw), tol: Math.max(tolerance(raw.replace(/^[+\-−]/, '')), 0.05), tariff: !saving && (TARIFF_WORDS.test(lead) || nextWord) });
   }
   return out;
 }

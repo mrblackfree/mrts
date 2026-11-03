@@ -167,17 +167,28 @@ export function buildBriefing(
   const stated = formatUsd(intent.amountUsd ?? 0);
   const howKo = { 'add-freight-insurance': '에 운임·보험료 추정분을 더함', 'add-insurance': '에 보험료 추정분을 더함', 'remove-delivery': '에서 도착지 운송 추정분을 뺌', 'remove-duty-vat-delivery': '에서 관세·부가세·도착지 운송 추정분을 뺌' };
   const howEn = { 'add-freight-insurance': 'plus estimated freight and insurance', 'add-insurance': 'plus estimated insurance', 'remove-delivery': 'less estimated destination delivery', 'remove-duty-vat-delivery': 'less estimated duty, VAT and destination delivery' };
-  // no incoterm in the question: the figure is used as the CIF value, and said to be an assumption
+  // CIF is used as stated and CIP (carriage and insurance paid) is taken as equivalent; with no incoterm the figure
+  // is used as the CIF value and said to be an assumption
+  const statedTerm = intent.incoterm?.split(' ')[0].toUpperCase();
+  const cifLike = intent.amountUsd !== undefined && (statedTerm === 'CIF' || statedTerm === 'CIP') ? statedTerm : undefined;
   const basisKo = adj
     ? `과세가격(CIF 환산: ${basisTerm} ${stated}${howKo[adj]}) ${formatUsd(amount)}`
-    : intent.amountUsd !== undefined
-      ? `과세가격 ${formatUsd(amount)}(인코텀즈가 없어 CIF로 가정)`
-      : `예시 과세가격 ${formatUsd(amount)}(CIF 가정)`;
+    : cifLike === 'CIF'
+      ? `과세가격(CIF) ${formatUsd(amount)}`
+      : cifLike === 'CIP'
+        ? `과세가격 ${formatUsd(amount)}(CIP 금액을 CIF와 동일하게 사용)`
+        : intent.amountUsd !== undefined
+          ? `과세가격 ${formatUsd(amount)}(인코텀즈가 없어 CIF로 가정)`
+          : `예시 과세가격 ${formatUsd(amount)}(CIF 가정)`;
   const basisEn = adj
     ? `${formatUsd(amount)} CIF customs value (${basisTerm} ${stated} ${howEn[adj]})`
-    : intent.amountUsd !== undefined
-      ? `${formatUsd(amount)} customs value (no incoterm given — assumed CIF)`
-      : `${formatUsd(amount)} example customs value (assumed CIF)`;
+    : cifLike === 'CIF'
+      ? `${formatUsd(amount)} CIF customs value`
+      : cifLike === 'CIP'
+        ? `${formatUsd(amount)} customs value (CIP amount taken as equivalent to CIF)`
+        : intent.amountUsd !== undefined
+          ? `${formatUsd(amount)} customs value (no incoterm given — assumed CIF)`
+          : `${formatUsd(amount)} example customs value (assumed CIF)`;
   const hs0 = product.hs[0];
   const hs1 = product.hs[1];
   const partners = rankPartners(product, intent);
