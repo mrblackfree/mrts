@@ -1,0 +1,21 @@
+# systemd unit for running the standalone build without Docker.
+# sudo cp tradescope.service.example /etc/systemd/system/tradescope.service
+# sudo systemctl daemon-reload && sudo systemctl enable --now tradescope
+[Unit]
+Description=TradeScope AI (Next.js standalone)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/tradescope-ai
+EnvironmentFile=-/opt/tradescope-ai/.env.local
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

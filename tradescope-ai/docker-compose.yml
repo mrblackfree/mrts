@@ -1,0 +1,38 @@
+# TradeScope AI
+#   App only (http://SERVER_IP:3000):      docker compose up -d --build
+#   App + automatic HTTPS for a domain:    DOMAIN=trade.example.com docker compose --profile https up -d --build
+services:
+  tradescope:
+    build: .
+    image: tradescope-ai:latest
+    container_name: tradescope-ai
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    # Optional — without it the built-in KR-PH simulation engine is used.
+    env_file:
+      - path: .env.local
+        required: false
+    environment:
+      NODE_ENV: production
+
+  # Reverse proxy with automatic Let's Encrypt certificates (enable with --profile https).
+  caddy:
+    image: caddy:2.8-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on:
+      - tradescope
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
