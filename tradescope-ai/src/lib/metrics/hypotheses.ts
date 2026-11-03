@@ -51,12 +51,35 @@ export interface AlsoCheck {
   met: boolean | null;
 }
 
-/** Requests by status, for the H3 response condition (only requests the team has acted on are counted). */
+/** Requesters by what happened after contact, for the H3 response condition (the card asks about requesters). */
 export interface RequestTally {
-  /** contacted, in progress, done or closed */
+  /** requesters with at least one request the team acted on (contacted, in progress, done or closed) */
   handled: number;
-  /** in progress or done: the requester answered */
+  /** of those, requesters with a request in progress or done: they answered */
   responded: number;
+}
+
+/**
+ * H3's response condition from the request records: permits-step requests (checklist, service cards) created on or
+ * after `from`, grouped by requester (e-mail, case-insensitive), so a requester who sent several requests counts once.
+ */
+export function requestTally(rows: Array<{ createdAt: string; source?: string; status: string; email: string }>, from: string): RequestTally {
+  const people = new Map<string, { handled: boolean; responded: boolean }>();
+  for (const r of rows) {
+    if (r.createdAt.slice(0, 10) < from || (r.source !== 'checklist' && r.source !== 'card')) continue;
+    const key = r.email.trim().toLowerCase();
+    const p = people.get(key) ?? { handled: false, responded: false };
+    if (r.status !== 'new') p.handled = true;
+    if (r.status === 'in-progress' || r.status === 'done') p.responded = true;
+    people.set(key, p);
+  }
+  let handled = 0;
+  let responded = 0;
+  for (const p of people.values()) {
+    if (p.handled) handled++;
+    if (p.handled && p.responded) responded++;
+  }
+  return { handled, responded };
 }
 
 const b = (ko: string, en: string): Bilingual => ({ ko, en });
@@ -123,7 +146,7 @@ export function hypothesisChecks(t: Record<string, number>, requests?: RequestTa
   });
   return [
     withAlso(h3, {
-      label: b('연락했을 때 응답한 요청자 (진행 중·완료 ÷ 처리한 요청)', 'Requesters who answered when contacted (in progress or done ÷ handled)'),
+      label: b('연락했을 때 응답한 요청자 (진행 중·완료 ÷ 연락한 요청자, 이메일 기준)', 'Requesters who answered when contacted (in progress or done ÷ contacted requesters, by e-mail)'),
       success: requests?.responded ?? 0,
       base: requests?.handled ?? 0,
       target: 0.7,

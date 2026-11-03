@@ -1,6 +1,6 @@
 import { adminJson, requireAdmin } from '@/lib/admin/http';
 import { listRequests } from '@/lib/consult/store';
-import { channelRows, hypothesisChecks, type RequestTally } from '@/lib/metrics/hypotheses';
+import { channelRows, hypothesisChecks, requestTally, type RequestTally } from '@/lib/metrics/hypotheses';
 import { metricsSummary } from '@/lib/metrics/store';
 
 export const runtime = 'nodejs';
@@ -8,15 +8,10 @@ export const dynamic = 'force-dynamic';
 
 const PERIODS = [7, 28, 90, 400];
 
-/** Permits-step requests (checklist, service cards) created in the period, by what happened after the team got in
- * touch — the same population as H3's request rate. */
+/** H3's response condition: permits-step requesters in the period, by what happened after contact. */
 function tally(from: string): RequestTally | undefined {
   try {
-    const rows = listRequests().filter((r) => r.createdAt.slice(0, 10) >= from && (r.source === 'checklist' || r.source === 'card'));
-    return {
-      handled: rows.filter((r) => r.status !== 'new').length,
-      responded: rows.filter((r) => r.status === 'in-progress' || r.status === 'done').length,
-    };
+    return requestTally(listRequests(), from);
   } catch {
     return undefined; // unreadable store: the condition shows as unknown rather than as zero
   }

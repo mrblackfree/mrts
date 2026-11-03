@@ -1398,7 +1398,7 @@ function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () =
 
           <Card className="p-5">
             <p className="text-[15px] font-bold text-slate-900 dark:text-white">{ko ? 'H3 깔때기 — 어디서 빠지는지' : 'H3 funnel — where people drop off'}</p>
-            <p className="mt-1 text-xs text-slate-500">{ko ? '단계 수치는 브라우저·품목별 첫 진입입니다. 한 가지만 바꾸고 같은 기간 길이로 비교하세요.' : 'Step counts are first opens per browser and product. Change one thing at a time and compare equal-length periods.'}</p>
+            <p className="mt-1 text-xs text-slate-500">{ko ? '방문은 탭 세션, 인허가·선적 단계는 브라우저·품목별 첫 진입, 분석·열기·제출은 발생 건수입니다(H3 판정은 처음 보낸 브라우저·품목만 셈). 한 가지만 바꾸고 같은 기간 길이로 비교하세요.' : 'Visits are tab sessions, the permits and shipping steps are first opens per browser and product, reports, opens and requests are event counts (the H3 verdict counts first requests per browser and product only). Change one thing at a time and compare equal-length periods.'}</p>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[30rem] text-left text-[13px]">
                 <thead className="text-xs text-slate-500">

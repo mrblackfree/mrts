@@ -7,7 +7,7 @@ import { done, ok } from './assert';
 process.env.ADMIN_SECRET = 'metrics-test-secret-0123456789abcdef';
 
 const { eventKeys, optedOutHeaders, parseChannel, parseClientEvent } = await import('@/lib/metrics/events');
-const { channelRows, hypothesisChecks, judgeRate, sampleFor, wilson, withAlso } = await import('@/lib/metrics/hypotheses');
+const { channelRows, hypothesisChecks, judgeRate, requestTally, sampleFor, wilson, withAlso } = await import('@/lib/metrics/hypotheses');
 const store = await import('@/lib/metrics/store');
 
 const dir = process.env.TRADESCOPE_DATA_DIR!;
@@ -98,6 +98,22 @@ const rows = channelRows({ 'ch:a:visit': 50, 'ch:a:consult_submit': 1, 'ch:b:vis
 ok('channels sorted by requests, then visits', rows.map((r) => r.channel).join(',') === 'b,a,c', rows);
 ok('channel row fields', rows[0].visits === 10 && rows[0].requests === 3 && rows[0].permitsViews === 0);
 
+// H3's response condition counts requesters once, permits-step requests only
+const req = (email: string, status: string, source = 'checklist', createdAt = '2026-11-01T00:00:00Z') => ({ email, status, source, createdAt });
+const tal = requestTally(
+  [
+    req('a@x.com', 'contacted'),
+    req('A@x.com', 'in-progress', 'card'), // same person, answered on a later request
+    req('b@x.com', 'contacted'),
+    req('b@x.com', 'contacted'),
+    req('c@x.com', 'new'),
+    req('d@x.com', 'done', 'customs'), // not from the permits step
+    req('e@x.com', 'done', 'card', '2026-09-01T00:00:00Z'), // before the period
+  ],
+  '2026-10-01',
+);
+ok('tally: one entry per requester, permits step, in period', tal.handled === 2 && tal.responded === 1, tal);
+
 // ---- store --------------------------------------------------------------------------------------------------------
 const day = new Date().toISOString().slice(0, 10);
 store.countMetrics(['a', 'a', 'b']);
@@ -153,6 +169,15 @@ store.flushMetrics();
 kept = Object.keys((JSON.parse(readFileSync(file, 'utf8')) as { days: object }).days);
 ok('expired day removed after reading, with nothing new counted', kept.length === 1 && kept[0] === ago(1), kept);
 
+// counts made while storage is read-only are kept and written once it is writable again
+store.resetMetricsForTest();
+process.env.SETTINGS_READONLY = '1';
+store.countMetrics(['ro-count']);
+ok('read-only: not written', store.flushMetrics() === false && store.metricsSummary(1).totals['ro-count'] === 1);
+delete process.env.SETTINGS_READONLY;
+ok('writable again: the summary still has them', store.metricsSummary(1).totals['ro-count'] === 1);
+ok('…and the next flush writes them', store.flushMetrics() === true && (JSON.parse(readFileSync(file, 'utf8')) as { days: Record<string, Record<string, number>> }).days[day]['ro-count'] === 1);
+
 // a damaged file is set aside, never overwritten
 writeFileSync(file, '{"format":1,"days":');
 store.resetMetricsForTest();
@@ -172,7 +197,30 @@ const mem = new Map<string, string>();
   getItem: (k: string) => mem.get(k) ?? null,
   setItem: (k: string, v: string) => void mem.set(k, String(v)),
 };
-const { firstTime, noteSavedLookup, RECHECK_GAP_MS } = await import('@/lib/metrics/client');
+const session = new Map<string, string>();
+(globalThis as { sessionStorage?: unknown }).sessionStorage = {
+  getItem: (k: string) => session.get(k) ?? null,
+  setItem: (k: string, v: string) => void session.set(k, String(v)),
+};
+let search = '?utm_source=KOTRA';
+(globalThis as { window?: unknown }).window = { get location() { return { search }; } };
+const nav: { doNotTrack?: string; globalPrivacyControl?: boolean } = {};
+Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true });
+const { currentChannel, firstTime, mark, measurementOff, noteSavedLookup, RECHECK_GAP_MS, seen } = await import('@/lib/metrics/client');
+ok('channel from the landing URL', currentChannel() === 'kotra');
+search = '';
+ok('channel kept for the tab session', currentChannel() === 'kotra');
+nav.globalPrivacyControl = true;
+ok('GPC: no channel, measurement off', currentChannel() === undefined && measurementOff() === true);
+delete nav.globalPrivacyControl;
+nav.doNotTrack = '1';
+ok('DNT: no channel, measurement off', currentChannel() === undefined && measurementOff() === true);
+delete nav.doNotTrack;
+ok('measurement on without the signals', measurementOff() === false && currentChannel() === 'kotra');
+ok('seen before mark → false', seen('submit-permits:p') === false);
+mark('submit-permits:p');
+ok('seen after mark → true', seen('submit-permits:p') === true);
+ok('firstTime marks too', firstTime('step:p:shipping') === true && seen('step:p:shipping') === true);
 const H = RECHECK_GAP_MS;
 const T = Date.UTC(2026, 10, 3); // a real clock reading
 ok('first time once', firstTime('step:p:permits') === true && firstTime('step:p:permits') === false);
@@ -186,6 +234,10 @@ ok('a re-check without a saved start only starts the clock', noteSavedLookup('q'
 ok('saving a second number keeps the count', noteSavedLookup('q', true, T + 2 * H) === false && noteSavedLookup('q', false, T + 2 * H) === true);
 mem.set('ts-m:recheck:r', 'not json');
 ok('damaged entry → false, no throw', noteSavedLookup('r', false, T) === false);
+const realStorage = (globalThis as { localStorage?: unknown }).localStorage;
+(globalThis as { localStorage?: unknown }).localStorage = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
+ok('storage blocked: seen → null, no throw', seen('x') === null && (mark('x'), true));
+(globalThis as { localStorage?: unknown }).localStorage = realStorage;
 
 // ---- /api/metrics -------------------------------------------------------------------------------------------------
 store.resetMetricsForTest();

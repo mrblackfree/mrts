@@ -126,9 +126,9 @@ export function flushMetrics(): boolean {
   timer = null;
   if (!dirty) return false;
   if (!storageState().writable) {
-    // memory only: the counts are already in `doc`
-    delta = Object.create(null);
-    dirty = false;
+    // keep the unwritten counts: storage may come back (a temporary error, a secret set later) and they are
+    // then written with the next flush; expired days are dropped so this cannot grow without end
+    prune({ format: 1, days: delta });
     return false;
   }
   const disk = readDisk().doc;
