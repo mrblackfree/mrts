@@ -142,6 +142,8 @@ export interface MfnCheck {
   appliedRate: number;
   status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range';
   url: string;
+  /** set when an expert-verified override replaced the checked rate afterwards */
+  override?: { rate: number; source: string };
 }
 
 /**
@@ -161,6 +163,8 @@ export interface PrefCheck {
   seedRate?: number;
   status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range' | 'info';
   url: string;
+  /** set when an expert-verified override replaced the checked rate afterwards */
+  override?: { rate: number; source: string };
 }
 
 /** Separate tariff table for an HS candidate whose duty differs from the primary code (e.g. flooring vs locks). */

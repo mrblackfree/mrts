@@ -94,6 +94,7 @@ export default function Header({ health, trustScore, onOpenTrust }: { health: He
             ))}
           </div>
           <span
+            role="img"
             title={sources.map((s) => `${s.label}: ${SRC_TITLE[s.state]}`).join('\n')}
             aria-label={`${t('sourcesConnected')}: ${sources.map((s) => `${s.label} (${SRC_TITLE[s.state]})`).join(', ')}`}
             className={cx(pill, 'hidden border-slate-200/80 bg-white/70 px-2.5 text-slate-500 sm:inline-flex xl:hidden dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400')}
@@ -142,13 +143,13 @@ export default function Header({ health, trustScore, onOpenTrust }: { health: He
             size="sm"
             value={lang}
             onChange={setLang}
-            ariaLabel="Language"
+            ariaLabel={t('language')}
             options={[
               { value: 'ko', label: 'KO' },
               { value: 'en', label: 'EN' },
             ]}
           />
-          <Button variant="secondary" size="sm" icon onClick={toggleTheme} title={t('themeToggle')} aria-label={t('themeToggle')} className="rounded-full max-sm:size-7">
+          <Button variant="secondary" size="sm" icon pill onClick={toggleTheme} title={t('themeToggle')} aria-label={t('themeToggle')} className="max-sm:size-7">
             {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
         </div>

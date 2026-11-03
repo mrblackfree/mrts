@@ -185,12 +185,15 @@ CLI로 배포하려면: `npx vercel@latest --cwd tradescope-ai --prod` (Vercel �
 ### B. Netlify
 1. New site from Git → Base directory `tradescope-ai`, Build command `npm run build` (Next.js 런타임 자동 감지)
 2. 환경변수·도메인은 Site settings에서 동일하게 설정
+3. LLM 키를 쓰면 `TRUST_PROXY=1`도 추가 — Netlify 엣지가 `X-Forwarded-For`에 접속 주소를 붙이므로 호출 제한이 방문자별로 동작합니다(Vercel은 자동 인식).
+
+> **LLM 호출 제한 범위:** 신뢰할 프록시가 없는 구성(`TRUST_PROXY` 미설정·0)에서는 전달 헤더를 위조할 수 있으므로 쓰지 않고, **모든 방문자가 하나의 시간당 한도(`AI_MAX_CALLS_PER_IP_PER_HOUR`, 기본 30회)를 공유**합니다. 한도를 넘으면 해당 시간 동안 시뮬레이션 엔진으로 응답합니다. 방문자별 한도가 필요하면 Caddy/Nginx 같은 리버스 프록시 뒤에서 `TRUST_PROXY=1`로 운영하세요.
 
 ### C. Docker (클라우드 VM, vCPU 2 / RAM 4GB 기준) — 권장
 ```bash
 git clone <repo> && cd <repo>/tradescope-ai
 cp .env.example .env.local          # (선택) AI 키 입력
-echo "TRUST_PROXY=0" >> .env.local                # 프록시 없이 직접 공개하므로 전달 헤더를 신뢰하지 않음
+echo "TRUST_PROXY=0" >> .env.local                # 프록시 없이 직접 공개 → 전달 헤더 불신 (LLM 호출 한도는 전체 방문자 공유)
 APP_BIND=0.0.0.0 docker compose up -d --build     # http://SERVER_IP:3000 (프록시 없이 HTTP로 공개)
 docker compose logs -f tradescope   # 로그
 ```

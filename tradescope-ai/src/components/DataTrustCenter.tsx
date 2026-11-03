@@ -83,7 +83,7 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
             <p className="mt-1.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{t('trustDefinition')}</p>
             <p className="mt-1 text-[11px] text-slate-400">{t('trustFormula')}</p>
           </div>
-          <Button ref={closeRef} variant="ghost" size="md" icon onClick={onClose} aria-label={t('close')} className="-mr-1 -mt-1 shrink-0 rounded-full">
+          <Button ref={closeRef} variant="ghost" size="md" icon pill onClick={onClose} aria-label={t('close')} className="-mr-1 -mt-1 shrink-0">
             <X className="size-5" />
           </Button>
         </div>
@@ -142,7 +142,9 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                 {lang === 'ko' ? '공식 데이터 기반 보정 이력' : 'Corrections from official data'}
               </h3>
               <p className="-mt-1 mb-2 text-[11px] text-slate-400">
-                {lang === 'ko' ? `시드값을 직접 수정한 기록(수동) — 실행 중 자동 보정은 「${t('conflicts')}」 목록에 표시` : `Manual record of edited seed values — automatic runtime corrections are listed under “${t('conflicts')}”`}
+                {lang === 'ko'
+                  ? `시드값을 직접 수정한 기록(수동) — 실행 중 자동 보정·불일치는 「${t('conflicts')}」, 그 밖의 검증 결과(공식 반영·전문가 검증)는 아래 품목별 상세에 표시`
+                  : `Manual record of edited seed values — runtime corrections and disagreements are under “${t('conflicts')}”; other results (official data, expert checks) are in each product’s details below`}
               </p>
               <ul className="thin-scroll max-h-52 space-y-1.5 overflow-y-auto text-xs">
                 {CHANGELOG.map((c, i) => {

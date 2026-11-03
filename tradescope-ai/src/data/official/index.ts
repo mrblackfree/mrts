@@ -316,11 +316,19 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       .filter(([hs6]) => hs6 !== primary6)
       .map(([hs6, v]) => [hs6, { year: v.year, min: v.min, max: v.max, lines: v.lines }]),
   );
+  // conflicts of HS-specific tables are reported like the primary table's (Trust Center conflict list)
+  const altConflicts: VerificationItem[] = [];
   for (const [code, table] of Object.entries(p.tariffsByHs ?? {})) {
     const hs6 = code.replace(/\./g, '').slice(0, 6);
     const alt = checkTariffTable(table.tariffs, hs6, wits[hs6], SNAP.witsPrefByHs?.[p.id]?.[hs6]);
     table.mfnCheck = alt.mfnCheck;
     table.prefCheck = alt.prefCheck;
+    const hsLabel = `HS ${code.slice(0, 7)}`;
+    if (alt.mfnConflict) altConflicts.push({ key: `tariff:MFN:${code}`, category: 'mfn', label: b(`기본세율 (MFN) · ${hsLabel}`, `MFN rate · ${hsLabel}`), level: alt.mfnLevel, conflict: alt.mfnConflict });
+    if (alt.akftaConflict) {
+      const ak = table.tariffs.find((x) => x.scheme === 'AKFTA');
+      altConflicts.push({ key: `tariff:AKFTA:${code}`, category: 'fta', label: b(`AKFTA 협정세율 · ${hsLabel}`, `AKFTA preferential rate · ${hsLabel}`), level: ak?.level ?? 'seed', conflict: alt.akftaConflict });
+    }
   }
 
   // Seed price vs official customs unit value (USD/kg)
@@ -338,7 +346,9 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     const stamp = `${e.source} · ${e.verifiedBy} · ${e.verifiedAt}`;
     const tg = e.target;
     if (tg.type === 'tariff') {
-      const table = tg.hs && p.tariffsByHs?.[tg.hs] ? p.tariffsByHs[tg.hs].tariffs : p.tariffs;
+      // an HS-specific override applies only to that table — never fall back to the primary rates
+      const table = tg.hs ? p.tariffsByHs?.[tg.hs]?.tariffs : p.tariffs;
+      if (!table) continue;
       const t = table.find((x) => x.scheme === tg.scheme);
       if (t) {
         t.rate = tg.rate;
@@ -378,6 +388,16 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
   const capConflicts = capAtMfn(p.tariffs);
   for (const table of Object.values(p.tariffsByHs ?? {})) capConflicts.push(...capAtMfn(table.tariffs));
 
+  // The official checks ran before overrides; note when a verified value now replaces the checked rate.
+  const noteOverride = (tariffs: TariffRate[], mfnCheck?: MfnCheck, prefCheck?: PrefCheck) => {
+    const mfn = tariffs.find((x) => x.scheme === 'MFN');
+    if (mfnCheck && mfn?.level === 'verified' && mfn.rate !== mfnCheck.appliedRate) mfnCheck.override = { rate: mfn.rate, source: mfn.verifiedNote ?? '' };
+    const ak = tariffs.find((x) => x.scheme === 'AKFTA');
+    if (prefCheck && ak?.level === 'verified') prefCheck.override = { rate: ak.rate, source: ak.verifiedNote ?? '' };
+  };
+  noteOverride(p.tariffs, verification.mfnCheck, verification.prefCheck);
+  for (const table of Object.values(p.tariffsByHs ?? {})) noteOverride(table.tariffs, table.mfnCheck, table.prefCheck);
+
   // 4) link checks ---------------------------------------------------------------
   const links = SNAP.links ?? {};
   for (const r of p.requirements) r.linkCheck = links[r.url];
@@ -408,6 +428,7 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     });
   }
   capConflicts.forEach((c, i) => items.push({ key: `cap:${i}`, category: 'fta', label: b('검증값 상한 충돌', 'Verified value capped'), level: 'seed', conflict: c }));
+  items.push(...altConflicts);
   items.push({ key: 'roo', category: 'roo', label: b('최적 협정 원산지기준', 'Rule of origin (best FTA)'), level: rooVerified ? 'verified' : 'seed', source: rooVerified });
   items.push({
     key: 'hs',

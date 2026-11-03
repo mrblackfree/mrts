@@ -246,7 +246,7 @@ function WorkspaceInner() {
                     );
                   })}
                 </div>
-                <Button variant="primary" size="sm" onClick={() => window.print()} className="ml-auto shrink-0 rounded-full shadow-soft" aria-label={t('pdf')}>
+                <Button variant="primary" size="sm" pill onClick={() => window.print()} className="ml-auto shrink-0" aria-label={t('pdf')}>
                   <FileDown className="size-3.5" aria-hidden />
                   <span className="hidden sm:inline">{t('pdf')}</span>
                   <span className="sm:hidden">PDF</span>

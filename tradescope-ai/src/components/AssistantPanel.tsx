@@ -8,7 +8,7 @@ import { PARTNER_TYPE_LABEL, type DictKey } from '@/lib/i18n';
 import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, partnerFactors, priceForIncoterm, priceOnBasis, proformaToText } from '@/lib/engine/simulate';
 import type { DraftOptions, EmailDraft, Lang, Partner, QueryIntent, TradeProduct } from '@/lib/types';
 import { useI18n } from './I18nProvider';
-import { Badge, Button, buttonClass, CopyButton, cx, ProgressBar, ScoreRing, Segmented } from './ui';
+import { Badge, Button, buttonClass, CopyButton, copyText, cx, ProgressBar, ScoreRing, Segmented } from './ui';
 
 interface Props {
   product: TradeProduct;
@@ -94,10 +94,8 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
   const mailto = email && mailtoTooLong ? `mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(t('mailtoPaste'))}` : fullMailto;
   const onMailto = () => {
     if (!email || !mailtoTooLong) return;
-    navigator.clipboard?.writeText(`${email.body}`).then(
-      () => setNotice(t('mailtoCopied')),
-      () => setNotice(t('mailtoCopyFail')),
-    );
+    // copyText falls back to execCommand where the Clipboard API is unavailable (e.g. plain-HTTP deployments)
+    void copyText(email.body).then((ok) => setNotice(ok ? t('mailtoCopied') : t('mailtoCopyFail')));
   };
   const inputCls =
     'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-hairline outline-none transition-[border-color,box-shadow] focus:border-brand-400 focus:shadow-[0_0_0_4px_rgb(42_133_166/0.12)] dark:border-white/10 dark:bg-white/[0.03] dark:text-white';
@@ -127,7 +125,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                 </a>
               </p>
             </div>
-            <Button ref={closeRef} variant="ghost" size="md" icon onClick={onClose} aria-label={t('close')} className="-mr-1 -mt-1 rounded-full">
+            <Button ref={closeRef} variant="ghost" size="md" icon pill onClick={onClose} aria-label={t('close')} className="-mr-1 -mt-1">
               <X className="size-5" />
             </Button>
           </div>
@@ -247,8 +245,9 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                       value={priceText}
                       onChange={(e) => {
                         const raw = e.target.value.replace(/[^0-9.]/g, '');
-                        setPriceText(raw);
                         const n = Math.min(DRAFT_LIMITS.unitPrice, Number(raw));
+                        // show the clamped value, so the field never displays more than the draft uses
+                        setPriceText(n !== Number(raw) ? String(n) : raw);
                         if (raw !== '' && !raw.endsWith('.') && Number.isFinite(n)) {
                           setOptions((o) => ({ ...o, unitPrice: n }));
                           setPolished(null);
@@ -358,7 +357,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                   </div>
                   <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-4 py-3 dark:border-white/[0.07]">
                     <CopyButton text={`${email.subject}\n\n${email.body}`} />
-                    <a href={mailto} onClick={onMailto} title={mailtoTooLong ? t('mailtoCopied') : undefined} className={buttonClass({ size: 'sm' })}>
+                    <a href={mailto} onClick={onMailto} title={mailtoTooLong ? t('mailtoHint') : undefined} className={buttonClass({ size: 'sm' })}>
                       <Mail className="size-3.5" aria-hidden />
                       {t('openMail')}
                     </a>

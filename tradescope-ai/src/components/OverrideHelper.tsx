@@ -61,16 +61,16 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
       return a !== undefined && b !== undefined ? (a <= b ? [a, b] : (bad.push(`${name}: min ≤ max`), undefined)) : undefined;
     };
     if (type === 'tariff') {
-      target = { type, ...(f.hs ? { hs: f.hs } : {}), scheme: f.scheme ?? 'KRPH', rate: num('rate'), ...(f.roo ? { roo: f.roo } : {}) };
+      target = { type, ...(f.hs ? { hs: f.hs } : {}), scheme: f.scheme ?? 'KRPH', rate: num('rate'), ...(f.roo?.trim() ? { roo: f.roo.trim() } : {}) };
       if (num('rate') === undefined) need.push('rate');
       inRange('rate', 0, 100, 'rate 0–100%');
     } else if (type === 'hs') {
-      target = { type, code: f.code ?? product.hs[0].code, ruling: f.ruling ?? '' };
-      if (!f.ruling) need.push('ruling');
+      target = { type, code: f.code ?? product.hs[0].code, ruling: f.ruling?.trim() ?? '' };
+      if (!f.ruling?.trim()) need.push('ruling');
       else if (PLACEHOLDER.test(f.ruling)) bad.push('ruling (placeholder)');
     } else if (type === 'partner') {
-      target = { type, id: f.partnerId ?? product.partners[0].id, license: f.license ?? '', ...(f.licenseValidUntil ? { licenseValidUntil: f.licenseValidUntil } : {}) };
-      if (!f.license) need.push('license');
+      target = { type, id: f.partnerId ?? product.partners[0].id, license: f.license?.trim() ?? '', ...(f.licenseValidUntil ? { licenseValidUntil: f.licenseValidUntil } : {}) };
+      if (!f.license?.trim()) need.push('license');
       if (f.licenseValidUntil && f.licenseValidUntil < today) bad.push('licenseValidUntil (expired)');
     } else if (type === 'requirement') {
       target = { type, id: f.reqId ?? product.requirements[0].id };
@@ -78,14 +78,15 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
       const cost = pair('costMin', 'costMax', 'cost', 100_000);
       const days = pair('dMin', 'dMax', 'transitDays', 120);
       target = { type, index: Number(f.lane ?? 0), ...(cost ? { cost } : {}), ...(days ? { transitDays: days } : {}) };
-      if (!cost && !days) need.push('cost / transitDays');
+      // only "missing" when nothing was entered; half-filled or reversed ranges are reported by pair()
+      if (!cost && !days && !['costMin', 'costMax', 'dMin', 'dMax'].some((k) => f[k])) need.push('cost / transitDays');
     } else {
       target = { type, ...(num('unitPrice') !== undefined ? { unitPrice: num('unitPrice') } : {}), ...(num('moq') !== undefined ? { moq: num('moq') } : {}) };
       if (num('unitPrice') === undefined && num('moq') === undefined) need.push('unitPrice / moq');
       inRange('unitPrice', 0.0001, 1e6, 'unitPrice > 0');
       inRange('moq', 1, 1e9, 'moq ≥ 1');
     }
-    for (const k of ['source', 'reference', 'verifiedBy', 'verifiedAt']) if (!f[k]) need.push(k);
+    for (const k of ['source', 'reference', 'verifiedBy', 'verifiedAt']) if (!f[k]?.trim()) need.push(k);
     for (const k of ['source', 'reference', 'verifiedBy']) if (f[k] && PLACEHOLDER.test(f[k])) bad.push(`${k} (placeholder)`);
     if (f.verifiedAt && f.verifiedAt > today) bad.push('verifiedAt (future)');
     if (f.validUntil && f.validUntil < today) bad.push('validUntil (expired)');
@@ -144,7 +145,8 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
             {hsTables.length > 0 && (
               <label className="col-span-2">
                 <span className={label}>HS tariff table</span>
-                <select className={input} value={f.hs ?? ''} onChange={(e) => set('hs', e.target.value)}>
+                {/* a rate typed for one table must not be carried over to another */}
+                <select className={input} value={f.hs ?? ''} onChange={(e) => setF((o) => ({ ...o, hs: e.target.value, rate: '' }))}>
                   <option value="">HS {product.hs[0].code} ({p(product.hs[0].desc)})</option>
                   {hsTables.map(([code, table]) => (
                     <option key={code} value={code}>

@@ -75,7 +75,7 @@ h3 {
 :where(a, button, [role='button'], summary, [tabindex]):focus-visible {
   outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
-  border-radius: 0.6rem;
+  /* no border-radius here: the outline follows each element's own shape (pills stay pills) */
 }
 
 /* Decorative dot grid (hero) */
@@ -159,6 +159,11 @@ kbd {
   }
   to {
     background-position: 0 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
   }
 }
 

@@ -496,8 +496,18 @@ async function validateOverrides(snapshot) {
   const db = await readFile(DB_FILE, 'utf8');
   const knownIds = new Set([...db.matchAll(/\bid: '([a-z0-9-]+)'/g)].map((m) => m[1]));
   const knownHs = new Set([...db.matchAll(/\bcode: '(\d{4}\.\d{2}\.\d{4})'/g)].map((m) => m[1]));
-  // keys of `tariffsByHs` blocks (HS-specific tariff tables)
-  const knownTables = new Set([...db.matchAll(/^\s+'(\d{4}\.\d{2}\.\d{4})': \{$/gm)].map((m) => m[1]));
+  // keys of `tariffsByHs` blocks (HS-specific tariff tables), per product: product blocks in SEED_PRODUCTS start
+  // with a 4-space-indented `id:`; table keys inside a block belong to that product
+  const tablesByProduct = {};
+  {
+    const start = db.indexOf('const SEED_PRODUCTS');
+    const seed = db.slice(start, db.indexOf('\n];\n', start));
+    const heads = [...seed.matchAll(/^    id: '([a-z0-9-]+)',$/gm)];
+    heads.forEach((h, i) => {
+      const block = seed.slice(h.index, heads[i + 1]?.index ?? seed.length);
+      tablesByProduct[h[1]] = new Set([...block.matchAll(/^\s+'(\d{4}\.\d{2}\.\d{4})': \{$/gm)].map((m) => m[1]));
+    });
+  }
   // round-trip so impossible dates such as 2025-02-31 are rejected
   const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v;
   const isNum = (v, lo, hi) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
@@ -516,7 +526,7 @@ async function validateOverrides(snapshot) {
         if (!['MFN', 'AKFTA', 'RCEP', 'KRPH'].includes(t.scheme)) errors.push(`${at} target.scheme must be MFN|AKFTA|RCEP|KRPH`);
         if (!isNum(t.rate, 0, 100)) errors.push(`${at} target.rate must be 0–100`);
         if (t.roo !== undefined && (typeof t.roo !== 'string' || !t.roo.trim())) errors.push(`${at} target.roo must be a non-empty string`);
-        if (t.hs !== undefined && !knownTables.has(t.hs)) errors.push(`${at} target.hs ${t.hs} is not an HS tariff table of the product`);
+        if (t.hs !== undefined && !tablesByProduct[e.productId]?.has(t.hs)) errors.push(`${at} target.hs ${t.hs} is not an HS tariff table of ${e.productId}`);
         break;
       case 'hs':
         if (!knownHs.has(t.code)) errors.push(`${at} target.code ${t.code} is not an HS candidate of the product`);

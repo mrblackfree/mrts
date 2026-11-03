@@ -164,6 +164,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                 `HS ${fmtHs6(mfnCheck.hs6)} · ${mfnCheck.year} · MFN ${mfnCheck.min === mfnCheck.max ? `${mfnCheck.min}%` : `${mfnCheck.min}–${mfnCheck.max}% (avg ${mfnCheck.avg}%)`} · ${t('lines').replace('{n}', String(mfnCheck.lines))}`,
                 mfnCheck.status === 'corrected' ? seedToApplied(mfnCheck.seedRate, mfnCheck.appliedRate) : '',
                 mfnCheck.status === 'within-range' ? t('confirmUnipass') : '',
+                mfnCheck.override ? t('overrideApplied').replace('{rate}', String(mfnCheck.override.rate)) : '',
               ]
                 .filter(Boolean)
                 .join(' · ')}
@@ -181,6 +182,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                 `${prefCheck.year} · HS ${fmtHs6(prefCheck.hs6)} · ${fmtRange(prefCheck.min, prefCheck.max)} (${t('lines').replace('{n}', String(prefCheck.lines))})`,
                 prefCheck.status === 'corrected' && prefCheck.seedRate !== undefined ? seedToApplied(prefCheck.seedRate, prefCheck.min) : '',
                 prefCheck.scheme === 'AKFTA' ? t('prefOnlyAkfta') : t('prefBestInfo'),
+                prefCheck.override ? t('overrideApplied').replace('{rate}', String(prefCheck.override.rate)) : '',
               ]
                 .filter(Boolean)
                 .join(' · ')}

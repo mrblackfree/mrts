@@ -128,11 +128,11 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
                 </div>
                 {c.license && <p className="mt-1 text-[11px] text-violet-700 dark:text-violet-300">{c.license.text}{c.license.validUntil ? ` · ~${c.license.validUntil}` : ''}</p>}
                 <div className="no-print mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 dark:border-white/[0.06]">
-                  <Button size="md" onClick={() => onOpen(c.id, 'analysis')} className="px-2">
+                  <Button size="md" onClick={() => onOpen(c.id, 'analysis')}>
                     <ScanSearch className="size-3.5" aria-hidden />
                     {t('aiDetail')}
                   </Button>
-                  <Button variant="primary" size="md" onClick={() => onOpen(c.id, 'email')} className="px-2">
+                  <Button variant="primary" size="md" onClick={() => onOpen(c.id, 'email')}>
                     <Mail className="size-3.5" aria-hidden />
                     {t('makeEmail')}
                   </Button>

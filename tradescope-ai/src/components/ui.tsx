@@ -39,17 +39,29 @@ const ICON_SIZE: Record<ButtonSize, string> = { xs: 'size-7 rounded-lg', sm: 'si
 
 /**
  * Class string for anything that should look like a button (also used on links).
- * The base sets `display: inline-flex`, so toggle visibility on a wrapper — not with `hidden` here.
+ *
+ * `className` is for layout only (margins, flex, width, responsive size variants). Do not pass utilities that the
+ * base/variant/size already set (radius, padding, shadow, display): Tailwind resolves conflicts by stylesheet order,
+ * not class order, so such an override is not guaranteed to win. Use the props instead — `pill` for a fully rounded
+ * shape — and toggle visibility on a wrapper element.
  */
-export function buttonClass({ variant = 'secondary', size = 'md', block, icon, className }: { variant?: ButtonVariant; size?: ButtonSize; block?: boolean; icon?: boolean; className?: string } = {}): string {
-  return cx(BTN_BASE, BTN_VARIANT[variant], icon ? ICON_SIZE[size] : BTN_SIZE[size], block && 'w-full', className);
+export function buttonClass({
+  variant = 'secondary',
+  size = 'md',
+  block,
+  icon,
+  pill,
+  className,
+}: { variant?: ButtonVariant; size?: ButtonSize; block?: boolean; icon?: boolean; pill?: boolean; className?: string } = {}): string {
+  const sizing = icon ? ICON_SIZE[size] : BTN_SIZE[size];
+  return cx(BTN_BASE, BTN_VARIANT[variant], pill ? sizing.replace(/\brounded-\S+/, 'rounded-full') : sizing, block && 'w-full', className);
 }
 
-type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; block?: boolean; icon?: boolean; loading?: boolean };
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; block?: boolean; icon?: boolean; pill?: boolean; loading?: boolean };
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ variant, size, block, icon, loading, className, children, type = 'button', disabled, ...rest }, ref) {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ variant, size, block, icon, pill, loading, className, children, type = 'button', disabled, ...rest }, ref) {
   return (
-    <button ref={ref} type={type} disabled={disabled || loading} aria-busy={loading || undefined} className={buttonClass({ variant, size, block, icon, className })} {...rest}>
+    <button ref={ref} type={type} disabled={disabled || loading} aria-busy={loading || undefined} className={buttonClass({ variant, size, block, icon, pill, className })} {...rest}>
       {loading && <Loader2 className="size-4 animate-spin" aria-hidden />}
       {children}
     </button>
