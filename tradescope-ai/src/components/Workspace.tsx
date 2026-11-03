@@ -17,6 +17,8 @@ import PartnersModule from './modules/PartnersModule';
 import TariffModule from './modules/TariffModule';
 import Overview from './Overview';
 import UnsupportedNotice from './UnsupportedNotice';
+import ExpertRequestDialog, { type ExpertContext } from './expert/ExpertRequestDialog';
+import TradeJourney from './journey/TradeJourney';
 import { Button, cx } from './ui';
 import { useBusinessDay } from './useBusinessDay';
 
@@ -50,6 +52,7 @@ function WorkspaceInner() {
   const [assistant, setAssistant] = useState<{ partnerId: string; tab: 'analysis' | 'email' } | null>(null);
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [trustOpen, setTrustOpen] = useState(false);
+  const [expert, setExpert] = useState<ExpertContext | null>(null);
   // a query for a product outside the knowledge base: the example report stays hidden until asked for
   const [showExample, setShowExample] = useState(false);
   // re-applies the official layer at the day boundary so expired overrides drop out of an open dashboard
@@ -183,37 +186,6 @@ function WorkspaceInner() {
     return rankPartners(product, report.intent).find((x) => x.id === assistant.partnerId) ?? null;
   }, [assistant, product, report]);
 
-  const nav = [
-    { id: 'm-brief', label: t('navBrief') },
-    { id: 'm-tariff', label: t('navTariff') },
-    { id: 'm-market', label: t('navMarket') },
-    { id: 'm-partners', label: t('navPartners') },
-  ];
-
-  // scroll-spy: highlight the module currently in view
-  const [activeSection, setActiveSection] = useState('m-brief');
-  useEffect(() => {
-    if (status !== 'done') return;
-    const els = ['m-brief', 'm-tariff', 'm-market', 'm-partners'].map((id) => document.getElementById(id)).filter((x): x is HTMLElement => !!x);
-    if (!els.length || typeof IntersectionObserver === 'undefined') return;
-    // callbacks only report sections whose visibility changed, so keep the full visible set across callbacks
-    const visible = new Set<string>();
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (e.isIntersecting) visible.add(e.target.id);
-          else visible.delete(e.target.id);
-        }
-        const first = els.find((el) => visible.has(el.id)); // first in document order
-        if (first) setActiveSection(first.id);
-      },
-      { rootMargin: '-130px 0px -55% 0px' },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-    // the example report of an unsupported query mounts its sections only when it is opened
-  }, [status, report?.id, showExample]);
-
   return (
     <>
       <Header health={health} trustScore={trustScore} onOpenTrust={() => setTrustOpen(true)} />
@@ -233,7 +205,14 @@ function WorkspaceInner() {
           {status === 'idle' && <Overview onPick={onPick} />}
           {status === 'loading' && <AnalysisProgress step={step} />}
           {status === 'done' && report && product && report.match.supported === false && (
-            <UnsupportedNotice report={report} example={product} showExample={showExample} onToggleExample={() => setShowExample((v) => !v)} onPick={onPick} />
+            <UnsupportedNotice
+              report={report}
+              example={product}
+              showExample={showExample}
+              onToggleExample={() => setShowExample((v) => !v)}
+              onPick={onPick}
+              onExpert={(serviceIds) => setExpert({ topic: report.query, serviceIds })}
+            />
           )}
           {status === 'done' && report && product && (report.match.supported !== false || showExample) && (
             <>
@@ -247,45 +226,18 @@ function WorkspaceInner() {
                 <hr className="my-3" />
               </div>
 
-              <nav className="no-print sticky top-[65px] z-30 -mx-4 flex items-center gap-2 bg-[#f5f7fa]/85 px-4 py-2.5 backdrop-blur-xl sm:-mx-6 sm:px-6 dark:bg-[#060a12]/80" aria-label="modules">
-                <div className="no-scrollbar flex min-w-0 items-center gap-0.5 overflow-x-auto rounded-full border border-slate-200/80 bg-white/80 p-1 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-[#0c121d]/80">
-                  {nav.map((n, i) => {
-                    const active = activeSection === n.id;
-                    return (
-                      <a
-                        key={n.id}
-                        href={`#${n.id}`}
-                        aria-current={active ? 'location' : undefined}
-                        onClick={() => setActiveSection(n.id)}
-                        className={cx(
-                          'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-[background-color,color] duration-150',
-                          active ? 'bg-ink-900 text-white dark:bg-white dark:text-ink-900' : 'text-slate-500 hover:bg-slate-900/[0.05] hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/[0.07] dark:hover:text-white',
-                        )}
-                      >
-                        <span className={cx('text-[10px] font-bold tabular-nums', active ? 'opacity-60' : 'text-slate-400')}>{String(i + 1).padStart(2, '0')}</span>
-                        {n.label}
-                      </a>
-                    );
-                  })}
-                </div>
-                <Button variant="primary" size="sm" pill onClick={() => window.print()} className="ml-auto shrink-0" aria-label={t('pdf')}>
-                  <FileDown className="size-3.5" aria-hidden />
-                  <span className="hidden sm:inline">{t('pdf')}</span>
-                  <span className="sm:hidden">PDF</span>
-                </Button>
-              </nav>
-
-              <BriefingModule key={`b-${report.id}`} report={report} product={product} onOpenTrust={() => setTrustOpen(true)} />
-              <TariffModule
-                key={`t-${report.id}`}
+              <TradeJourney
+                report={report}
                 product={product}
-                initialAmount={report.intent.customsValueUsd ?? report.intent.amountUsd}
-                convertedFrom={cifSource(report)}
-                assumedCif={report.intent.amountUsd !== undefined && !report.intent.incoterm}
+                onOpenTrust={() => setTrustOpen(true)}
+                onOpenAssistant={(partnerId, tab) => setAssistant({ partnerId, tab })}
+                onExpert={setExpert}
+                tariffProps={{
+                  initialAmount: report.intent.customsValueUsd ?? report.intent.amountUsd,
+                  convertedFrom: cifSource(report),
+                  assumedCif: report.intent.amountUsd !== undefined && !report.intent.incoterm,
+                }}
               />
-              <MarketModule key={`m-${report.id}`} product={product} />
-              <div className="print-break" />
-              <PartnersModule key={`p-${report.id}`} product={product} intent={report.intent} onOpen={(partnerId, tab) => setAssistant({ partnerId, tab })} />
             </>
           )}
         </div>
@@ -309,6 +261,8 @@ function WorkspaceInner() {
           </div>
         </div>
       </footer>
+
+      {expert && <ExpertRequestDialog context={expert} onClose={() => setExpert(null)} />}
 
       {trustOpen && <DataTrustCenter focusProductId={product?.id} links={health?.links} onClose={() => setTrustOpen(false)} />}
 

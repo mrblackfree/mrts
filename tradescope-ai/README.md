@@ -4,7 +4,51 @@
 > 전 세계 무역을 질문 하나로 다루는 것을 목표로 하며, 초기 프로토타입은 **첫 번째 노선인 대한민국 ↔ 필리핀**에 집중합니다(다음 노선: 아세안·RCEP 국가 확장 예정).
 > 로그인 없이 루트 URL(`/`)에 접속하는 즉시 검색창과 대시보드가 나타나는 **Zero-Login MVP**입니다.
 
-질문 한 줄(예: *"필리핀 세부에서 생산한 바나나칩을 한국에 수입할 때 관세와 절차는?"*)로 아래 5개 모듈을 한 화면에 생성합니다.
+질문 한 줄(예: *"필리핀 세부에서 생산한 바나나칩을 한국에 수입할 때 관세와 절차는?"*)로 실제 무역 순서를 따르는 **7단계 거래 진행 가이드**를 만들고, 직접 하기 어려운 서류는 **현지 전문가에게 맡기고**, 선적 후에는 **컨테이너·통관 추적**으로 인도까지 확인합니다.
+
+### 7단계 거래 진행 가이드
+
+한 번에 한 단계만 보여 주고, 단계마다 「이번 단계에서 할 일」 체크리스트와 담당(나·관세사·포워더·현지 전문가)을 표시합니다. 진행 상황은 이 브라우저에 품목별로 저장되어 다시 열면 마지막 단계에서 이어집니다(PDF 리포트에는 7단계가 모두 들어갑니다).
+
+| 단계 | 하는 일 | 화면 |
+|---|---|---|
+| 1 품목 확인 | HS 코드 후보·요약 브리핑, 필요하면 시장 데이터 | 브리핑 · 시장(접기) |
+| 2 관세·FTA | 협정별 세율 비교, 과세가격(CIF)으로 관세·부가세 계산 | 관세 시뮬레이터 |
+| 3 인허가·서류 | 양국 필수 등록·인증, 오래 걸리는 것부터 | 체크리스트 + 「맡기기」 + 현지 전문가 서비스 |
+| 4 거래처 찾기 | 적합도 순 바이어·셀러 | 파트너 카드 |
+| 5 계약·PI | 조건 입력 → 국/영 제안 메일·Proforma Invoice | AI 무역 비서 |
+| 6 선적·추적 | 운임·리드타임, 부킹 후 컨테이너 추적 | 물류 레인 + 컨테이너 추적 |
+| 7 통관·인도 | 도착지 통관과 반출·인도 확인 | 관세사 연결 + 통관/반출 추적 |
+
+### 현지 전문가 서비스 (전문가에게 맡기기)
+
+한국 수출자는 필리핀 FDA·BAI·BOC에 **직접 신청할 수 없습니다** — 영업허가(LTO)와 제품 등록(CPR/CFPR), 수입자 등록은 필리핀 등록 법인 명의로만 받습니다. TradeScope는 요청을 받아 현지 파트너(면허 관세사, FDA/BAI 인허가 컨설턴트, 허가를 가진 수입·유통사)를 연결합니다.
+
+- 서비스 카탈로그: [`src/data/experts.ts`](src/data/experts.ts) — 필리핀 현지 수입자(Importer of Record), FDA 식품(LTO·CPR), FDA 화장품(CPN), **BAI 펫푸드·사료(LTO·CFPR·SPSIC)**, BFAR/DA SPS, DTI/NTC 인증, 할랄, 필리핀·한국 관세사, 한국 수입식품 등록
+- 서비스마다 대행 범위, 고객이 준비할 서류, 기관 민원 안내(Citizen's Charter) 기준 처리 기간과 근거 링크를 표시합니다(보완 요청 기간 제외, 기관 공지로 바뀔 수 있음)
+- 체크리스트 항목의 「맡기기」, 인허가 단계의 서비스 카드, 데이터에 없는 품목(예: 펫푸드 → BAI)의 안내에서 요청 양식이 열립니다
+- 요청은 `TRADESCOPE_DATA_DIR/consult-requests.jsonl`(0600)에 저장되고 `/admin → 전문가 서비스`에서 상태(new → contacted → in-progress → done)를 관리합니다. `CONSULT_WEBHOOK_URL`을 넣으면 Slack 등으로 즉시 알림
+- 남용 방지: 클라이언트당 시간당 5건·전체 60건, 봇 차단용 숨은 필드, 요청 본문 32KB 제한
+
+### 컨테이너·통관 추적
+
+| 순서 | 소스 | 비용 | 범위 | 설정 키 |
+|---|---|---|---|---|
+| 1 | Hapag-Lloyd DCSA Track & Trace | 무료(개발자 키) | 자사 컨테이너·B/L·부킹 | `TRACK_HLAG_CLIENT_ID` + `TRACK_HLAG_CLIENT_SECRET` |
+| 1 | CMA CGM DCSA Track & Trace | 무료(개발자 키) | CMA CGM·APL·ANL | `TRACK_CMACGM_KEY` |
+| 2 | ShipsGo Ocean API v2 | 유료(새 화물 1크레딧) | 대부분의 선사, 컨테이너·부킹/M B/L | `TRACK_SHIPSGO_TOKEN`, `TRACK_SHIPSGO_DAILY_NEW` |
+| 통관 | 관세청 UNI-PASS 화물통관진행정보(API001) | 무료 | 한국으로 들어오는 화물: 입항·하선·반입·수입신고·수리·반출 | `UNIPASS_CARGO_KEY` |
+
+- 선사 API는 번호 앞 4자리(또는 사용자가 고른 선사)가 그 선사일 때만 호출하고, 그 외에는 ShipsGo로 넘어갑니다. 결과는 하나의 타임라인(부킹 → 공컨테이너 반출 → 반입 → 선적 → 출항 → 환적 → 입항 → 양하 → 통관 → 반출 → 공컨테이너 반납)으로 정규화되고, 예정 이벤트는 「예정」으로 표시됩니다
+- 필리핀 BOC는 공개 화물 조회 API가 없어, 필리핀 도착 화물의 통관 단계에서는 컨테이너를 반출까지 추적하고 통관 진행은 파트너 관세사가 알려 준다고 안내합니다
+- 키가 하나도 없으면 「예시 데이터」 배지를 단 예시 타임라인을 보여 주고, 키가 있는데 해당 선사를 다루는 소스가 없으면 예시 대신 안내 문구를 보여 줍니다
+- 비용 보호: 클라이언트당 시간당 30회·전체 300회, 같은 번호는 10분 캐시, ShipsGo는 하루 새 등록 상한(기본 30)과 이미 등록된 화물의 재사용(409)으로 크레딧을 아낍니다
+- 조회한 번호는 이 브라우저에 거래별로 저장되어 「다시 조회」로 이어서 확인합니다
+- 어댑터는 공개 명세(DCSA 2.2, ShipsGo OpenAPI, UNI-PASS API001)에 맞춘 고정 응답과 가짜 `fetch`로 검증했습니다. **실제 키로 호출한 검증은 아직 없습니다** — 키를 넣은 뒤 `/admin → 컨테이너 추적 → 연결 테스트`(크레딧을 쓰지 않는 조회)로 먼저 확인하세요
+
+### 분석 모듈
+
+아래 5개 모듈이 위 단계 안에 배치됩니다.
 
 | # | 모듈 | 내용 |
 |---|------|------|
@@ -100,6 +144,8 @@ ADMIN_SECRET=<openssl rand -base64 32 결과>
 | 개요 | AI 엔진·공식 데이터·검증값·저장소 상태, 남은 설정 체크리스트 | — |
 | AI 엔진 | `AI_API_KEY`·`AI_BASE_URL`·`AI_MODEL`·타임아웃·Temperature·최대 토큰·JSON 모드·일시 중지<br>빠른 설정(OpenAI·Anthropic·모두의 AI 실험실·Ollama), **연결 테스트** | 저장 즉시(다음 요청부터) |
 | 공식 데이터 키 | `DATA_GO_KR_SERVICE_KEY`·`COMTRADE_API_KEY`, **키 테스트** | 다음 `npm run data:sync`부터 |
+| 전문가 서비스 | 들어온 요청 목록·상태 변경, `CONSULT_WEBHOOK_URL`(새 요청 알림)·`CONSULT_CONTACT_EMAIL`(대체 연락처) | 저장 즉시 |
+| 컨테이너 추적 | `TRACK_SHIPSGO_TOKEN`·`TRACK_SHIPSGO_DAILY_NEW`·`UNIPASS_CARGO_KEY`·`TRACK_HLAG_CLIENT_ID/SECRET`·`TRACK_CMACGM_KEY`, 소스별 **연결 테스트** | 저장 즉시 |
 | 신뢰도 센터 링크 | `DATA_FEEDBACK_URL`(데이터 오류 제보)·`OVERRIDES_EDIT_URL`(검증값 편집) | 저장 즉시(재빌드 불필요) |
 | 호출 한도·보안 | `AI_MAX_CALLS_PER_IP_PER_HOUR`·`AI_DAILY_BUDGET`·`TRUST_PROXY` | 저장 즉시 |
 | 배포·환경 | 감지된 실행 환경, 저장 파일 위치, 항목별 출처, 환경변수 예시 | — |
@@ -214,7 +260,10 @@ npm run data:validate    # verified-overrides.json 검증: 필수 필드·날짜
 | `GET` | `/api/health` | 상태·AI 엔진 연결 여부(키 미노출)·데이터 기준일·신뢰도 센터 링크 — Docker HEALTHCHECK에 사용 |
 | `GET` `POST` `DELETE` | `/api/admin/session` | 관리자 로그인 상태 / 로그인(`{ password }`) / 로그아웃 |
 | `GET` `PUT` | `/api/admin/settings` | 설정 조회(비밀값은 마스킹) / 저장(`{ values: { KEY: "값" \| null } }`) — 로그인 필요 |
-| `POST` | `/api/admin/test` | `{ target: "ai" \| "dataGoKr" \| "comtrade" }` 저장된 키로 연결 테스트 — 로그인 필요 |
+| `POST` | `/api/admin/test` | `{ target: "ai" \| "dataGoKr" \| "comtrade" \| "shipsgo" \| "unipass" \| "hapag" \| "cmacgm" }` 저장된 키로 연결 테스트(추적 키는 크레딧을 쓰지 않는 조회) — 로그인 필요 |
+| `GET` `POST` | `/api/consult` | 접수 가능 여부·대체 연락처 / 전문가 요청 접수(`{ name, email, serviceIds[], topic, message?, consent: true, … }`) → `{ ok, id: "TS-XXXXXX" }` |
+| `GET` `PATCH` | `/api/admin/consult` | 요청 목록 / 상태 변경(`{ id, status }`) — 로그인 필요 |
+| `POST` | `/api/track` | `{ reference, kind: "container" \| "bl" \| "booking", carrier?, productId?, mode: "shipping" \| "customs" }` → `{ ok, result, tried }` (`not-found` 404 · `not-covered` 422 · `failed` 502) |
 
 ```bash
 curl -s -X POST http://localhost:3000/api/analyze \
@@ -315,12 +364,16 @@ tradescope-ai/
    │  ├─ layout.tsx · globals.css (디자인 토큰 · 다크/라이트 · 인쇄 스타일)
    │  ├─ fonts/pretendard/    Pretendard 가변 폰트 dynamic subset (SIL OFL 1.1, 자체 호스팅)
    │  ├─ admin/page.tsx       관리자 설정 페이지 (/admin)
-   │  └─ api/ analyze · draft · health · admin/(session · settings · test)
+   │  └─ api/ analyze · draft · health · consult · track · admin/(session · settings · test · consult)
    ├─ components/             Header · HeroSearch · Overview · AssistantPanel · charts · ui(Button·Card·Segmented·Chip 등)
-   │  └─ modules/             Briefing · Tariff(+Checklist) · Market · Partners
+   │  ├─ modules/             Briefing · Tariff(+Checklist) · Market · Partners
+   │  ├─ journey/TradeJourney.tsx  7단계 거래 진행 가이드 (단계별 할 일 · 진행 저장)
+   │  ├─ expert/              전문가에게 맡기기 요청 양식
+   │  └─ tracking/            컨테이너·통관 추적 패널
    ├─ data/kr-ph-trade-db.ts  한-필 RAG 시드 데이터베이스 (공식 레이어 병합 후 export)
    ├─ data/official/          snapshot.json(공식 API 스냅샷) · index.ts(병합·검증 등급) · roadmap.ts · changelog.json
    ├─ data/verified-overrides.json  전문가 검증값 입력 파일
+   ├─ data/experts.ts         현지 전문가 서비스 카탈로그 (대행 범위 · 준비 서류 · 처리 기간 · 근거)
    └─ lib/
       ├─ ai-adapter.ts        OpenAI 호환 어댑터 (타임아웃·에러 → 폴백)
       ├─ engine/search.ts     로컬 검색·의도 파싱 (서버/브라우저 공용)
@@ -328,6 +381,9 @@ tradescope-ai/
       ├─ engine/llm.ts        RAG 프롬프트 (숫자는 컨텍스트만 사용하도록 제약)
       ├─ settings/            설정 스키마·암호화 저장소 (환경변수 → 관리자 저장값 → 기본값)
       ├─ admin/               관리자 인증(세션 쿠키·로그인 제한·Origin 검사)
+      ├─ consult/store.ts     전문가 요청 저장소 (JSONL, 0600)
+      ├─ tracking/            추적 소스 (DCSA · ShipsGo · UNI-PASS) → 하나의 타임라인으로 정규화
+      ├─ http.ts · rate-limit.ts  크기 제한 본문 읽기 · 시간 창 호출 제한
       ├─ i18n.ts · format.ts · types.ts
 ```
 
@@ -363,9 +419,12 @@ GitHub Actions(저장소 루트): [`../.github/workflows/tradescope-ci.yml`](../
 
 Docker Compose는 v2.24 이상이 필요합니다(선택형 `env_file`).
 
-검증 범위: 시뮬레이션 모드와 OpenAI 호환 목(mock) 서버 기반 LLM 모드, 401/403/타임아웃 시 폴백, 4개 원클릭 데모, 모바일(390px) 가로 스크롤 없음, 콘솔 에러 0건, `docker build` 및 컨테이너 헬스체크. 품목 검색 43개 질의(지원 품목·미지원 품목·다른 형태·HS 코드) 일치, 7개 품목의 시뮬레이션 브리핑이 수치 근거 검사를 전부 통과(자기 일관성), 지어낸 세율·HS·시장 규모·절감액이 검출되는지 확인.
+검증 범위: 7단계 가이드(단계 전환·진행 저장·이어 보기·인쇄), 전문가 요청(접수·저장·관리자 상태 변경·봇 필드), 추적 어댑터 69개 케이스(DCSA·ShipsGo·UNI-PASS 매핑, 선사 판별, ShipsGo 409 재사용·하루 상한·402, UNI-PASS M/B/L→H/B/L·다건, 키 없을 때만 예시), 시뮬레이션 모드와 OpenAI 호환 목(mock) 서버 기반 LLM 모드, 401/403/타임아웃 시 폴백, 4개 원클릭 데모, 모바일(390px) 가로 스크롤 없음, 콘솔 에러 0건, `docker build` 및 컨테이너 헬스체크. 품목 검색 43개 질의(지원 품목·미지원 품목·다른 형태·HS 코드) 일치, 7개 품목의 시뮬레이션 브리핑이 수치 근거 검사를 전부 통과(자기 일관성), 지어낸 세율·HS·시장 규모·절감액이 검출되는지 확인.
 
 ## 8. 한계와 다음 단계
+
+- 추적 어댑터(ShipsGo·UNI-PASS·Hapag-Lloyd·CMA CGM)는 명세 기반 고정 응답으로만 검증했습니다 → 실제 키로 연결 테스트 후 운영. 다른 선사(HMM·ONE·Evergreen·Maersk 등)는 ShipsGo로 조회되며, 선사별 공식 API는 순차 추가
+- 전문가 서비스의 처리 기간은 기관 민원 안내 기준이며 보완 요청 기간은 포함하지 않습니다. BAI 공장 인정(DA AO 3 s.2003)의 현재 적용 여부와 수산물 원료 펫푸드의 BFAR 관여 여부는 확인 중입니다
 
 - FTA 협정세율·원산지기준은 아직 시드 참고값입니다 → 3-1의 검증 입력 경로로 전문가 검증, UNI-PASS Open API 명세 확보 시 커넥터 추가
 - WITS MFN은 HS6·통보 연도(현재 2023) 기준입니다 → 10단위·당해연도 세율은 UNI-PASS 조회로 확정

@@ -59,9 +59,70 @@ async function testComtrade(): Promise<TestResult> {
   return { ok: false, message: r.status === 401 || r.status === 403 ? 'invalid-key' : `http-${r.status}`, latencyMs };
 }
 
-const TESTS: Record<string, () => Promise<TestResult>> = { ai: testAi, dataGoKr: testDataGoKr, comtrade: testComtrade };
+// ---- tracking keys: authenticated read-only calls that spend no credits ----
+async function testShipsGo(): Promise<TestResult> {
+  const token = getSetting('TRACK_SHIPSGO_TOKEN');
+  if (!token) return { ok: false, message: 'no-key', latencyMs: 0 };
+  const started = Date.now();
+  const r = await timedFetch('https://api.shipsgo.com/v2/ocean/carriers?take=1', { headers: { 'X-Shipsgo-User-Token': token, Accept: 'application/json' } });
+  const latencyMs = Date.now() - started;
+  if ('error' in r) return { ok: false, message: r.error, latencyMs };
+  if (r.status === 200) return { ok: true, message: 'ok', latencyMs, detail: 'ShipsGo Ocean API v2' };
+  return { ok: false, message: r.status === 401 || r.status === 403 ? 'invalid-key' : `http-${r.status}`, latencyMs };
+}
 
-/** Connectivity test for a saved key: body `{ target: "ai" | "dataGoKr" | "comtrade" }`. Keys are never echoed. */
+async function testUnipass(): Promise<TestResult> {
+  const key = getSetting('UNIPASS_CARGO_KEY');
+  if (!key) return { ok: false, message: 'no-key', latencyMs: 0 };
+  const started = Date.now();
+  const year = new Date().getUTCFullYear();
+  // a B/L that does not exist: a valid key answers "no result", a bad one a key notice
+  const r = await timedFetch(
+    `https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo?${new URLSearchParams({ crkyCn: key, mblNo: 'TSCHECK0000001', blYy: String(year) }).toString()}`,
+  );
+  const latencyMs = Date.now() - started;
+  if ('error' in r) return { ok: false, message: r.error, latencyMs };
+  if (r.status !== 200) return { ok: false, message: `http-${r.status}`, latencyMs };
+  const notice = r.text.match(/<ntceInfo>([^<]{1,120})</)?.[1]?.trim();
+  if (notice && /인증|crkyCn|key|권한|유효/i.test(notice)) return { ok: false, message: 'invalid-key', latencyMs, detail: notice };
+  if (/cargCsclPrgsInfoQryRtnVo/.test(r.text)) return { ok: true, message: 'ok', latencyMs, detail: notice ? `UNI-PASS API001 · ${notice}` : 'UNI-PASS API001' };
+  return { ok: false, message: 'unexpected-response', latencyMs };
+}
+
+async function testDcsa(name: string, url: string, headers: Record<string, string>): Promise<TestResult> {
+  const started = Date.now();
+  const r = await timedFetch(url, { headers: { Accept: 'application/json', ...headers } });
+  const latencyMs = Date.now() - started;
+  if ('error' in r) return { ok: false, message: r.error, latencyMs };
+  // signed in: events (200/206) or "no such container" (400/404)
+  if ([200, 206, 400, 404].includes(r.status)) return { ok: true, message: 'ok', latencyMs, detail: `${name} DCSA Track & Trace` };
+  return { ok: false, message: r.status === 401 || r.status === 403 ? 'invalid-key' : `http-${r.status}`, latencyMs };
+}
+
+async function testHapag(): Promise<TestResult> {
+  const id = getSetting('TRACK_HLAG_CLIENT_ID');
+  const secret = getSetting('TRACK_HLAG_CLIENT_SECRET');
+  if (!id || !secret) return { ok: false, message: 'no-key', latencyMs: 0 };
+  return testDcsa('Hapag-Lloyd', 'https://api.hlag.com/hlag/external/v2/events/?equipmentReference=HLXU0000000', { 'X-IBM-Client-Id': id, 'X-IBM-Client-Secret': secret });
+}
+
+async function testCmaCgm(): Promise<TestResult> {
+  const key = getSetting('TRACK_CMACGM_KEY');
+  if (!key) return { ok: false, message: 'no-key', latencyMs: 0 };
+  return testDcsa('CMA CGM', 'https://apis.cma-cgm.net/operation/trackandtrace/v1/events?equipmentReference=CMAU0000000', { KeyId: key });
+}
+
+const TESTS: Record<string, () => Promise<TestResult>> = {
+  ai: testAi,
+  dataGoKr: testDataGoKr,
+  comtrade: testComtrade,
+  shipsgo: testShipsGo,
+  unipass: testUnipass,
+  hapag: testHapag,
+  cmacgm: testCmaCgm,
+};
+
+/** Connectivity test for a saved key: body `{ target }` (see TESTS). Keys are never echoed. */
 export async function POST(req: Request) {
   const denied = requireAdmin(req, { mutating: true });
   if (denied) return denied;

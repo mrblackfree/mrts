@@ -1,7 +1,7 @@
 'use client';
 
 import { BadgeCheck, Check, Copy, Database, FlaskConical, Loader2, ShieldCheck } from 'lucide-react';
-import { forwardRef, useState } from 'react';
+import { createContext, forwardRef, useContext, useState } from 'react';
 import type { SourceMeta, VerificationLevel } from '@/lib/types';
 import { useI18n } from './I18nProvider';
 
@@ -86,7 +86,11 @@ export function Card({ className, children, id }: { className?: string; children
   );
 }
 
+/** Set by the step-by-step journey: modules shown inside a step drop their "Module 0X" eyebrow. */
+export const InStepContext = createContext(false);
+
 export function ModuleHeader({ index, title, icon, right }: { index: number; title: string; icon: React.ReactNode; right?: React.ReactNode }) {
+  const inStep = useContext(InStepContext);
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6 dark:border-white/[0.06]">
       <div className="flex min-w-0 items-center gap-3.5">
@@ -94,9 +98,11 @@ export function ModuleHeader({ index, title, icon, right }: { index: number; tit
           {icon}
         </span>
         <div className="min-w-0">
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-            Module <span className="tabular-nums text-brand-600 dark:text-brand-400">{String(index).padStart(2, '0')}</span>
-          </p>
+          {!inStep && (
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Module <span className="tabular-nums text-brand-600 dark:text-brand-400">{String(index).padStart(2, '0')}</span>
+            </p>
+          )}
           <h2 className="truncate text-[17px] font-bold text-slate-900 sm:text-lg dark:text-white">{title}</h2>
         </div>
       </div>

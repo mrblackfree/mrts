@@ -10,7 +10,8 @@ import { Flag } from '../Flag';
 
 const PORT_COUNTRY: Record<string, string> = { Busan: 'KR', Incheon: 'KR', Manila: 'PH', Cebu: 'PH', Davao: 'PH' };
 
-export default function MarketModule({ product }: { product: TradeProduct }) {
+/** Market statistics; `withLanes` also shows the container lanes (the journey shows them in the shipping step). */
+export default function MarketModule({ product, withLanes = true }: { product: TradeProduct; withLanes?: boolean }) {
   const { t, p, lang } = useI18n();
   const m = product.market;
   const s = m.series;
@@ -89,7 +90,16 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
         </div>
       </div>
 
-      {/* Logistics lanes */}
+      {withLanes && <LogisticsLanes product={product} />}
+    </Card>
+  );
+}
+
+
+/** Container lanes with indicative freight, transit time and frequency. */
+export function LogisticsLanes({ product }: { product: TradeProduct }) {
+  const { t, p } = useI18n();
+  return (
       <div className="border-t border-slate-100 p-5 dark:border-white/[0.07]">
         <p className="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-slate-100">
           <Ship className="size-4 text-brand-500" />
@@ -130,6 +140,5 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
         </div>
         <SourceTag meta={product.logisticsMeta} className="mt-3" />
       </div>
-    </Card>
   );
 }

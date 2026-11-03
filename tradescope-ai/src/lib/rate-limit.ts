@@ -75,3 +75,26 @@ export function allowLlmCall(key: string): LlmGate {
   }
   return { ok: true };
 }
+
+/**
+ * Sliding-window limiter for public endpoints (per process): `perClient` hits per client and `overall` hits in
+ * total per window. A shared client (no trusted proxy) only counts against the overall limit, so one visitor
+ * cannot lock everyone else out.
+ */
+export function windowLimiter(opts: { perClient: number; overall: number; windowMs: number }) {
+  const hits = new Map<string, number[]>();
+  let all: number[] = [];
+  return function allow(client: string): boolean {
+    const now = Date.now();
+    all = all.filter((t) => now - t < opts.windowMs);
+    if (all.length >= opts.overall) return false;
+    if (client !== SHARED_CLIENT) {
+      const mine = (hits.get(client) ?? []).filter((t) => now - t < opts.windowMs);
+      if (mine.length >= opts.perClient) return false;
+      hits.set(client, [...mine, now]);
+      if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => now - t < opts.windowMs)) hits.delete(k);
+    }
+    all.push(now);
+    return true;
+  };
+}

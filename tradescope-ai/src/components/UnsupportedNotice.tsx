@@ -1,6 +1,7 @@
 'use client';
 
-import { ArrowRight, Eye, EyeOff, SearchX } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, SearchX, UserRoundCheck } from 'lucide-react';
+import { servicesForQuery } from '@/data/experts';
 import { PRODUCTS } from '@/data/kr-ph-trade-db';
 import type { AnalysisReport, TradeProduct } from '@/lib/types';
 import { useI18n } from './I18nProvider';
@@ -16,16 +17,20 @@ export default function UnsupportedNotice({
   showExample,
   onToggleExample,
   onPick,
+  onExpert,
 }: {
   report: AnalysisReport;
   example: TradeProduct;
   showExample: boolean;
   onToggleExample: () => void;
   onPick: (productId: string) => void;
+  /** opens the expert request with the services the query points to */
+  onExpert: (serviceIds: string[]) => void;
 }) {
   const { t, p } = useI18n();
   const reason = report.match.unsupportedReason ?? 'no-match';
   const name = p(example.name);
+  const hinted = servicesForQuery(report.query);
   const body = reason === 'other-form' ? t('unsupportedOtherForm').replaceAll('{name}', name) : reason === 'heading-only' ? t('unsupportedHeading') : t('unsupportedBody');
 
   return (
@@ -39,6 +44,21 @@ export default function UnsupportedNotice({
           <p className="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">“{report.query}”</p>
           <p className="mt-2 text-pretty text-sm leading-relaxed text-slate-600 dark:text-slate-300">{body}</p>
         </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-brand-50/70 p-4 ring-1 ring-inset ring-brand-100 dark:bg-brand-400/10 dark:ring-brand-400/20">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-brand-900 dark:text-brand-100">
+            <UserRoundCheck className="size-4" aria-hidden />
+            {t('unsupportedExpert')}
+          </p>
+          <p className="mt-0.5 break-keep text-xs text-brand-800/80 dark:text-brand-200/80">
+            {hinted.length ? hinted.map((x) => p(x.title)).join(' · ') : t('unsupportedExpertSub')}
+          </p>
+        </div>
+        <Button size="sm" variant="brand" onClick={() => onExpert(hinted.map((x) => x.id))}>
+          {t('unsupportedExpertCta')}
+        </Button>
       </div>
 
       <p className="mt-5 text-xs font-bold text-slate-500 dark:text-slate-400">{t('unsupportedPick')}</p>

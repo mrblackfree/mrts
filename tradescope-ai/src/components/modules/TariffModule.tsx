@@ -55,6 +55,7 @@ export default function TariffModule({
   initialAmount,
   convertedFrom,
   assumedCif,
+  withChecklist = true,
 }: {
   product: TradeProduct;
   initialAmount?: number;
@@ -62,6 +63,8 @@ export default function TariffModule({
   convertedFrom?: { term: string; amount: number; adjustment: CifAdjustment };
   /** the query stated an amount without an incoterm: `initialAmount` is that figure, assumed to be CIF */
   assumedCif?: boolean;
+  /** the permits checklist; the step-by-step journey shows it in its own step instead */
+  withChecklist?: boolean;
 }) {
   const { t, p, lang } = useI18n();
   const [amount, setAmount] = useState<number>(initialAmount ?? 50_000);
@@ -101,8 +104,8 @@ export default function TariffModule({
   return (
     <Card id="m-tariff" className="rise-in scroll-mt-36" >
       <ModuleHeader index={2} title={t('m2Title')} icon={<BadgePercent className="size-5" />} />
-      <div className="grid gap-5 p-5 xl:grid-cols-5">
-        <div className="min-w-0 space-y-5 xl:col-span-3">
+      <div className={cx('grid gap-5 p-5', withChecklist && 'xl:grid-cols-5')}>
+        <div className={cx('min-w-0 space-y-5', withChecklist && 'xl:col-span-3')}>
           {tables.length > 1 && (
             <div>
               <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400">{t('hsTables')}</p>
@@ -335,9 +338,11 @@ export default function TariffModule({
           </div>
         </div>
 
-        <div className="min-w-0 xl:col-span-2">
-          <ChecklistPanel product={product} />
-        </div>
+        {withChecklist && (
+          <div className="min-w-0 xl:col-span-2">
+            <ChecklistPanel product={product} />
+          </div>
+        )}
       </div>
     </Card>
   );

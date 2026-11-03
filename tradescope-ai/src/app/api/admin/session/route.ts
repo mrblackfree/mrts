@@ -12,6 +12,7 @@ import {
   sessionExpiry,
 } from '@/lib/admin/auth';
 import { adminJson } from '@/lib/admin/http';
+import { readBodyLimited } from '@/lib/http';
 import { clientKey } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
@@ -26,26 +27,6 @@ export function GET(req: Request) {
 
 // room for a MAX_PASSWORD-character password in multi-byte UTF-8 plus JSON escaping
 const MAX_BODY_BYTES = MAX_PASSWORD * 8 + 256;
-
-/** Reads the request body, giving up (null) once it exceeds `max` bytes — never buffers more than that. */
-async function readBodyLimited(req: Request, max: number): Promise<string | null> {
-  if (Number(req.headers.get('content-length')) > max) return null;
-  if (!req.body) return '';
-  const reader = req.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    size += value.byteLength;
-    if (size > max) {
-      await reader.cancel().catch(() => undefined);
-      return null;
-    }
-    chunks.push(value);
-  }
-  return Buffer.concat(chunks).toString('utf8');
-}
 
 /** Sign in with ADMIN_PASSWORD. */
 export async function POST(req: Request) {

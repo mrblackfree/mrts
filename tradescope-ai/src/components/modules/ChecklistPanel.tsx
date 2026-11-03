@@ -1,14 +1,16 @@
 'use client';
 
-import { CheckSquare, ChevronDown, Clock, ExternalLink, Square } from 'lucide-react';
+import { CheckSquare, ChevronDown, Clock, ExternalLink, Square, UserRoundCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { REQ_CATEGORY_LABEL } from '@/lib/i18n';
-import type { Country, TradeProduct } from '@/lib/types';
+import { serviceForRequirement } from '@/data/experts';
+import type { Country, Requirement, TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
 import { Badge, cx, LevelBadge, ProgressBar, SourceTag } from '../ui';
 import { Flag } from '../Flag';
 
-export default function ChecklistPanel({ product }: { product: TradeProduct }) {
+/** `onExpert` adds a 「전문가에게 맡기기」 action to every item a TradeScope partner expert can handle. */
+export default function ChecklistPanel({ product, onExpert }: { product: TradeProduct; onExpert?: (r: Requirement) => void }) {
   const { t, p, lang } = useI18n();
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<string | null>(null);
@@ -57,6 +59,7 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
                 {items.map((r) => {
                   const isOpen = open === r.id;
                   const isDone = checked.has(r.id);
+                  const service = onExpert ? serviceForRequirement(r, product) : undefined;
                   return (
                     <li key={r.id} className={cx('rounded-xl border transition', isOpen ? 'border-brand-500/60 bg-brand-50/40 dark:bg-brand-500/5' : 'border-slate-200 dark:border-white/[0.07]')}>
                       <div className="flex items-start gap-2 p-2.5">
@@ -80,6 +83,17 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
                           </span>
                           <ChevronDown className={cx('mt-0.5 size-4 shrink-0 text-slate-400 transition', isOpen && 'rotate-180')} />
                         </button>
+                        {service && (
+                          <button
+                            type="button"
+                            onClick={() => onExpert?.(r)}
+                            className="no-print shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50 dark:text-brand-300 dark:ring-brand-400/30 dark:hover:bg-brand-400/10"
+                            title={p(service.title)}
+                          >
+                            <UserRoundCheck className="mr-0.5 inline size-3.5 align-[-0.15em]" aria-hidden />
+                            {lang === 'ko' ? '맡기기' : 'Delegate'}
+                          </button>
+                        )}
                       </div>
                       {/* Detailed guide (always expanded in print) */}
                       <div className={cx('border-t border-slate-100 px-3 pb-3 pt-2 text-xs leading-relaxed text-slate-600 dark:border-white/[0.07] dark:text-slate-300', isOpen ? 'block' : 'hidden print:block')}>

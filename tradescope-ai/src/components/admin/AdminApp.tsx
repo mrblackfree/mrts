@@ -15,12 +15,15 @@ import {
   Lock,
   LogOut,
   PlugZap,
+  Radar,
   ScanSearch,
   Server,
   ShieldCheck,
   Trash2,
+  UserRoundCheck,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { EXPERT_INDEX } from '@/data/experts';
 import { SETTINGS, type SettingDef, type SettingGroup } from '@/lib/settings/schema';
 import type { Lang } from '@/lib/types';
 import { I18nProvider, useI18n } from '../I18nProvider';
@@ -70,11 +73,13 @@ const S = {
     wrongPassword: '비밀번호가 올바르지 않습니다.',
     tooMany: '시도가 너무 많습니다. 15분 뒤 다시 시도하세요.',
     networkError: '서버에 연결할 수 없습니다.',
-    menu: { overview: '개요', ai: 'AI 엔진', data: '공식 데이터 키', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
+    menu: { overview: '개요', ai: 'AI 엔진', data: '공식 데이터 키', service: '전문가 서비스', tracking: '컨테이너 추적', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
     sectionSub: {
       overview: '현재 상태와 남은 설정을 한눈에 봅니다.',
       ai: 'OpenAI 호환 LLM을 연결합니다. 저장 즉시 다음 요청부터 적용됩니다.',
       data: '공식 데이터 동기화(npm run data:sync)에 쓰는 키입니다.',
+      service: '「전문가에게 맡기기」로 들어온 요청을 확인하고 담당 전문가를 배정합니다. 알림 웹훅과 대체 연락처를 설정합니다.',
+      tracking: '조회 순서: 선사 공식 API(Hapag-Lloyd·CMA CGM, 무료) → ShipsGo(유료, 전 선사) · 한국 수입 통관은 UNI-PASS(무료). 키가 없는 소스는 건너뛰고, 하나도 없으면 예시 타임라인을 보여 줍니다.',
       links: '신뢰도 센터의 제보·편집 버튼 주소입니다. 저장 즉시 적용됩니다.',
       limits: 'LLM 비용 상한과 접속자 식별 방식입니다. 저장 즉시 적용됩니다.',
       deploy: '배포 환경, 저장 위치, 환경변수 설정 방법입니다.',
@@ -158,6 +163,7 @@ const S = {
       'invalid-json': '응답 형식 오류',
       SERVICE_KEY_IS_NOT_REGISTERED_ERROR: '등록되지 않은 키 — 활용신청 승인 후 반영까지 1~2시간 걸릴 수 있습니다',
       SERVICE_ACCESS_DENIED_ERROR: '이 API에 대한 활용신청이 필요합니다',
+      'unexpected-response': '예상하지 못한 응답 — 주소·키 종류를 확인하세요',
     } as Record<string, string>,
   },
   en: {
@@ -182,11 +188,13 @@ const S = {
     wrongPassword: 'Incorrect password.',
     tooMany: 'Too many attempts. Try again in 15 minutes.',
     networkError: 'Cannot reach the server.',
-    menu: { overview: 'Overview', ai: 'AI engine', data: 'Official data keys', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
+    menu: { overview: 'Overview', ai: 'AI engine', data: 'Official data keys', service: 'Expert service', tracking: 'Container tracking', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
     sectionSub: {
       overview: 'Current state and what is left to configure.',
       ai: 'Connect an OpenAI-compatible LLM. Takes effect from the next request.',
       data: 'Keys used by the official data sync (npm run data:sync).',
+      service: 'Review requests sent through “Hand it to an expert” and assign an expert. Set the notification webhook and fallback contact.',
+      tracking: 'Lookup order: carrier APIs (Hapag-Lloyd, CMA CGM, free) → ShipsGo (paid, all carriers); customs progress for imports into Korea via UNI-PASS (free). Sources without a key are skipped; with none, an example timeline is shown.',
       links: 'Targets of the Trust Center feedback and edit buttons. Takes effect immediately.',
       limits: 'LLM cost caps and how clients are identified. Takes effect immediately.',
       deploy: 'Runtime environment, storage location and how to set environment variables.',
@@ -270,6 +278,7 @@ const S = {
       'invalid-json': 'Unexpected response',
       SERVICE_KEY_IS_NOT_REGISTERED_ERROR: 'Key not registered — approval can take 1–2 hours to propagate',
       SERVICE_ACCESS_DENIED_ERROR: 'Apply for access to this API first',
+      'unexpected-response': 'Unexpected response — check the address and key type',
     } as Record<string, string>,
   },
 };
@@ -294,6 +303,8 @@ const SECTIONS: Array<{ id: Section; icon: React.ReactNode }> = [
   { id: 'overview', icon: <LayoutDashboard className="size-4" /> },
   { id: 'ai', icon: <Cpu className="size-4" /> },
   { id: 'data', icon: <Database className="size-4" /> },
+  { id: 'service', icon: <UserRoundCheck className="size-4" /> },
+  { id: 'tracking', icon: <Radar className="size-4" /> },
   { id: 'links', icon: <Link2 className="size-4" /> },
   { id: 'limits', icon: <Gauge className="size-4" /> },
   { id: 'deploy', icon: <Server className="size-4" /> },
@@ -549,7 +560,8 @@ function Dashboard({
         )}
 
         {section === 'overview' && <Overview s={s} lang={lang} snap={snap} fields={fields} expiresAt={expiresAt} go={setSection} />}
-        {(section === 'ai' || section === 'data' || section === 'links' || section === 'limits') && (
+        {section === 'service' && <ConsultRequests lang={lang} onUnauthorized={onUnauthorized} />}
+        {(section === 'ai' || section === 'data' || section === 'service' || section === 'tracking' || section === 'links' || section === 'limits') && (
           <GroupForm key={section} s={s} lang={lang} group={section} fields={fields} writable={writable} setSnap={setSnap} onUnauthorized={onUnauthorized} />
         )}
         {section === 'deploy' && <Deploy s={s} lang={lang} snap={snap} />}
@@ -654,6 +666,18 @@ function Overview({ s, lang, snap, fields, expiresAt, go }: { s: Strings; lang: 
     </div>
   );
 }
+
+/** Settings with a connectivity test (the last key of a pair carries the button). */
+type TestTarget = 'ai' | 'dataGoKr' | 'comtrade' | 'shipsgo' | 'unipass' | 'hapag' | 'cmacgm';
+const TEST_FOR: Partial<Record<string, TestTarget>> = {
+  AI_API_KEY: 'ai',
+  DATA_GO_KR_SERVICE_KEY: 'dataGoKr',
+  COMTRADE_API_KEY: 'comtrade',
+  TRACK_SHIPSGO_TOKEN: 'shipsgo',
+  UNIPASS_CARGO_KEY: 'unipass',
+  TRACK_HLAG_CLIENT_SECRET: 'hapag',
+  TRACK_CMACGM_KEY: 'cmacgm',
+};
 
 // ---------------------------------------------------------------------------
 // settings form for one group
@@ -786,7 +810,7 @@ function GroupForm({
               error={errors[def.key]}
               writable={writable}
               onChange={(v) => setValue(def.key, v)}
-              test={def.key === 'AI_API_KEY' ? 'ai' : def.key === 'DATA_GO_KR_SERVICE_KEY' ? 'dataGoKr' : def.key === 'COMTRADE_API_KEY' ? 'comtrade' : undefined}
+              test={TEST_FOR[def.key]}
               onUnauthorized={onUnauthorized}
             />
           ))}
@@ -851,7 +875,7 @@ function FieldRow({
   error?: string;
   writable: boolean;
   onChange: (v: string | null | undefined) => void;
-  test?: 'ai' | 'dataGoKr' | 'comtrade';
+  test?: TestTarget;
   onUnauthorized: () => void;
 }) {
   const locked = field?.source === 'env';
@@ -1048,5 +1072,153 @@ function Deploy({ s, lang, snap }: { s: Strings; lang: Lang; snap: Snapshot }) {
         <CodeBlock>{`# .env.local\nADMIN_PASSWORD=…\nADMIN_SECRET=…\n${envLines}`}</CodeBlock>
       </Card>
     </div>
+  );
+}
+
+
+// ---------------------------------------------------------------------------
+// Expert-service requests
+// ---------------------------------------------------------------------------
+
+type ConsultStatus = 'new' | 'contacted' | 'in-progress' | 'done' | 'closed';
+interface ConsultRow {
+  id: string;
+  createdAt: string;
+  status: ConsultStatus;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  productId?: string;
+  topic: string;
+  serviceIds: string[];
+  message: string;
+  lang: 'ko' | 'en';
+}
+
+const STATUS_LABEL: Record<ConsultStatus, { ko: string; en: string; tone: 'red' | 'amber' | 'brand' | 'green' | 'slate' }> = {
+  new: { ko: '새 요청', en: 'New', tone: 'red' },
+  contacted: { ko: '연락함', en: 'Contacted', tone: 'amber' },
+  'in-progress': { ko: '진행 중', en: 'In progress', tone: 'brand' },
+  done: { ko: '완료', en: 'Done', tone: 'green' },
+  closed: { ko: '종료', en: 'Closed', tone: 'slate' },
+};
+
+function ConsultRequests({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () => void }) {
+  const [rows, setRows] = useState<ConsultRow[] | null>(null);
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState<'open' | 'all'>('open');
+  const ko = lang === 'ko';
+
+  const load = useCallback(async () => {
+    try {
+      const r = await api<{ ok: boolean; requests?: ConsultRow[] }>('/api/admin/consult');
+      if (r.status === 401) return onUnauthorized();
+      setRows(r.data?.requests ?? []);
+      setError('');
+    } catch {
+      setError(ko ? '요청 목록을 불러오지 못했습니다.' : 'Could not load requests.');
+    }
+  }, [ko, onUnauthorized]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const setStatus = async (id: string, status: ConsultStatus) => {
+    try {
+      const r = await api<{ ok: boolean; requests?: ConsultRow[] }>('/api/admin/consult', 'PATCH', { id, status });
+      if (r.status === 401) return onUnauthorized();
+      if (r.data?.requests) setRows(r.data.requests);
+    } catch {
+      setError(ko ? '상태를 바꾸지 못했습니다.' : 'Could not update the status.');
+    }
+  };
+
+  const shown = (rows ?? []).filter((x) => filter === 'all' || (x.status !== 'done' && x.status !== 'closed'));
+  const openCount = (rows ?? []).filter((x) => x.status === 'new').length;
+
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 text-[15px] font-bold text-slate-900 dark:text-white">
+          {ko ? '받은 요청' : 'Requests'}
+          {openCount > 0 && <Badge tone="red">{ko ? `새 요청 ${openCount}건` : `${openCount} new`}</Badge>}
+        </p>
+        <div className="flex items-center gap-2">
+          <Segmented
+            size="sm"
+            value={filter}
+            ariaLabel={ko ? '보기' : 'Show'}
+            onChange={(v) => setFilter(v as 'open' | 'all')}
+            options={[
+              { value: 'open', label: ko ? '진행 중' : 'Open' },
+              { value: 'all', label: ko ? '전체' : 'All' },
+            ]}
+          />
+          <Button size="sm" onClick={() => void load()}>
+            {ko ? '새로고침' : 'Refresh'}
+          </Button>
+        </div>
+      </div>
+      {error && <p role="alert" className="mt-3 text-xs font-semibold text-rose-600">{error}</p>}
+      {rows === null ? (
+        <p className="mt-4 text-sm text-slate-500">{ko ? '불러오는 중…' : 'Loading…'}</p>
+      ) : shown.length === 0 ? (
+        <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-white/[0.04]">
+          {ko ? '아직 요청이 없습니다. 사이트의 「전문가에게 맡기기」로 들어온 요청이 여기에 쌓입니다.' : 'No requests yet. Requests sent with “Hand it to an expert” appear here.'}
+        </p>
+      ) : (
+        <ul className="mt-4 grid gap-3">
+          {shown.map((x) => (
+            <li key={x.id} className="rounded-xl border border-slate-200 p-4 dark:border-white/[0.08]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex flex-wrap items-center gap-2 text-sm font-bold text-slate-900 dark:text-white">
+                  <span className="font-mono text-xs text-slate-500">{x.id}</span>
+                  {x.name}
+                  {x.company && <span className="font-medium text-slate-500">· {x.company}</span>}
+                  <Badge tone={STATUS_LABEL[x.status]?.tone ?? 'slate'}>{STATUS_LABEL[x.status]?.[lang] ?? x.status}</Badge>
+                </p>
+                <label className="flex items-center gap-2 text-xs text-slate-500">
+                  {ko ? '상태' : 'Status'}
+                  <select
+                    id={`st-${x.id}`}
+                    value={x.status}
+                    onChange={(e) => void setStatus(x.id, e.target.value as ConsultStatus)}
+                    className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-white/10 dark:bg-white/[0.03]"
+                  >
+                    {(Object.keys(STATUS_LABEL) as ConsultStatus[]).map((k) => (
+                      <option key={k} value={k}>
+                        {STATUS_LABEL[k][lang]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                {new Date(x.createdAt).toLocaleString(ko ? 'ko-KR' : 'en-US')} · <span className="select-all">{x.email}</span>
+                {x.phone && (
+                  <>
+                    {' '}
+                    · <span className="select-all">{x.phone}</span>
+                  </>
+                )}
+                {x.lang === 'en' ? ' · EN' : ''}
+              </p>
+              {x.serviceIds.length > 0 && (
+                <p className="mt-2 flex flex-wrap gap-1.5">
+                  {x.serviceIds.map((id) => (
+                    <Badge key={id} tone="brand">
+                      {EXPERT_INDEX[id]?.title[lang] ?? id}
+                    </Badge>
+                  ))}
+                </p>
+              )}
+              {x.topic && <p className="mt-2 text-[13px] font-semibold text-slate-800 dark:text-slate-100">{x.topic}</p>}
+              {x.message && <p className="mt-1 whitespace-pre-wrap text-[13px] text-slate-600 dark:text-slate-300">{x.message}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
