@@ -1,6 +1,6 @@
 'use client';
 
-import { Cpu, Database, FileDown, Moon, ScanSearch, Sun } from 'lucide-react';
+import { Cpu, Database, FileDown, Moon, ScanSearch, ShieldCheck, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useI18n } from './I18nProvider';
 import { cx, Segmented } from './ui';
@@ -9,7 +9,7 @@ export interface HealthInfo {
   ai: { enabled: boolean; model: string | null; provider: string | null };
 }
 
-export default function Header({ health, canPrint }: { health: HealthInfo | null; canPrint: boolean }) {
+export default function Header({ health, canPrint, trustScore, onOpenTrust }: { health: HealthInfo | null; canPrint: boolean; trustScore: number; onOpenTrust: () => void }) {
   const { t, lang, setLang } = useI18n();
   const [dark, setDark] = useState(false);
 
@@ -54,6 +54,16 @@ export default function Header({ health, canPrint }: { health: HealthInfo | null
               </span>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={onOpenTrust}
+            title={t('trustTitle')}
+            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200 transition hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/30"
+          >
+            <ShieldCheck className="size-3.5" />
+            <span className="hidden sm:inline">{t('trustShort')}</span>
+            <span className="tabular-nums">{trustScore}</span>
+          </button>
           <span
             title={aiOn ? `${t('aiLlmTitle')} · ${health?.ai.model ?? ''}` : t('aiSimTitle')}
             className={cx(

@@ -1,7 +1,8 @@
 'use client';
 
-import { Building2, ExternalLink, Mail, MapPin, ScanSearch, Users } from 'lucide-react';
+import { BadgeCheck, Building2, ExternalLink, Globe, Mail, MapPin, ScanSearch, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { AGENCY_LINKS } from '@/data/kr-ph-trade-db';
 import { PARTNER_TYPE_LABEL } from '@/lib/i18n';
 import { rankPartners } from '@/lib/engine/simulate';
 import type { PartnerRole, PartnerType, QueryIntent, TradeProduct } from '@/lib/types';
@@ -95,12 +96,34 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
                     <Building2 className="size-3" />
                     {PARTNER_TYPE_LABEL[c.type][lang]}
                   </Badge>
+                  {c.linkCheck && (c.linkCheck.state === 'ok' || c.linkCheck.state === 'protected') && (
+                    <Badge tone="brand" title={`HTTP ${c.linkCheck.status} · ${c.linkCheck.checkedAt}`}>
+                      <Globe className="size-3" />
+                      {t('webChecked')} {c.linkCheck.checkedAt.slice(5, 10).replace('-', '.')}
+                    </Badge>
+                  )}
+                  {c.license ? (
+                    <Badge tone="violet" title={`${c.license.source} · ${c.license.verifiedBy} · ${c.license.verifiedAt}`}>
+                      <BadgeCheck className="size-3" />
+                      {t('licenseVerified')}
+                    </Badge>
+                  ) : (
+                    <Badge tone="amber">{t('licenseUnverified')}</Badge>
+                  )}
                 </div>
                 <p className="mt-2 text-[13px] font-medium text-slate-700 dark:text-slate-200">{p(c.products)}</p>
                 <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{p(c.comment)}</p>
-                <a href={c.website} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-400">
-                  {c.linkType === 'official' ? t('linkOfficial') : t('linkListing')} <ExternalLink className="size-3" />
-                </a>
+                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                  <a href={c.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-400">
+                    {c.linkType === 'official' ? t('linkOfficial') : t('linkListing')} <ExternalLink className="size-3" />
+                  </a>
+                  {c.country === 'PH' && !c.license && c.role === 'buyer' && c.type !== 'developer' && (
+                    <a href={AGENCY_LINKS.phFdaVerify} target="_blank" rel="noreferrer" className="no-print inline-flex items-center gap-1 text-xs font-semibold text-violet-700 hover:underline dark:text-violet-300">
+                      {t('checkLicense')} <ExternalLink className="size-3" />
+                    </a>
+                  )}
+                </div>
+                {c.license && <p className="mt-1 text-[11px] text-violet-700 dark:text-violet-300">{c.license.text}{c.license.validUntil ? ` · ~${c.license.validUntil}` : ''}</p>}
                 <div className="no-print mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"

@@ -83,19 +83,65 @@ cp .env.example .env.local
 
 각 품목: HS 후보 3개(적합도·근거) · MFN/AKFTA/RCEP/한-필 FTA 세율과 원산지기준·증명서 · 최적 FTA 추천 근거 · 양국 수입요건(식약처 해외제조업소 등록, 한글표시, 식물방역법 가공품 기준, FDA PH LTO/CPR/CPN, 영문 영양성분표, 할랄 IDCP/HDIP, NTC 형식승인 등) · 3개년 통계·시장규모·경쟁국 · 물류 레인 · 바이어/공급사 4~6곳 · 단가/MOQ/인코텀즈.
 
-### 출처·기준일 정책 (화면의 모든 수치 옆에 `[출처: … | 기준일: 2026.11]` 표기)
+### 출처·기준일 정책 (화면의 모든 수치 옆에 `[출처: … | 기준일]` + 검증 등급 표기)
 
-| 구분 | 상태 | 내용 |
+| 구분 | 검증 등급 | 내용 |
+|------|-----------|------|
+| 무역통계 (3개년 추이·시장규모·경쟁국·양국 총교역) | **공식 API** | UN Comtrade API 스냅샷 (`npm run data:sync`, 주 1회 자동) |
+| 기본세율 (MFN) | **공식 API / 교차검증** | World Bank WITS TRAINS로 HS6 검증 — 단일세율이면 자동 보정, 범위면 범위 내 여부 판정 |
+| FTA 협정세율·원산지기준·HS 확정·규정 요약·운임·단가 | **시드 → 전문가 검증** | `src/data/verified-overrides.json`에 공식 문서 기반 검증값 입력 시 승격 |
+| 기업 DB | **교차검증 → 전문가 검증** | 공개 웹페이지 응답 자동 점검 + 인허가(LTO 등) 확인 시 승격. 적합도 점수는 시뮬레이션 결과 |
+
+---
+
+## 3-1. 데이터 신뢰도 100% 로드맵 (신뢰도 센터)
+
+헤더의 **`데이터 신뢰도`** 버튼을 누르면 품목별 신뢰도 점수, 데이터 원천 동기화 상태, 공식 데이터와의 불일치·보정 이력, 남은 간극과 해결 방법을 볼 수 있습니다.
+
+**"100% 정보"의 정의**
+1. 모든 값이 공식 출처로 추적 가능하다.
+2. 기준일이 명시되어 있고 유효기간 안에 있다.
+3. HS 분류·세율처럼 법적 효력이 필요한 항목은 사전심사 또는 관세사 검수로 확정되어 있다.
+
+**점수** = 카테고리 10개(통계·시장·MFN·FTA·원산지·HS·요건·기업·운임·단가)별 평균 × 100. 카테고리 안에서는 공식 API·전문가 검증 = 1.0, 교차검증 = 0.5, 시드 = 0으로 계산합니다.
+
+| 원천 | 상태 | 방법 |
 |------|------|------|
-| 무역통계 (3개년 추이·시장규모·경쟁국·양국 총교역) | **공식 데이터** | UN Comtrade 공개 API 실측값 (2023–2025, 한국 410 / 필리핀 608 신고, 2026-11-03 수집) |
-| 관세율·원산지기준·운임·단가·적합도 | **시드 참고값** | MVP용 큐레이션 값. 신고·계약 전 UNI-PASS, 필리핀 관세위원회 Tariff Finder, 포워더 견적으로 재확인 필요 (화면에 노란 `시드 참고값` 태그로 구분) |
-| 기업 DB | 공개 웹페이지 확인 | 공식 홈페이지 또는 공개 전시회/디렉터리 페이지가 확인된 실존 기업. 적합도 점수·코멘트는 시뮬레이션 매칭 결과이며 제휴·보증이 아님 |
-
-통계를 갱신하려면 UN Comtrade 공개 API를 사용할 수 있습니다(무료 preview는 1회 1개 연도):
+| UN Comtrade | ✅ 자동 (키 불필요) | `npm run data:sync` · 주 1회 GitHub Actions가 변경 시 PR 생성 |
+| World Bank WITS TRAINS | ✅ 자동 (키 불필요) | MFN HS6 교차검증·자동 보정. 첫 동기화에서 시드 오류 4건 보정(코코넛오일 8→3%, 조미김 15→10%, K-뷰티 10→7%, 도어락 10→1%) |
+| 링크 점검 | ✅ 자동 | 61개 URL을 ok / protected(봇 차단) / unreachable / broken으로 분류 |
+| 관세청 월별 수출입실적 | 🔑 키만 넣으면 자동 | data.go.kr 「관세청_품목별 국가별 수출입실적(GW)」 → `DATA_GO_KR_SERVICE_KEY` |
+| 관세청 과세환율 | 🔑 키만 넣으면 자동 | data.go.kr 「관세청_관세환율정보(GW)」 → 원화 관세 표시 |
+| 10단위 FTA 협정세율 | ✍️ 검증 입력 | UNI-PASS 「관세율(협정·탄력)」/ 관세청 FTA 포털 / 필리핀 Tariff Finder 조회 → overrides |
+| HS 법적 확정 | ✍️ 검증 입력 | 관세청 품목분류 사전심사(관세법 제86조), 필리핀 BOC Advance Ruling → overrides(hs) |
+| 기업 인허가 | ✍️ 검증 입력 | FDA PH verification 포털·SEC·DTI BNRS / 국세청 사업자 상태조회·DART → overrides(partner) |
+| 운임·단가 | ✍️ 검증 입력 | 포워더 견적서(유효기간 포함) → overrides(logistics, validUntil 지나면 자동으로 시드 복귀) |
 
 ```bash
-curl "https://comtradeapi.un.org/public/v1/preview/C/A/HS?reporterCode=410&period=2025&partnerCode=608&cmdCode=200899,151319&flowCode=M"
+npm run data:sync        # 전체 동기화 (Comtrade · WITS · 링크 · 키가 있으면 관세청)
+npm run data:links       # 링크만 다시 점검
+npm run data:validate    # verified-overrides.json 형식 검증 (CI에서 실행)
 ```
+
+**검증값 입력 예시** (`src/data/verified-overrides.json`의 `examples` 참고):
+
+```json
+{
+  "productId": "banana-chips",
+  "target": { "type": "tariff", "scheme": "KRPH", "rate": 0, "roo": "CC or RVC 40%" },
+  "source": "UNI-PASS 세율정보 (관세율 협정·탄력)",
+  "reference": "HSK 2008.99.9000 · 한-필리핀 FTA · 2026년 적용세율 조회 화면",
+  "verifiedBy": "관세사 OOO",
+  "verifiedAt": "2026-11-10",
+  "validUntil": "2026-12-31"
+}
+```
+
+`target.type`은 `tariff`, `hs`, `partner`, `requirement`, `logistics`, `pricing` 중 하나입니다. 공식 데이터가 시드와 다를 때의 보정 이력은 `src/data/official/changelog.json`에 남깁니다.
+
+자동화하지 않은 것과 그 이유:
+- **필리핀 Tariff Finder·FDA 인증 포털:** 공개 API가 없습니다. 내부 엔드포인트 스크래핑은 하지 않고, 공식 화면 조회 → 검증 입력 경로로 처리합니다.
+- **UNI-PASS 관세율 Open API:** 회원가입·신청 후 받는 명세로만 확인할 수 있어, 명세 확인 전까지 커넥터를 추측해 구현하지 않았습니다.
 
 ---
 
@@ -184,6 +230,7 @@ cd .next\standalone; $env:PORT=3000; node server.js
 tradescope-ai/
 ├─ Dockerfile · docker-compose.yml · .env.example · next.config.mjs (output: 'standalone')
 ├─ deploy/                    Caddyfile · nginx.conf.example · tradescope.service.example
+├─ scripts/sync-official-data.mjs  공식 데이터 동기화 (Comtrade · WITS · 관세청 · 링크 점검 · overrides 검증)
 ├─ public/
 └─ src/
    ├─ app/
@@ -192,7 +239,9 @@ tradescope-ai/
    │  └─ api/ analyze · draft · health
    ├─ components/             Header · HeroSearch · Overview · AssistantPanel · charts · ui
    │  └─ modules/             Briefing · Tariff(+Checklist) · Market · Partners
-   ├─ data/kr-ph-trade-db.ts  한-필 RAG 시드 데이터베이스
+   ├─ data/kr-ph-trade-db.ts  한-필 RAG 시드 데이터베이스 (공식 레이어 병합 후 export)
+   ├─ data/official/          snapshot.json(공식 API 스냅샷) · index.ts(병합·검증 등급) · roadmap.ts · changelog.json
+   ├─ data/verified-overrides.json  전문가 검증값 입력 파일
    └─ lib/
       ├─ ai-adapter.ts        OpenAI 호환 어댑터 (타임아웃·에러 → 폴백)
       ├─ engine/search.ts     로컬 검색·의도 파싱 (서버/브라우저 공용)
@@ -206,14 +255,18 @@ tradescope-ai/
 ## 7. 검증
 
 ```bash
-npm run typecheck   # tsc --noEmit — 0 errors
-npm run build       # Next.js production build — 0 errors
+npm run typecheck      # tsc --noEmit — 0 errors
+npm run build          # Next.js production build — 0 errors
+npm run data:validate  # verified-overrides.json 형식 검증
 ```
+
+GitHub Actions: `.github/workflows/tradescope-ci.yml`(PR마다 검증·타입체크·빌드), `.github/workflows/tradescope-data-sync.yml`(매주 월요일 공식 데이터 동기화 → 데이터가 바뀌면 PR 생성).
 
 검증 범위: 시뮬레이션 모드와 OpenAI 호환 목(mock) 서버 기반 LLM 모드, 401/403/타임아웃 시 폴백, 4개 원클릭 데모, 모바일(390px) 가로 스크롤 없음, 콘솔 에러 0건, `docker build` 및 컨테이너 헬스체크.
 
 ## 8. 한계와 다음 단계
 
-- 관세율·원산지기준은 시드 참고값입니다 → UNI-PASS 세율 API / 필리핀 Tariff Finder 연동으로 실시간화
+- FTA 협정세율·원산지기준은 아직 시드 참고값입니다 → 3-1의 검증 입력 경로로 전문가 검증, UNI-PASS Open API 명세 확보 시 커넥터 추가
+- WITS MFN은 HS6·통보 연도(현재 2023) 기준입니다 → 10단위·당해연도 세율은 UNI-PASS 조회로 확정
 - 기업 DB는 공개 정보 기반 소규모 표본입니다 → KOTRA buyKOREA·TriBIG, 선적(B/L) 데이터 연동
 - 한국 HSK 10단위는 후보 제시용입니다 → 최종 분류는 관세사 검토 또는 UNI-PASS 품목분류 사전심사로 확정

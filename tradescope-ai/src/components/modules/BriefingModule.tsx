@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, BrainCircuit, CheckCircle2, ExternalLink, ListChecks, Target } from 'lucide-react';
+import { AlertTriangle, BadgeCheck, BrainCircuit, CheckCircle2, ExternalLink, ListChecks, ShieldCheck, Target } from 'lucide-react';
 import { AGENCY_LINKS } from '@/data/kr-ph-trade-db';
 import { formatUsd } from '@/lib/format';
 import { DIRECTION_LABEL } from '@/lib/engine/simulate';
@@ -8,7 +8,7 @@ import type { AnalysisReport, TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
 import { Badge, Card, cx, ModuleHeader, ProgressBar } from '../ui';
 
-export default function BriefingModule({ report, product }: { report: AnalysisReport; product: TradeProduct }) {
+export default function BriefingModule({ report, product, onOpenTrust }: { report: AnalysisReport; product: TradeProduct; onOpenTrust: () => void }) {
   const { t, p, lang } = useI18n();
   const briefing = report.briefing[lang];
   const llm = report.engine.mode === 'llm';
@@ -28,6 +28,17 @@ export default function BriefingModule({ report, product }: { report: AnalysisRe
         icon={<BrainCircuit className="size-5" />}
         right={
           <div className="flex flex-wrap items-center gap-1.5">
+            {product.verification && (
+              <button
+                type="button"
+                onClick={onOpenTrust}
+                className="no-print inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-100 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20"
+                title={t('openTrust')}
+              >
+                <ShieldCheck className="size-3" />
+                {t('trustScore')} {product.verification.score}
+              </button>
+            )}
             <Badge tone={llm ? 'green' : 'brand'} title={report.engine.fallbackReason ? `fallback: ${report.engine.fallbackReason}` : undefined}>
               {llm ? `${t('engineLlm')} · ${report.engine.model}` : t('engineSim')}
             </Badge>
@@ -128,6 +139,23 @@ export default function BriefingModule({ report, product }: { report: AnalysisRe
                   </div>
                   <p className="mt-1.5 text-[13px] font-semibold text-slate-700 dark:text-slate-200">{p(h.desc)}</p>
                   {h.ahtn && <p className="text-[11px] text-slate-400">PH AHTN {h.ahtn}</p>}
+                  {(() => {
+                    const hs6 = h.code.replace(/\./g, '').slice(0, 6);
+                    const v = product.verification;
+                    const off = v?.mfnCheck && v.mfnCheck.hs6 === hs6 ? v.mfnCheck : v?.altMfn?.[hs6];
+                    return off ? (
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                        {t('officialMfnAlt')} {off.min === off.max ? `${off.min}%` : `${off.min}–${off.max}%`} · WITS {off.year} · {off.lines}
+                        {t('lines')}
+                      </p>
+                    ) : null;
+                  })()}
+                  {h.ruling && (
+                    <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-violet-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
+                      <BadgeCheck className="size-3" />
+                      {h.ruling.text} · {h.ruling.verifiedAt}
+                    </p>
+                  )}
                   <div className="mt-2 flex items-center gap-2">
                     <ProgressBar value={h.fit} tone={conf === 'high' ? 'green' : conf === 'mid' ? 'brand' : 'amber'} />
                     <span className="w-16 shrink-0 text-right text-xs font-bold text-slate-600 dark:text-slate-300">

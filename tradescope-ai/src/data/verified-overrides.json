@@ -1,0 +1,48 @@
+{
+  "$comment": "Human-verified values that override seed data and raise their verification level to 'verified'. Add an entry ONLY after checking an official source (UNI-PASS 세율정보, 관세청 FTA 포털, PH Tariff Commission Tariff Finder export, 품목분류 사전심사 결정서, FDA verification portal, forwarder quotation...). Required on every entry: productId, target, source, reference, verifiedBy, verifiedAt (YYYY-MM-DD). Optional: validUntil (YYYY-MM-DD) — expired entries fall back to 'seed'. Run `npm run data:sync` to validate.",
+  "entries": [],
+  "examples": [
+    {
+      "productId": "banana-chips",
+      "target": { "type": "tariff", "scheme": "KRPH", "rate": 0, "roo": "CC or RVC 40%" },
+      "source": "UNI-PASS 세율정보 (관세율 협정·탄력)",
+      "reference": "HSK 2008.99.9000 · 한-필리핀 FTA · 2026년 적용세율 조회 화면",
+      "verifiedBy": "관세사 OOO",
+      "verifiedAt": "2026-11-10",
+      "validUntil": "2026-12-31"
+    },
+    {
+      "productId": "banana-chips",
+      "target": { "type": "hs", "code": "2008.99.9000", "ruling": "관세청 품목분류 사전심사 결정 제2026-0000호" },
+      "source": "관세청 품목분류 사전심사",
+      "reference": "결정서 PDF / UNI-PASS 품목분류 사례",
+      "verifiedBy": "관세사 OOO",
+      "verifiedAt": "2026-11-20"
+    },
+    {
+      "productId": "seasoned-laver",
+      "target": { "type": "partner", "id": "pk-oriental", "license": "FDA LTO (Food Importer/Distributor) 번호", "licenseValidUntil": "2027-06-30" },
+      "source": "FDA Philippines verification portal",
+      "reference": "https://verification.fda.gov.ph (조회 화면 캡처 보관)",
+      "verifiedBy": "TradeScope 데이터팀 OOO",
+      "verifiedAt": "2026-11-12"
+    },
+    {
+      "productId": "instant-ramen",
+      "target": { "type": "logistics", "index": 0, "cost": [700, 1150], "transitDays": [4, 6] },
+      "source": "포워더 견적서",
+      "reference": "견적번호 Q-2026-1101 (OO로지스틱스, 유효기간 2주)",
+      "verifiedBy": "물류 담당 OOO",
+      "verifiedAt": "2026-11-05",
+      "validUntil": "2026-11-19"
+    },
+    {
+      "productId": "k-beauty",
+      "target": { "type": "requirement", "id": "ph-cpn" },
+      "source": "FDA Philippines 공식 Circular 원문",
+      "reference": "FDA Circular No. ____ (원문 링크)",
+      "verifiedBy": "인허가 컨설턴트 OOO",
+      "verifiedAt": "2026-11-15"
+    }
+  ]
+}

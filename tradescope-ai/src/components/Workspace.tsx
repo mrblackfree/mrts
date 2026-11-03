@@ -7,6 +7,7 @@ import { analyzeLocal, DIRECTION_LABEL, rankPartners } from '@/lib/engine/simula
 import type { AnalysisReport, Direction } from '@/lib/types';
 import AnalysisProgress, { PIPELINE_STEPS } from './AnalysisProgress';
 import AssistantPanel from './AssistantPanel';
+import DataTrustCenter, { overallTrustScore } from './DataTrustCenter';
 import Header, { type HealthInfo } from './Header';
 import HeroSearch from './HeroSearch';
 import { I18nProvider, useI18n } from './I18nProvider';
@@ -37,6 +38,8 @@ function WorkspaceInner() {
   const [activeDemo, setActiveDemo] = useState<string | null>(null);
   const [assistant, setAssistant] = useState<{ partnerId: string; tab: 'analysis' | 'email' } | null>(null);
   const [health, setHealth] = useState<HealthInfo | null>(null);
+  const [trustOpen, setTrustOpen] = useState(false);
+  const trustScore = useMemo(overallTrustScore, []);
   const resultsRef = useRef<HTMLDivElement>(null);
   const requestId = useRef(0);
 
@@ -161,7 +164,7 @@ function WorkspaceInner() {
 
   return (
     <>
-      <Header health={health} canPrint={status === 'done'} />
+      <Header health={health} canPrint={status === 'done'} trustScore={trustScore} onOpenTrust={() => setTrustOpen(true)} />
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 sm:py-7">
         <HeroSearch
           query={query}
@@ -209,7 +212,7 @@ function WorkspaceInner() {
                 </button>
               </nav>
 
-              <BriefingModule key={`b-${report.id}`} report={report} product={product} />
+              <BriefingModule key={`b-${report.id}`} report={report} product={product} onOpenTrust={() => setTrustOpen(true)} />
               <TariffModule key={`t-${report.id}`} product={product} initialAmount={report.intent.amountUsd} />
               <MarketModule key={`m-${report.id}`} product={product} />
               <div className="print-break" />
@@ -233,6 +236,8 @@ function WorkspaceInner() {
           </p>
         </div>
       </footer>
+
+      {trustOpen && <DataTrustCenter focusProductId={product?.id} onClose={() => setTrustOpen(false)} />}
 
       {assistant && product && report && assistantPartner && (
         <AssistantPanel

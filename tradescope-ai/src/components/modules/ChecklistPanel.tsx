@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { REQ_CATEGORY_LABEL } from '@/lib/i18n';
 import type { Country, TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
-import { Badge, cx, ProgressBar, SourceTag } from '../ui';
+import { Badge, cx, LevelBadge, ProgressBar, SourceTag } from '../ui';
 
 export default function ChecklistPanel({ product }: { product: TradeProduct }) {
   const { t, p, lang } = useI18n();
@@ -65,6 +65,7 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
                             <span className="mt-1 flex flex-wrap items-center gap-1">
                               <Badge tone={r.mandatory ? 'red' : 'slate'}>{r.mandatory ? t('mandatory') : t('optional')}</Badge>
                               <Badge>{REQ_CATEGORY_LABEL[r.category][lang]}</Badge>
+                              {r.reviewed && <LevelBadge level="verified" title={`${r.reviewed.source} · ${r.reviewed.verifiedBy} · ${r.reviewed.verifiedAt}`} />}
                               {r.leadDays ? (
                                 <Badge tone="amber">
                                   <Clock className="size-3" />
@@ -84,6 +85,18 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
                         <a href={r.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline dark:text-brand-400">
                           {r.agency} · {t('officialSite')} <ExternalLink className="size-3" />
                         </a>
+                        {r.linkCheck && (
+                          <p className="mt-1 text-[10.5px] text-slate-400">
+                            {t('linkHealth')}:{' '}
+                            {r.linkCheck.state === 'ok' ? t('linkOk') : r.linkCheck.state === 'protected' ? t('linkProtected') : r.linkCheck.state === 'unreachable' ? t('linkUnreachable') : t('linkBroken')} ·{' '}
+                            {r.linkCheck.checkedAt.slice(0, 10)}
+                          </p>
+                        )}
+                        {r.reviewed && (
+                          <p className="mt-1 text-[10.5px] font-semibold text-violet-700 dark:text-violet-300">
+                            {t('reviewedBy')}: {r.reviewed.source} · {r.reviewed.verifiedBy} · {r.reviewed.verifiedAt}
+                          </p>
+                        )}
                       </div>
                     </li>
                   );

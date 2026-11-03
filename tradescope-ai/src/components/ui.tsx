@@ -1,8 +1,8 @@
 'use client';
 
-import { Check, Copy, Database, FlaskConical } from 'lucide-react';
+import { BadgeCheck, Check, Copy, Database, FlaskConical, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
-import type { SourceMeta } from '@/lib/types';
+import type { SourceMeta, VerificationLevel } from '@/lib/types';
 import { useI18n } from './I18nProvider';
 
 export function cx(...parts: Array<string | false | null | undefined>): string {
@@ -181,5 +181,25 @@ export function Chip({ active, onClick, children }: { active: boolean; onClick: 
     >
       {children}
     </button>
+  );
+}
+
+const LEVEL_STYLE: Record<VerificationLevel, { tone: 'green' | 'violet' | 'brand' | 'amber'; key: 'lvOfficial' | 'lvVerified' | 'lvCrosscheck' | 'lvSeed' }> = {
+  official: { tone: 'green', key: 'lvOfficial' },
+  verified: { tone: 'violet', key: 'lvVerified' },
+  crosscheck: { tone: 'brand', key: 'lvCrosscheck' },
+  seed: { tone: 'amber', key: 'lvSeed' },
+};
+
+/** Verification level chip: 공식 API · 전문가 검증 · 교차검증 · 시드 */
+export function LevelBadge({ level, title, className }: { level: VerificationLevel; title?: string; className?: string }) {
+  const { t } = useI18n();
+  const st = LEVEL_STYLE[level];
+  const Icon = level === 'official' ? Database : level === 'verified' ? BadgeCheck : level === 'crosscheck' ? ShieldCheck : FlaskConical;
+  return (
+    <Badge tone={st.tone} title={title} className={className}>
+      <Icon className="size-3" />
+      {t(st.key)}
+    </Badge>
   );
 }

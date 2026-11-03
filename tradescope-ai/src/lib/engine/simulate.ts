@@ -153,6 +153,9 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
   const focus = intent.focus.map((f) => FOCUS_LABEL[f][lang]).join(', ');
   const topRole = top.role === 'seller' ? (lang === 'ko' ? '공급사' : 'supplier') : lang === 'ko' ? '바이어' : 'buyer';
   const shortQuery = query.length > 60 ? `${query.slice(0, 60)}…` : query;
+  const v = product.verification;
+  const mfnState = v?.mfnCheck?.status;
+  const ftaSeed = product.tariffs.filter((x) => x.scheme !== 'MFN' && x.level !== 'verified').length;
 
   if (lang === 'ko') {
     const caveats: string[] = [];
@@ -172,6 +175,11 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
         `필수 요건 ${mandatory.length}건: ${mandatory.slice(0, 3).map((r) => pick(r.title, 'ko')).join(' / ')} — 최장 리드타임 ${maxLead}일`,
         `시장: ${pick(product.market.seriesLabel, 'ko')} ${formatUsd(last.value, { compact: true })} (${formatPct(growth, 1, true)} YoY)${share ? `, ${pick(share.country, 'ko')} 점유율 ${share.share}%` : ''}`,
         `물류: ${lane.from}→${lane.to} ${lane.mode} $${formatNumber(lane.cost[0])}~${formatNumber(lane.cost[1])}, ${lane.transitDays[0]}~${lane.transitDays[1]}일`,
+        ...(v
+          ? [
+              `데이터 신뢰도 ${v.score}/100: 통계 공식(UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? '공식 세율 확인(WITS)' : mfnState === 'within-range' ? '공식 HS6 범위 내(WITS)' : '미검증'} · FTA 협정세율 ${ftaSeed ? `${ftaSeed}건 시드 — UNI-PASS·Tariff Finder 확인 필요` : '전문가 검증 완료'}`,
+            ]
+          : []),
       ],
       nextActions: [
         `HS ${hs0.code} 품목분류 확정 — 필요 시 UNI-PASS 품목분류 사전심사 신청`,
@@ -203,6 +211,11 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
       `${mandatory.length} mandatory requirements: ${mandatory.slice(0, 3).map((r) => pick(r.title, 'en')).join(' / ')} — longest lead time ${maxLead} days`,
       `Market: ${formatUsd(last.value, { compact: true })} (${formatPct(growth, 1, true)} YoY)${share ? `, ${pick(share.country, 'en')} share ${share.share}%` : ''}`,
       `Logistics: ${lane.from}→${lane.to} ${lane.mode} $${formatNumber(lane.cost[0])}–${formatNumber(lane.cost[1])}, ${lane.transitDays[0]}–${lane.transitDays[1]} days`,
+      ...(v
+        ? [
+            `Data trust ${v.score}/100: statistics official (UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? 'official rate confirmed (WITS)' : mfnState === 'within-range' ? 'within official HS6 range (WITS)' : 'unverified'} · FTA rates ${ftaSeed ? `${ftaSeed} seed — confirm in UNI-PASS / Tariff Finder` : 'expert-verified'}`,
+          ]
+        : []),
     ],
     nextActions: [
       `Lock HS ${hs0.code} — file a UNI-PASS advance classification ruling if needed`,

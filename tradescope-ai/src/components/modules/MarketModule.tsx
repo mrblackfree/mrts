@@ -22,6 +22,9 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
     { label: `${t('latest')} (${last.year})`, value: formatUsd(last.value, { compact: true }), sub: `${t('yoyLabel')} ${formatPct(growth, 1, true)}`, tone: growth >= 0 ? 'up' : 'down' },
     { label: `CAGR ${s[0].year}–${last.year}`, value: formatPct(cagr, 1, true), sub: m.hsBasis, tone: cagr >= 0 ? 'up' : 'down' },
     { label: `${t('marketSize')} (${m.marketSize.year})`, value: formatUsd(m.marketSize.value, { compact: true }), sub: highlighted ? `${p(highlighted.country)} ${highlighted.share}%` : '', tone: 'flat' },
+    ...(m.latestMonthly
+      ? [{ label: `${t('ytdKcs')} ${m.latestMonthly.from.slice(0, 4)}.${m.latestMonthly.from.slice(4)}–${m.latestMonthly.to.slice(4)}`, value: formatUsd(m.latestMonthly.value, { compact: true }), sub: 'KCS · data.go.kr', tone: 'flat' }]
+      : []),
   ];
 
   return (
@@ -29,7 +32,7 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
       <ModuleHeader index={3} title={t('m3Title')} icon={<TrendingUp className="size-5" />} />
       <div className="grid gap-5 p-5 lg:grid-cols-2">
         <div className="min-w-0">
-          <div className="grid grid-cols-3 gap-2">
+          <div className={cx('grid gap-2', kpis.length > 3 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3')}>
             {kpis.map((k) => (
               <div key={k.label} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
                 <p className="text-[11px] font-semibold leading-tight text-slate-500 dark:text-slate-400">{k.label}</p>
@@ -63,8 +66,10 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
             <p className="mb-1 flex items-center gap-1.5 text-xs font-bold">
               <Lightbulb className="size-3.5" />
               {t('insight')}
+              {m.insightYear && <span className="font-medium opacity-70">· {m.insightYear}</span>}
             </p>
             {p(m.insight)}
+            {product.verification?.insightStale && <p className="mt-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">⚠ {t('insightStale')}</p>}
           </div>
           <SourceTag meta={m.meta} className="mt-3" />
         </div>

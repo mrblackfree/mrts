@@ -1,0 +1,1149 @@
+{
+  "schema": 1,
+  "sources": {
+    "comtrade": {
+      "status": "ok",
+      "fetchedAt": "2026-11-03T07:10:49.594Z",
+      "endpoint": "comtradeapi.un.org/public/v1/preview (keyless)",
+      "years": [
+        2023,
+        2024,
+        2025
+      ],
+      "errors": []
+    },
+    "wits": {
+      "status": "ok",
+      "fetchedAt": "2026-11-03T07:11:51.553Z",
+      "endpoint": "wits.worldbank.org/API/V1/SDMX (TRAINS, MFN, HS6)",
+      "errors": []
+    },
+    "kcs": {
+      "status": "not-configured",
+      "note": "Set DATA_GO_KR_SERVICE_KEY (data.go.kr, free auto-approval) to enable monthly KCS trade data and customs FX."
+    },
+    "links": {
+      "status": "ok",
+      "fetchedAt": "2026-11-03T07:21:21.775Z",
+      "counts": {
+        "ok": 47,
+        "protected": 13,
+        "unreachable": 1
+      },
+      "note": "protected = site answered but blocks automated clients (bot protection / geo-IP); unreachable = no answer from the checker network."
+    },
+    "overrides": {
+      "status": "ok",
+      "entries": 0,
+      "errors": []
+    }
+  },
+  "comtrade": {
+    "products": {
+      "banana-chips": {
+        "hsBasis": "200899",
+        "series": [
+          {
+            "year": 2023,
+            "value": 6458672
+          },
+          {
+            "year": 2024,
+            "value": 6817821
+          },
+          {
+            "year": 2025,
+            "value": 4443236
+          }
+        ],
+        "seriesSource": "UN Comtrade · reporter 410 (Korea) · partner 608 · flow M · HS 200899",
+        "market": {
+          "year": 2025,
+          "reporter": 410,
+          "world": 123993939,
+          "competitors": [
+            {
+              "code": 156,
+              "iso2": "CN",
+              "flag": "🇨🇳",
+              "ko": "중국",
+              "en": "China",
+              "value": 45463392,
+              "share": 36.7
+            },
+            {
+              "code": 704,
+              "iso2": "VN",
+              "flag": "🇻🇳",
+              "ko": "베트남",
+              "en": "Vietnam",
+              "value": 18746605,
+              "share": 15.1
+            },
+            {
+              "code": 842,
+              "iso2": "US",
+              "flag": "🇺🇸",
+              "ko": "미국",
+              "en": "USA",
+              "value": 16920071,
+              "share": 13.6
+            },
+            {
+              "code": 764,
+              "iso2": "TH",
+              "flag": "🇹🇭",
+              "ko": "태국",
+              "en": "Thailand",
+              "value": 10755540,
+              "share": 8.7
+            },
+            {
+              "code": 360,
+              "iso2": "ID",
+              "flag": "🇮🇩",
+              "ko": "인도네시아",
+              "en": "Indonesia",
+              "value": 5633485,
+              "share": 4.5
+            }
+          ],
+          "counterpart": {
+            "code": 608,
+            "iso2": "PH",
+            "flag": "🇵🇭",
+            "ko": "필리핀",
+            "en": "Philippines",
+            "value": 4443236,
+            "share": 3.6
+          },
+          "source": "UN Comtrade · reporter 410 · partner World · flow M · HS 200899 · 2025"
+        }
+      },
+      "dried-mango": {
+        "hsBasis": "080450",
+        "series": [
+          {
+            "year": 2023,
+            "value": 2186286
+          },
+          {
+            "year": 2024,
+            "value": 1210712
+          },
+          {
+            "year": 2025,
+            "value": 94228
+          }
+        ],
+        "seriesSource": "UN Comtrade · reporter 410 (Korea) · partner 608 · flow M · HS 080450",
+        "market": {
+          "year": 2025,
+          "reporter": 410,
+          "world": 129966980,
+          "competitors": [
+            {
+              "code": 764,
+              "iso2": "TH",
+              "flag": "🇹🇭",
+              "ko": "태국",
+              "en": "Thailand",
+              "value": 76173268,
+              "share": 58.6
+            },
+            {
+              "code": 604,
+              "iso2": "PE",
+              "flag": "🇵🇪",
+              "ko": "페루",
+              "en": "Peru",
+              "value": 23045077,
+              "share": 17.7
+            },
+            {
+              "code": 76,
+              "iso2": "BR",
+              "flag": "🇧🇷",
+              "ko": "브라질",
+              "en": "Brazil",
+              "value": 17494688,
+              "share": 13.5
+            },
+            {
+              "code": 704,
+              "iso2": "VN",
+              "flag": "🇻🇳",
+              "ko": "베트남",
+              "en": "Vietnam",
+              "value": 10296022,
+              "share": 7.9
+            },
+            {
+              "code": 490,
+              "iso2": "TW",
+              "flag": "🇹🇼",
+              "ko": "대만",
+              "en": "Taiwan",
+              "value": 1182844,
+              "share": 0.9
+            }
+          ],
+          "counterpart": {
+            "code": 608,
+            "iso2": "PH",
+            "flag": "🇵🇭",
+            "ko": "필리핀",
+            "en": "Philippines",
+            "value": 94228,
+            "share": 0.1
+          },
+          "source": "UN Comtrade · reporter 410 · partner World · flow M · HS 080450 · 2025"
+        }
+      },
+      "coconut-oil": {
+        "hsBasis": "151319",
+        "series": [
+          {
+            "year": 2023,
+            "value": 28711239
+          },
+          {
+            "year": 2024,
+            "value": 40754568
+          },
+          {
+            "year": 2025,
+            "value": 59692272
+          }
+        ],
+        "seriesSource": "UN Comtrade · reporter 410 (Korea) · partner 608 · flow M · HS 151319",
+        "market": {
+          "year": 2025,
+          "reporter": 410,
+          "world": 112175314,
+          "competitors": [
+            {
+              "code": 608,
+              "iso2": "PH",
+              "flag": "🇵🇭",
+              "ko": "필리핀",
+              "en": "Philippines",
+              "value": 59692272,
+              "share": 53.2
+            },
+            {
+              "code": 360,
+              "iso2": "ID",
+              "flag": "🇮🇩",
+              "ko": "인도네시아",
+              "en": "Indonesia",
+              "value": 50250652,
+              "share": 44.8
+            },
+            {
+              "code": 704,
+              "iso2": "VN",
+              "flag": "🇻🇳",
+              "ko": "베트남",
+              "en": "Vietnam",
+              "value": 1270333,
+              "share": 1.1
+            },
+            {
+              "code": 144,
+              "iso2": "LK",
+              "flag": "🇱🇰",
+              "ko": "스리랑카",
+              "en": "Sri Lanka",
+              "value": 303112,
+              "share": 0.3
+            },
+            {
+              "code": 458,
+              "iso2": "MY",
+              "flag": "🇲🇾",
+              "ko": "말레이시아",
+              "en": "Malaysia",
+              "value": 289026,
+              "share": 0.3
+            }
+          ],
+          "counterpart": {
+            "code": 608,
+            "iso2": "PH",
+            "flag": "🇵🇭",
+            "ko": "필리핀",
+            "en": "Philippines",
+            "value": 59692272,
+            "share": 53.2
+          },
+          "source": "UN Comtrade · reporter 410 · partner World · flow M · HS 151319 · 2025"
+        }
+      },
+      "seasoned-laver": {
+        "hsBasis": "200899",
+        "series": [
+          {
+            "year": 2023,
+            "value": 14532917
+          },
+          {
+            "year": 2024,
+            "value": 22445858
+          },
+          {
+            "year": 2025,
+            "value": 25485620
+          }
+        ],
+        "seriesSource": "UN Comtrade · reporter 410 (Korea) · partner 608 · flow X · HS 200899",
+        "market": {
+          "year": 2025,
+          "reporter": 608,
+          "world": 14620629,
+          "competitors": [
+            {
+              "code": 410,
+              "iso2": "KR",
+              "flag": "🇰🇷",
+              "ko": "대한민국",
+              "en": "Korea",
+              "value": 8158543,
+              "share": 55.8
+            },
+            {
+              "code": 116,
+              "iso2": "KH",
+              "flag": "🇰🇭",
+              "ko": "캄보디아",
+              "en": "Cambodia",
+              "value": 2262366,
+              "share": 15.5
+            },
+            {
+              "code": 156,
+              "iso2": "CN",
+              "flag": "🇨🇳",
+              "ko": "중국",
+              "en": "China",
+              "value": 2050847,
+              "share": 14
+            },
+            {
+              "code": 764,
+              "iso2": "TH",
+              "flag": "🇹🇭",
+              "ko": "태국",
+              "en": "Thailand",
+              "value": 462510,
+              "share": 3.2
+            },
+            {
+              "code": 842,
+              "iso2": "US",
+              "flag": "🇺🇸",
+              "ko": "미국",
+              "en": "USA",
+              "value": 453359,
+              "share": 3.1
+            }
+          ],
+          "counterpart": {
+            "code": 410,
+            "iso2": "KR",
+            "flag": "🇰🇷",
+            "ko": "대한민국",
+            "en": "Korea",
+            "value": 8158543,
+            "share": 55.8
+          },
+          "source": "UN Comtrade · reporter 608 · partner World · flow M · HS 200899 · 2025"
+        }
+      },
+      "k-beauty": {
+        "hsBasis": "330499",
+        "series": [
+          {
+            "year": 2023,
+            "value": 53777595
+          },
+          {
+            "year": 2024,
+            "value": 70081822
+          },
+          {
+            "year": 2025,
+            "value": 88720265
+          }
+        ],
+        "seriesSource": "UN Comtrade · reporter 410 (Korea) · partner 608 · flow X · HS 330499",
+        "market": {
+          "year": 2025,
+          "reporter": 608,
+          "world": 188530921,
+          "competitors": [
+            {
+              "code": 764,
+              "iso2": "TH",
+              "flag": "🇹🇭",
+              "ko": "태국",
+              "en": "Thailand",
+              "value": 44589347,
+              "share": 23.7
+            },
+            {
+              "code": 410,
+              "iso2": "KR",
+              "flag": "🇰🇷",
+              "ko": "대한민국",
+              "en": "Korea",
+              "value": 31816748,
+              "share": 16.9
+            },
+            {
+              "code": 156,
+              "iso2": "CN",
+              "flag": "🇨🇳",
+              "ko": "중국",
+              "en": "China",
+              "value": 27165866,
+              "share": 14.4
+            },
+            {
+              "code": 699,
+              "iso2": "IN",
+              "flag": "🇮🇳",
+              "ko": "인도",
+              "en": "India",
+              "value": 12337566,
+              "share": 6.5
+            },
+            {
+              "code": 360,
+              "iso2": "ID",
+              "flag": "🇮🇩",
+              "ko": "인도네시아",
+              "en": "Indonesia",
+              "value": 11080251,
+              "share": 5.9
+            }
+          ],
+          "counterpart": {
+            "code": 410,
+            "iso2": "KR",
+            "flag": "🇰🇷",
+            "ko": "대한민국",
+            "en": "Korea",
+            "value": 31816748,
+            "share": 16.9
+          },
+          "source": "UN Comtrade · reporter 608 · partner World · flow M · HS 330499 · 2025"
+        }
+      },
+      "instant-ramen": {
+        "hsBasis": "190230",
+        "series": [
+          {
+            "year": 2023,
+            "value": 37956861
+          },
+          {
+            "year": 2024,
+            "value": 54602891
+          },
+          {
+            "year": 2025,
+            "value": 63156629
+          }
+        ],
+        "seriesSource": "UN Comtrade · reporter 410 (Korea) · partner 608 · flow X · HS 190230",
+        "market": {
+          "year": 2025,
+          "reporter": 608,
+          "world": 43853487,
+          "competitors": [
+            {
+              "code": 410,
+              "iso2": "KR",
+              "flag": "🇰🇷",
+              "ko": "대한민국",
+              "en": "Korea",
+              "value": 13798146,
+              "share": 31.5
+            },
+            {
+              "code": 156,
+              "iso2": "CN",
+              "flag": "🇨🇳",
+              "ko": "중국",
+              "en": "China",
+              "value": 10701369,
+              "share": 24.4
+            },
+            {
+              "code": 360,
+              "iso2": "ID",
+              "flag": "🇮🇩",
+              "ko": "인도네시아",
+              "en": "Indonesia",
+              "value": 6560681,
+              "share": 15
+            },
+            {
+              "code": 704,
+              "iso2": "VN",
+              "flag": "🇻🇳",
+              "ko": "베트남",
+              "en": "Vietnam",
+              "value": 6474441,
+              "share": 14.8
+            },
+            {
+              "code": 392,
+              "iso2": "JP",
+              "flag": "🇯🇵",
+              "ko": "일본",
+              "en": "Japan",
+              "value": 1373294,
+              "share": 3.1
+            }
+          ],
+          "counterpart": {
+            "code": 410,
+            "iso2": "KR",
+            "flag": "🇰🇷",
+            "ko": "대한민국",
+            "en": "Korea",
+            "value": 13798146,
+            "share": 31.5
+          },
+          "source": "UN Comtrade · reporter 608 · partner World · flow M · HS 190230 · 2025"
+        }
+      },
+      "smart-building": {
+        "hsBasis": "830140",
+        "series": [
+          {
+            "year": 2023,
+            "value": 742749
+          },
+          {
+            "year": 2024,
+            "value": 517755
+          },
+          {
+            "year": 2025,
+            "value": 232021
+          }
+        ],
+        "seriesSource": "UN Comtrade · reporter 410 (Korea) · partner 608 · flow X · HS 830140",
+        "market": {
+          "year": 2025,
+          "reporter": 608,
+          "world": 26585993,
+          "competitors": [
+            {
+              "code": 156,
+              "iso2": "CN",
+              "flag": "🇨🇳",
+              "ko": "중국",
+              "en": "China",
+              "value": 17906785,
+              "share": 67.4
+            },
+            {
+              "code": 392,
+              "iso2": "JP",
+              "flag": "🇯🇵",
+              "ko": "일본",
+              "en": "Japan",
+              "value": 1534447,
+              "share": 5.8
+            },
+            {
+              "code": 490,
+              "iso2": "TW",
+              "flag": "🇹🇼",
+              "ko": "대만",
+              "en": "Taiwan",
+              "value": 1489878,
+              "share": 5.6
+            },
+            {
+              "code": 484,
+              "iso2": "MX",
+              "flag": "🇲🇽",
+              "ko": "멕시코",
+              "en": "Mexico",
+              "value": 1160512,
+              "share": 4.4
+            },
+            {
+              "code": 842,
+              "iso2": "US",
+              "flag": "🇺🇸",
+              "ko": "미국",
+              "en": "USA",
+              "value": 697831,
+              "share": 2.6
+            }
+          ],
+          "counterpart": {
+            "code": 410,
+            "iso2": "KR",
+            "flag": "🇰🇷",
+            "ko": "대한민국",
+            "en": "Korea",
+            "value": 231438,
+            "share": 0.9
+          },
+          "source": "UN Comtrade · reporter 608 · partner World · flow M · HS 830140 · 2025"
+        }
+      }
+    },
+    "overview": {
+      "krExportsToPh": [
+        {
+          "year": 2023,
+          "value": 9008417184
+        },
+        {
+          "year": 2024,
+          "value": 10246502988
+        },
+        {
+          "year": 2025,
+          "value": 11616343765
+        }
+      ],
+      "krImportsFromPh": [
+        {
+          "year": 2023,
+          "value": 4645088721
+        },
+        {
+          "year": 2024,
+          "value": 4431022132
+        },
+        {
+          "year": 2025,
+          "value": 3500718734
+        }
+      ]
+    }
+  },
+  "wits": {
+    "banana-chips": {
+      "200600": {
+        "reporter": 410,
+        "year": 2023,
+        "avg": 23.46,
+        "min": 15,
+        "max": 30,
+        "lines": 13,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/410/partner/000/product/200600/year/2023/datatype/reported"
+      },
+      "200899": {
+        "reporter": 410,
+        "year": 2023,
+        "avg": 34.43,
+        "min": 8,
+        "max": 45,
+        "lines": 7,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/410/partner/000/product/200899/year/2023/datatype/reported"
+      },
+      "080390": {
+        "reporter": 410,
+        "year": 2023,
+        "avg": 30,
+        "min": 30,
+        "max": 30,
+        "lines": 1,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/410/partner/000/product/080390/year/2023/datatype/reported"
+      }
+    },
+    "dried-mango": {
+      "200600": {
+        "reporter": 410,
+        "year": 2023,
+        "avg": 23.46,
+        "min": 15,
+        "max": 30,
+        "lines": 13,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/410/partner/000/product/200600/year/2023/datatype/reported"
+      },
+      "200899": {
+        "reporter": 410,
+        "year": 2023,
+        "avg": 34.43,
+        "min": 8,
+        "max": 45,
+        "lines": 7,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/410/partner/000/product/200899/year/2023/datatype/reported"
+      },
+      "080450": {
+        "reporter": 410,
+        "year": 2023,
+        "avg": 30,
+        "min": 30,
+        "max": 30,
+        "lines": 3,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/410/partner/000/product/080450/year/2023/datatype/reported"
+      }
+    },
+    "coconut-oil": {
+      "151311": {
+        "reporter": 410,
+        "year": 2023,
+        "avg": 3,
+        "min": 3,
+        "max": 3,
+        "lines": 1,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/410/partner/000/product/151311/year/2023/datatype/reported"
+      },
+      "151319": {
+        "reporter": 410,
+        "year": 2023,
+        "avg": 3,
+        "min": 3,
+        "max": 3,
+        "lines": 2,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/410/partner/000/product/151319/year/2023/datatype/reported"
+      },
+      "151620": {
+        "reporter": 410,
+        "year": 2023,
+        "avg": 20.73,
+        "min": 8,
+        "max": 36,
+        "lines": 11,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/410/partner/000/product/151620/year/2023/datatype/reported"
+      }
+    },
+    "seasoned-laver": {
+      "121221": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 10,
+        "min": 10,
+        "max": 10,
+        "lines": 5,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/121221/year/2023/datatype/reported"
+      },
+      "190590": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 15,
+        "min": 15,
+        "max": 15,
+        "lines": 9,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/190590/year/2023/datatype/reported"
+      },
+      "200899": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 10,
+        "min": 10,
+        "max": 10,
+        "lines": 5,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/200899/year/2023/datatype/reported"
+      }
+    },
+    "k-beauty": {
+      "330499": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 7,
+        "min": 7,
+        "max": 7,
+        "lines": 3,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/330499/year/2023/datatype/reported"
+      },
+      "340130": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 10,
+        "min": 10,
+        "max": 10,
+        "lines": 1,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/340130/year/2023/datatype/reported"
+      }
+    },
+    "instant-ramen": {
+      "190219": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 15,
+        "min": 15,
+        "max": 15,
+        "lines": 4,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/190219/year/2023/datatype/reported"
+      },
+      "190230": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 15,
+        "min": 15,
+        "max": 15,
+        "lines": 4,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/190230/year/2023/datatype/reported"
+      }
+    },
+    "smart-building": {
+      "391810": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 15,
+        "min": 15,
+        "max": 15,
+        "lines": 3,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/391810/year/2023/datatype/reported"
+      },
+      "830140": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 1,
+        "min": 1,
+        "max": 1,
+        "lines": 3,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/830140/year/2023/datatype/reported"
+      },
+      "854370": {
+        "reporter": 608,
+        "year": 2023,
+        "avg": 0.75,
+        "min": 0,
+        "max": 3,
+        "lines": 8,
+        "nomenclature": "H6",
+        "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/000/product/854370/year/2023/datatype/reported"
+      }
+    }
+  },
+  "links": {
+    "https://www.foodsafetykorea.go.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:05.499Z"
+    },
+    "https://www.kmf.or.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:06.256Z"
+    },
+    "https://unipass.customs.go.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:06.649Z"
+    },
+    "https://www.fda.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:06.934Z"
+    },
+    "https://cert.korcham.net": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:07.666Z"
+    },
+    "https://verification.fda.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:07.854Z"
+    },
+    "https://www.mfds.go.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:07.954Z"
+    },
+    "https://impfood.mfds.go.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:08.376Z"
+    },
+    "https://customs.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:08.781Z"
+    },
+    "https://ncmf.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:09.402Z"
+    },
+    "https://www.da.gov.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:09.824Z"
+    },
+    "https://ntc.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:10.237Z"
+    },
+    "https://bfp.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:10.416Z"
+    },
+    "https://www.bps.dti.gov.ph": {
+      "status": 503,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:11.081Z"
+    },
+    "https://finder.tariffcommission.gov.ph/phkrfta": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:11.388Z"
+    },
+    "https://finder.tariffcommission.gov.ph/akfta": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:11.403Z"
+    },
+    "https://finder.tariffcommission.gov.ph/rcep": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:11.592Z"
+    },
+    "https://comtradeplus.un.org": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:11.938Z"
+    },
+    "https://freshcocebu.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:11.953Z"
+    },
+    "https://sialparis.com/EXHIBITORS-2024/exhibitor/SEE-S-INTERNATIONAL-FOOD-MANUFACTURING-CORP": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:12.274Z"
+    },
+    "https://nutrada.com/suppliers/four-seasons-fruits-corp": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:12.384Z"
+    },
+    "https://www.qia.go.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:12.564Z"
+    },
+    "https://www.costco.co.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:12.777Z"
+    },
+    "https://www.kurly.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:13.197Z"
+    },
+    "https://exhibitors.gulfood.com/gulfood-2026/Exhibitors/ExbDetails/3-sisters-banana-chips": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:13.282Z"
+    },
+    "https://www.7dmangoes.com": {
+      "status": 503,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:13.296Z"
+    },
+    "https://emart.ssg.com": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:13.497Z"
+    },
+    "https://www.franklinbaker.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:13.687Z"
+    },
+    "https://www.peterpaul.com.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:13.972Z"
+    },
+    "https://www.kita.net": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:14.270Z"
+    },
+    "https://www.cjfreshway.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:14.355Z"
+    },
+    "https://smmarkets.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:14.644Z"
+    },
+    "https://www.metroretail.com.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:15.615Z"
+    },
+    "https://www.customs.go.kr/ftaportalkor": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:16.114Z"
+    },
+    "https://www.kolmar.co.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:16.264Z"
+    },
+    "https://pkorientaltrading.odoo.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:16.398Z"
+    },
+    "https://www.sgfood.co.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:16.480Z"
+    },
+    "https://www.watsons.com.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:16.606Z"
+    },
+    "https://beautymnl.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:16.776Z"
+    },
+    "https://www.robinsonsretail.com.ph": {
+      "status": 503,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:17.212Z"
+    },
+    "https://www.cosmax.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:17.469Z"
+    },
+    "https://www.wilcon.com.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:17.639Z"
+    },
+    "https://www.landers.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:17.669Z"
+    },
+    "https://smdc.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:17.868Z"
+    },
+    "https://ayalaland.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:17.914Z"
+    },
+    "https://www.bfar.da.gov.ph": {
+      "status": 0,
+      "state": "unreachable",
+      "checkedAt": "2026-11-03T07:21:18.138Z"
+    },
+    "https://www.puregold.com.ph": {
+      "status": 503,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:18.291Z"
+    },
+    "https://www.snrshopping.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:18.555Z"
+    },
+    "https://www.acehardware.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:18.663Z"
+    },
+    "https://www.cwhomedepot.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:18.790Z"
+    },
+    "https://wits.worldbank.org/witsapiintro.aspx": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:19.030Z"
+    },
+    "https://www.lxhausys.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:19.104Z"
+    },
+    "https://comtradedeveloper.un.org": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:19.917Z"
+    },
+    "https://unipass.customs.go.kr/csp/index.do?tgMenuId=MYC_MNU_00000337": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:20.250Z"
+    },
+    "https://unipass.customs.go.kr/csp/index.do?tgMenuId=MYC_MNU_00000148": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:20.295Z"
+    },
+    "https://fdi.com.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:20.327Z"
+    },
+    "https://www.data.go.kr/data/15100475/openapi.do": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:20.388Z"
+    },
+    "https://www.sec.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-03T07:21:20.513Z"
+    },
+    "https://www.data.go.kr/data/15101230/openapi.do": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:21.102Z"
+    },
+    "https://www.kobc.or.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:21.600Z"
+    },
+    "https://dart.fss.or.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-03T07:21:21.774Z"
+    }
+  },
+  "generatedAt": "2026-11-03T07:21:21.776Z"
+}

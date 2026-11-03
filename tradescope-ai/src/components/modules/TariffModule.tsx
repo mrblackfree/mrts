@@ -1,13 +1,14 @@
 'use client';
 
-import { BadgePercent, Calculator, Sparkles } from 'lucide-react';
+import { BadgePercent, Calculator, CheckCircle2, ExternalLink, Sparkles, TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AGENCY_LINKS } from '@/data/kr-ph-trade-db';
+import { OFFICIAL } from '@/data/official';
 import { formatUsd } from '@/lib/format';
 import { computeDuties, importVat, SCHEME_LABEL } from '@/lib/engine/simulate';
 import type { TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
-import { Badge, Card, cx, ModuleHeader, SourceTag } from '../ui';
+import { Badge, Card, cx, LevelBadge, ModuleHeader, SourceTag } from '../ui';
 import ChecklistPanel from './ChecklistPanel';
 
 export default function TariffModule({ product, initialAmount }: { product: TradeProduct; initialAmount?: number }) {
@@ -18,6 +19,8 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
   const best = product.bestFta.scheme;
   const bestLine = duties.find((d) => d.scheme === best)!;
   const officialFinder = product.direction === 'KR_TO_PH' ? AGENCY_LINKS.phTcPhkr : AGENCY_LINKS.ftaPortal;
+  const mfnCheck = product.verification?.mfnCheck;
+  const fx = OFFICIAL.fx;
 
   return (
     <Card id="m-tariff" className="rise-in scroll-mt-28" >
@@ -43,6 +46,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                         )}
                       </span>
                       {rate.note && <span className="mt-0.5 hidden text-[10.5px] leading-tight text-slate-400 sm:block">{p(rate.note)}</span>}
+                      <LevelBadge level={rate.level ?? 'seed'} className="mt-1 !px-1.5 !py-0 !text-[10px]" title={rate.verifiedNote} />
                     </span>
                     <span className="relative h-7 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800" title={rate.note ? p(rate.note) : undefined}>
                       <span
@@ -59,6 +63,35 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
               })}
             </ul>
           </div>
+
+          {/* Official MFN cross-check */}
+          {mfnCheck && (
+            <div
+              className={cx(
+                'flex items-start gap-2.5 rounded-xl border p-3 text-xs',
+                mfnCheck.status === 'out-of-range'
+                  ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200'
+                  : 'border-emerald-200 bg-emerald-50/70 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+              )}
+            >
+              {mfnCheck.status === 'out-of-range' ? <TriangleAlert className="mt-0.5 size-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 size-4 shrink-0" />}
+              <div className="min-w-0">
+                <p className="font-bold">
+                  {t('mfnCheckTitle')} ·{' '}
+                  {mfnCheck.status === 'exact-match' ? t('mfnExact') : mfnCheck.status === 'corrected' ? t('mfnCorrected') : mfnCheck.status === 'within-range' ? t('mfnWithin') : t('mfnOut')}
+                </p>
+                <p className="mt-0.5 leading-relaxed">
+                  HS {mfnCheck.hs6.slice(0, 4)}.{mfnCheck.hs6.slice(4)} · {mfnCheck.year} · MFN {mfnCheck.min === mfnCheck.max ? `${mfnCheck.min}%` : `${mfnCheck.min}–${mfnCheck.max}% (avg ${mfnCheck.avg}%)`} · {mfnCheck.lines}
+                  {t('lines')}
+                  {mfnCheck.status === 'corrected' ? ` · seed ${mfnCheck.seedRate}% → ${mfnCheck.appliedRate}%` : ''}
+                  {mfnCheck.status === 'within-range' ? (lang === 'ko' ? ' · 10단위 세율 확정은 UNI-PASS 조회 필요' : ' · confirm the 10-digit rate in UNI-PASS') : ''}
+                </p>
+                <a href={mfnCheck.url} target="_blank" rel="noreferrer" className="no-print mt-1 inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline">
+                  WITS API <ExternalLink className="size-3" />
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Calculator */}
           <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
@@ -108,6 +141,14 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
               <p className="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/80">
                 {t('duty')} {formatUsd(duties[0].duty)} → {formatUsd(bestLine.duty)} · {t('importVat')} {importVat(product.direction)}%
               </p>
+              {product.direction === 'PH_TO_KR' &&
+                (fx ? (
+                  <p className="mt-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
+                    {t('krwDuty')}: ₩{Math.round(bestLine.savingVsMfn * fx.usdKrw).toLocaleString('ko-KR')} (USD 1 = ₩{fx.usdKrw.toLocaleString('ko-KR')}, {fx.appliedFrom})
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[11px] text-emerald-800/60 dark:text-emerald-300/60">{t('krwHint')}</p>
+                ))}
             </div>
 
             <div className="thin-scroll mt-4 overflow-x-auto">

@@ -30,6 +30,8 @@ export interface HsCandidate {
   /** AI fit score 0-100 */
   fit: number;
   rationale: Bilingual;
+  /** binding classification ruling (from verified-overrides.json) */
+  ruling?: { text: string; verifiedBy: string; verifiedAt: string };
 }
 
 export interface TariffRate {
@@ -40,6 +42,9 @@ export interface TariffRate {
   roo: string;
   certificate: Bilingual;
   note?: Bilingual;
+  /** attached by the official-data layer */
+  level?: VerificationLevel;
+  verifiedNote?: string;
 }
 
 export type RequirementCategory =
@@ -63,6 +68,9 @@ export interface Requirement {
   mandatory: boolean;
   /** typical lead time in days */
   leadDays?: number;
+  /** attached by the official-data layer */
+  linkCheck?: LinkCheck;
+  reviewed?: { source: string; reference: string; verifiedBy: string; verifiedAt: string };
 }
 
 export interface YearValue {
@@ -87,8 +95,65 @@ export interface MarketStats {
   /** importing-market size for the HS basis (USD) */
   marketSize: { year: number; value: number; label: Bilingual };
   competitors: CompetitorShare[];
+  /** data year the (hand-written) insight text was based on */
+  insightYear?: number;
   insight: Bilingual;
   meta: SourceMeta;
+  /** latest monthly year-to-date figure from Korea Customs (when the KCS connector is configured) */
+  latestMonthly?: { from: string; to: string; value: number; source: string };
+}
+
+// ---------- verification layer ----------
+
+/**
+ * official   — value pulled automatically from an official API (snapshot, timestamped)
+ * verified   — checked by a person against an official document (verified-overrides.json)
+ * crosscheck — seed value consistent with an official aggregate / web presence confirmed
+ * seed       — curated reference value, not yet verified
+ */
+export type VerificationLevel = 'official' | 'verified' | 'crosscheck' | 'seed';
+
+export type VerificationCategory = 'stats' | 'market' | 'mfn' | 'fta' | 'roo' | 'hs' | 'requirements' | 'partners' | 'logistics' | 'pricing';
+
+export interface VerificationItem {
+  key: string;
+  category: VerificationCategory;
+  label: Bilingual;
+  level: VerificationLevel;
+  source?: string;
+  checkedAt?: string;
+  detail?: Bilingual;
+  /** set when an official source disagreed with the seed value */
+  conflict?: Bilingual;
+}
+
+export interface MfnCheck {
+  hs6: string;
+  year: number;
+  avg: number;
+  min: number;
+  max: number;
+  lines: number;
+  seedRate: number;
+  appliedRate: number;
+  status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range';
+  url: string;
+}
+
+export interface LinkCheck {
+  state: 'ok' | 'protected' | 'unreachable' | 'broken';
+  status: number;
+  checkedAt: string;
+}
+
+export interface ProductVerification {
+  items: VerificationItem[];
+  score: number;
+  counts: Record<VerificationLevel, number>;
+  mfnCheck?: MfnCheck;
+  /** official MFN summaries for the alternative HS candidates, keyed by HS6 */
+  altMfn?: Record<string, { year: number; min: number; max: number; lines: number }>;
+  insightStale?: boolean;
 }
 
 export interface LogisticsLane {
@@ -100,6 +165,8 @@ export interface LogisticsLane {
   transitDays: [number, number];
   frequency: Bilingual;
   note?: Bilingual;
+  /** forwarder quotation that replaced the seed range (verified-overrides.json) */
+  quote?: { reference: string; verifiedBy: string; verifiedAt: string; validUntil?: string };
 }
 
 export type PartnerRole = 'buyer' | 'seller';
@@ -124,6 +191,9 @@ export interface Partner {
   strengths: Bilingual[];
   appeal: Bilingual[];
   caution: Bilingual;
+  /** attached by the official-data layer */
+  linkCheck?: LinkCheck;
+  license?: { text: string; validUntil?: string; source: string; verifiedBy: string; verifiedAt: string };
 }
 
 export interface PricingSeed {
@@ -136,6 +206,7 @@ export interface PricingSeed {
   defaultIncoterm: string;
   incoterms: string[];
   leadTimeDays: number;
+  verified?: { reference: string; verifiedBy: string; verifiedAt: string };
 }
 
 export interface TradeProduct {
@@ -160,6 +231,8 @@ export interface TradeProduct {
   partners: Partner[];
   pricing: PricingSeed;
   keyRisks: Bilingual[];
+  /** attached by the official-data layer (src/data/official) */
+  verification?: ProductVerification;
 }
 
 // ---------- analysis / draft payloads ----------

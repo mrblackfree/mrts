@@ -11,6 +11,7 @@
  *    public exhibitor / directory listing). Scores and comments are simulated matching output, not endorsements.
  */
 import type { Bilingual, Requirement, SourceMeta, TariffRate, TradeProduct } from '@/lib/types';
+import { applyOfficialLayer, OFFICIAL } from './official';
 
 const b = (ko: string, en: string): Bilingual => ({ ko, en });
 
@@ -104,7 +105,7 @@ export const AGENCY_LINKS = {
 // KR <-> PH bilateral overview (UN Comtrade, reporter = Korea)
 // ---------------------------------------------------------------------------
 
-export const KR_PH_OVERVIEW = {
+const SEED_OVERVIEW = {
   krExportsToPh: [
     { year: 2023, value: 9_008_417_184 },
     { year: 2024, value: 10_246_502_988 },
@@ -115,6 +116,12 @@ export const KR_PH_OVERVIEW = {
     { year: 2024, value: 4_431_022_132 },
     { year: 2025, value: 3_500_718_734 },
   ],
+};
+
+export const KR_PH_OVERVIEW = {
+  // Official snapshot (scripts/sync-official-data.mjs) wins over the embedded values.
+  krExportsToPh: OFFICIAL.overview?.krExportsToPh?.length ? OFFICIAL.overview.krExportsToPh : SEED_OVERVIEW.krExportsToPh,
+  krImportsFromPh: OFFICIAL.overview?.krImportsFromPh?.length ? OFFICIAL.overview.krImportsFromPh : SEED_OVERVIEW.krImportsFromPh,
   ftaInForce: b('한-필리핀 FTA 2024.12.31 발효 · 한-아세안 FTA · RCEP 중첩 적용', 'KR-PH FTA in force since 2024-12-31 · AKFTA · RCEP overlap'),
   meta: comtradeMeta(b('한국 신고 기준 총교역 (HS TOTAL)', 'Korea-reported total trade (HS TOTAL)')),
 };
@@ -346,7 +353,7 @@ const krTariffPreparedFruit = (): TariffRate[] => [
 // Products
 // ---------------------------------------------------------------------------
 
-export const PRODUCTS: TradeProduct[] = [
+const SEED_PRODUCTS: TradeProduct[] = [
   // =========================================================================
   // 1. Banana chips — PH -> KR
   // =========================================================================
@@ -414,6 +421,7 @@ export const PRODUCTS: TradeProduct[] = [
         { year: 2024, value: 6_817_821 },
         { year: 2025, value: 4_443_236 },
       ],
+      insightYear: 2025,
       marketSize: { year: 2025, value: 123_993_939, label: b('한국 HS 2008.99 총수입 (2025)', 'Korea total HS 2008.99 imports (2025)') },
       competitors: [
         { country: b('중국', 'China'), flag: '🇨🇳', share: 36.7 },
@@ -680,6 +688,7 @@ export const PRODUCTS: TradeProduct[] = [
         { year: 2024, value: 1_210_712 },
         { year: 2025, value: 94_228 },
       ],
+      insightYear: 2025,
       marketSize: { year: 2025, value: 129_966_980, label: b('한국 HS 0804.50 총수입 (2025)', 'Korea total HS 0804.50 imports (2025)') },
       competitors: [
         { country: b('태국', 'Thailand'), flag: '🇹🇭', share: 58.6 },
@@ -867,9 +876,9 @@ export const PRODUCTS: TradeProduct[] = [
       },
     ],
     tariffs: [
-      { scheme: 'MFN', rate: 8, roo: '-', certificate: CERT.none, note: b('기본세율', 'Basic (MFN) rate') },
+      { scheme: 'MFN', rate: 3, roo: '-', certificate: CERT.none, note: b('기본세율 — WITS 2023 공식값과 일치', 'Basic (MFN) rate — matches WITS 2023 official value') },
       { scheme: 'AKFTA', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('일반품목 철폐 완료', 'Normal-track elimination complete') },
-      { scheme: 'RCEP', rate: 4.8, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
+      { scheme: 'RCEP', rate: 3, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('MFN 이하로 상한 — 양허세율 확인 필요', 'Capped at MFN — confirm the scheduled rate') },
       { scheme: 'KRPH', rate: 0, roo: 'CTH', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
     ],
     tariffMeta: TARIFF_META_KR,
@@ -910,6 +919,7 @@ export const PRODUCTS: TradeProduct[] = [
         { year: 2024, value: 40_754_568 },
         { year: 2025, value: 59_692_272 },
       ],
+      insightYear: 2025,
       marketSize: { year: 2025, value: 112_175_314, label: b('한국 HS 1513.19 총수입 (2025)', 'Korea total HS 1513.19 imports (2025)') },
       competitors: [
         { country: b('필리핀', 'Philippines'), flag: '🇵🇭', share: 53.2, highlight: true },
@@ -1061,7 +1071,7 @@ export const PRODUCTS: TradeProduct[] = [
     name: b('한국 조미김 · 김스낵', 'Korean seasoned laver & seaweed snacks'),
     category: b('수산가공식품', 'Processed seafood'),
     aliases: ['조미김', '김', '김스낵', '해조류', '김 스낵', '도시락김', '마른김', '김밥김', 'laver', 'seaweed', 'seasoned laver', 'seaweed snack', 'gim', 'nori', '2008.99.5010', '1212.21', '1212'],
-    tagline: b('필리핀 HS 2008.99 수입시장 1위 공급국은 한국(39%) — 캄보디아·중국산과의 가격 경쟁이 관건입니다.', 'Korea is #1 in PH HS 2008.99 imports (39%) — price competition with Cambodia / China decides.'),
+    tagline: b('필리핀 HS 2008.99 수입시장 1위는 한국(55.8%) — 점유율 방어와 캄보디아·중국산 가격 대응이 관건입니다.', 'Korea leads PH HS 2008.99 imports (55.8%) — defend share against Cambodian / Chinese price competition.'),
     hs: [
       {
         code: '2008.99.5010',
@@ -1095,7 +1105,7 @@ export const PRODUCTS: TradeProduct[] = [
       },
     ],
     tariffs: [
-      { scheme: 'MFN', rate: 15, roo: '-', certificate: CERT.none, note: b('필리핀 MFN 실행세율', 'PH MFN applied rate') },
+      { scheme: 'MFN', rate: 10, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
       { scheme: 'AKFTA', rate: 5, roo: 'CTH (originating laver) or RVC 40%', certificate: CERT.ak, note: b('민감품목 트랙 가정', 'Assumes sensitive track') },
       { scheme: 'RCEP', rate: 10, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
       { scheme: 'KRPH', rate: 0, roo: 'CTH (wholly obtained laver)', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
@@ -1104,8 +1114,8 @@ export const PRODUCTS: TradeProduct[] = [
     bestFta: {
       scheme: 'KRPH',
       reason: b(
-        '한-필 FTA 0%로 MFN 15% 대비 과세가격의 15%p, AKFTA 대비 5%p 추가 절감. 국산 김(완전생산) 사용 시 원산지 충족이 확실해 사후검증 리스크도 낮음.',
-        'KR-PH FTA 0% saves 15 pp vs MFN and 5 pp vs AKFTA. Using Korean-harvested laver (wholly obtained) makes origin compliance straightforward.',
+        '한-필 FTA 0%로 MFN 10% 대비 과세가격의 10%p, AKFTA 대비 5%p 추가 절감. 국산 김(완전생산) 사용 시 원산지 충족이 확실해 사후검증 리스크도 낮음.',
+        'KR-PH FTA 0% saves 10 pp vs MFN and 5 pp vs AKFTA. Using Korean-harvested laver (wholly obtained) makes origin compliance straightforward.',
       ),
     },
     requirements: phFoodRequirements([
@@ -1133,19 +1143,20 @@ export const PRODUCTS: TradeProduct[] = [
         { year: 2024, value: 22_445_858 },
         { year: 2025, value: 25_485_620 },
       ],
-      marketSize: { year: 2024, value: 11_985_229, label: b('필리핀 HS 2008.99 총수입 (2024, 필리핀 신고)', 'PH total HS 2008.99 imports (2024, PH-reported)') },
+      marketSize: { year: 2025, value: 14_620_629, label: b('필리핀 HS 2008.99 총수입 (2025, 필리핀 신고)', 'PH total HS 2008.99 imports (2025, PH-reported)') },
       competitors: [
-        { country: b('대한민국', 'Korea'), flag: '🇰🇷', share: 39.0, highlight: true },
-        { country: b('캄보디아', 'Cambodia'), flag: '🇰🇭', share: 32.8 },
-        { country: b('중국', 'China'), flag: '🇨🇳', share: 11.1 },
-        { country: b('태국', 'Thailand'), flag: '🇹🇭', share: 5.2 },
-        { country: b('미국', 'USA'), flag: '🇺🇸', share: 4.4 },
+        { country: b('대한민국', 'Korea'), flag: '🇰🇷', share: 55.8, highlight: true },
+        { country: b('캄보디아', 'Cambodia'), flag: '🇰🇭', share: 15.5 },
+        { country: b('중국', 'China'), flag: '🇨🇳', share: 14.0 },
+        { country: b('태국', 'Thailand'), flag: '🇹🇭', share: 3.2 },
+        { country: b('미국', 'USA'), flag: '🇺🇸', share: 3.1 },
       ],
+      insightYear: 2025,
       insight: b(
-        '한국의 대필리핀 2008.99 수출은 2023 $14.5M → 2025 $25.5M(+75%). 필리핀 신고 수입 기준으로도 한국이 39.0%로 1위이나 캄보디아(32.8%)가 근접 — 한-필 FTA 0%를 가격 방어에 활용해야 함. (한국 수출통계와 필리핀 수입통계 간 미러 차이 존재)',
-        'Korean 2008.99 exports to PH grew from $14.5M (2023) to $25.5M (2025, +75%). Korea leads PH-reported imports with 39.0%, but Cambodia (32.8%) is close — use KR-PH FTA 0% to defend price. (Mirror-data gap between KR exports and PH imports.)',
+        '한국의 대필리핀 2008.99 수출은 2023 $14.5M → 2025 $25.5M(+75%). 필리핀 신고 수입 기준 한국 점유율은 2024년 39.0% → 2025년 55.8%로 급등해 캄보디아(15.5%)·중국(14.0%)을 크게 앞섬 — 한-필 FTA 0%로 가격 우위를 굳힐 시점. (한국 수출통계와 필리핀 수입통계 간 미러 차이 존재)',
+        'Korean 2008.99 exports to PH grew from $14.5M (2023) to $25.5M (2025, +75%). Korea’s share of PH-reported imports jumped from 39.0% (2024) to 55.8% (2025), well ahead of Cambodia (15.5%) and China (14.0%) — lock in the lead with KR-PH FTA 0%. (Mirror-data gap between KR exports and PH imports.)',
       ),
-      meta: comtradeMeta(b('3개년 추이: 한국 신고 수출(FOB) / 점유율: 필리핀 신고 수입(2024)', 'Trend: Korea-reported exports (FOB) / shares: PH-reported imports (2024)')),
+      meta: comtradeMeta(b('3개년 추이: 한국 신고 수출(FOB) / 점유율: 필리핀 신고 수입(2025)', 'Trend: Korea-reported exports (FOB) / shares: PH-reported imports (2025)')),
     },
     logistics: [
       { from: 'Busan', to: 'Manila', mode: 'FCL 20ft', cost: [400, 750], transitDays: [4, 6], frequency: b('주 7항차 이상 직항', '7+ direct sailings/week'), note: b('경량·부피화물 — 40ft HC 효율 검토', 'Light, bulky cargo — consider 40ft HC') },
@@ -1292,7 +1303,7 @@ export const PRODUCTS: TradeProduct[] = [
     name: b('K-뷰티 기초화장품 (스킨케어)', 'K-beauty skincare'),
     category: b('화장품', 'Cosmetics'),
     aliases: ['k-뷰티', 'k뷰티', '케이뷰티', '화장품', '스킨케어', '기초화장품', '토너', '세럼', '에센스', '크림', '선크림', 'cosmetics', 'skincare', 'k-beauty', 'kbeauty', 'beauty', 'toner', 'serum', '3304', '3304.99'],
-    tagline: b('필리핀 3304.99 수입시장 2위(17.4%) — 1위 태국(22.0%) 추격이 목표입니다.', '#2 in PH 3304.99 imports (17.4%) — closing in on Thailand (22.0%).'),
+    tagline: b('필리핀 3304.99 수입시장 2위(16.9%) — 1위 태국(23.7%) 추격이 목표입니다.', '#2 in PH 3304.99 imports (16.9%) — chasing Thailand (23.7%).'),
     hs: [
       {
         code: '3304.99.1000',
@@ -1320,7 +1331,7 @@ export const PRODUCTS: TradeProduct[] = [
       },
     ],
     tariffs: [
-      { scheme: 'MFN', rate: 10, roo: '-', certificate: CERT.none, note: b('필리핀 MFN 실행세율', 'PH MFN applied rate') },
+      { scheme: 'MFN', rate: 7, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
       { scheme: 'AKFTA', rate: 0, roo: 'CTSH or RVC 40%', certificate: CERT.ak, note: b('일반품목 철폐 완료', 'Normal-track elimination complete') },
       { scheme: 'RCEP', rate: 5, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
       { scheme: 'KRPH', rate: 0, roo: 'CTSH or RVC 40%', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
@@ -1414,20 +1425,20 @@ export const PRODUCTS: TradeProduct[] = [
         { year: 2024, value: 70_081_822 },
         { year: 2025, value: 88_720_265 },
       ],
-      marketSize: { year: 2024, value: 161_848_548, label: b('필리핀 HS 3304.99 총수입 (2024, 필리핀 신고)', 'PH total HS 3304.99 imports (2024, PH-reported)') },
+      marketSize: { year: 2025, value: 188_530_921, label: b('필리핀 HS 3304.99 총수입 (2025, 필리핀 신고)', 'PH total HS 3304.99 imports (2025, PH-reported)') },
       competitors: [
-        { country: b('태국', 'Thailand'), flag: '🇹🇭', share: 22.0 },
-        { country: b('대한민국', 'Korea'), flag: '🇰🇷', share: 17.4, highlight: true },
-        { country: b('중국', 'China'), flag: '🇨🇳', share: 12.8 },
-        { country: b('미국', 'USA'), flag: '🇺🇸', share: 5.7 },
-        { country: b('프랑스', 'France'), flag: '🇫🇷', share: 5.4 },
-        { country: b('인도네시아', 'Indonesia'), flag: '🇮🇩', share: 4.9 },
+        { country: b('태국', 'Thailand'), flag: '🇹🇭', share: 23.7 },
+        { country: b('대한민국', 'Korea'), flag: '🇰🇷', share: 16.9, highlight: true },
+        { country: b('중국', 'China'), flag: '🇨🇳', share: 14.4 },
+        { country: b('인도', 'India'), flag: '🇮🇳', share: 6.5 },
+        { country: b('인도네시아', 'Indonesia'), flag: '🇮🇩', share: 5.9 },
       ],
+      insightYear: 2025,
       insight: b(
         '한국 기초화장품 대필리핀 수출 2023 $53.8M → 2025 $88.7M (+65%, 2025 YoY +26.6%). 태국(현지 생산 글로벌 브랜드 포함)이 1위 — 한국은 성분·효능 스토리와 이커머스 채널로 차별화.',
         'Korean skincare exports to PH rose from $53.8M (2023) to $88.7M (2025; +65%, +26.6% YoY). Thailand (incl. global brands made there) leads — Korea differentiates via ingredient stories and e-commerce.',
       ),
-      meta: comtradeMeta(b('3개년 추이: 한국 신고 수출(FOB) / 점유율: 필리핀 신고 수입(2024)', 'Trend: Korea-reported exports (FOB) / shares: PH-reported imports (2024)')),
+      meta: comtradeMeta(b('3개년 추이: 한국 신고 수출(FOB) / 점유율: 필리핀 신고 수입(2025)', 'Trend: Korea-reported exports (FOB) / shares: PH-reported imports (2025)')),
     },
     logistics: [
       { from: 'Incheon', to: 'Manila', mode: 'FCL 20ft', cost: [500, 850], transitDays: [5, 7], frequency: b('주 3항차', '3 sailings/week') },
@@ -1561,7 +1572,7 @@ export const PRODUCTS: TradeProduct[] = [
     name: b('한국 즉석 라면 (봉지·컵)', 'Korean instant ramen (bag & cup)'),
     category: b('가공식품 · 면류', 'Processed food · Noodles'),
     aliases: ['라면', '즉석라면', '컵라면', '봉지라면', '불닭', '신라면', '즉석면', '면', 'ramen', 'ramyun', 'instant noodles', 'noodles', 'cup noodles', '1902', '1902.30'],
-    tagline: b('필리핀 즉석면(1902.30) 수입 1위는 한국(32.4%) — 대형마트 벤더 확보가 확장의 열쇠입니다.', 'Korea is #1 in PH instant-noodle imports (32.4%) — supermarket vendors unlock scale.'),
+    tagline: b('필리핀 즉석면(1902.30) 수입 1위는 한국(31.5%) — 대형마트 벤더 확보가 확장의 열쇠입니다.', 'Korea is #1 in PH instant-noodle imports (31.5%) — supermarket vendors unlock scale.'),
     hs: [
       {
         code: '1902.30.1010',
@@ -1589,7 +1600,7 @@ export const PRODUCTS: TradeProduct[] = [
       },
     ],
     tariffs: [
-      { scheme: 'MFN', rate: 15, roo: '-', certificate: CERT.none, note: b('필리핀 MFN 실행세율', 'PH MFN applied rate') },
+      { scheme: 'MFN', rate: 15, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
       { scheme: 'AKFTA', rate: 5, roo: 'CTH (wheat flour 1101 → 1902 qualifies) or RVC 40%', certificate: CERT.ak, note: b('민감품목 트랙 가정', 'Assumes sensitive track') },
       { scheme: 'RCEP', rate: 10, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
       { scheme: 'KRPH', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
@@ -1627,19 +1638,20 @@ export const PRODUCTS: TradeProduct[] = [
         { year: 2024, value: 54_602_891 },
         { year: 2025, value: 63_156_629 },
       ],
-      marketSize: { year: 2024, value: 42_757_740, label: b('필리핀 HS 1902.30 총수입 (2024, 필리핀 신고)', 'PH total HS 1902.30 imports (2024, PH-reported)') },
+      marketSize: { year: 2025, value: 43_853_487, label: b('필리핀 HS 1902.30 총수입 (2025, 필리핀 신고)', 'PH total HS 1902.30 imports (2025, PH-reported)') },
       competitors: [
-        { country: b('대한민국', 'Korea'), flag: '🇰🇷', share: 32.4, highlight: true },
-        { country: b('중국', 'China'), flag: '🇨🇳', share: 24.1 },
-        { country: b('인도네시아', 'Indonesia'), flag: '🇮🇩', share: 17.8 },
-        { country: b('베트남', 'Vietnam'), flag: '🇻🇳', share: 9.2 },
-        { country: b('일본', 'Japan'), flag: '🇯🇵', share: 3.3 },
+        { country: b('대한민국', 'Korea'), flag: '🇰🇷', share: 31.5, highlight: true },
+        { country: b('중국', 'China'), flag: '🇨🇳', share: 24.4 },
+        { country: b('인도네시아', 'Indonesia'), flag: '🇮🇩', share: 15.0 },
+        { country: b('베트남', 'Vietnam'), flag: '🇻🇳', share: 14.8 },
+        { country: b('일본', 'Japan'), flag: '🇯🇵', share: 3.1 },
       ],
+      insightYear: 2025,
       insight: b(
-        '한국 라면 대필리핀 수출 2023 $38.0M → 2025 $63.2M (+66%). 필리핀 신고 수입 기준 한국 32.4%로 1위이나, 현지 생산(Lucky Me! 등)과 인니·중국산이 대중가 시장을 장악 — 매운맛·프리미엄 포지션 유지가 핵심.',
-        'Korean ramen exports to PH grew from $38.0M (2023) to $63.2M (2025; +66%). Korea leads PH-reported imports (32.4%), but local brands and Indonesian / Chinese noodles own the mass price tier — keep the spicy / premium position.',
+        '한국 라면 대필리핀 수출 2023 $38.0M → 2025 $63.2M (+66%). 필리핀 신고 수입 기준 한국 31.5%로 1위이나, 현지 생산(Lucky Me! 등)과 인니·중국산이 대중가 시장을 장악 — 매운맛·프리미엄 포지션 유지가 핵심.',
+        'Korean ramen exports to PH grew from $38.0M (2023) to $63.2M (2025; +66%). Korea leads PH-reported imports (31.5%), but local brands and Indonesian / Chinese noodles own the mass price tier — keep the spicy / premium position.',
       ),
-      meta: comtradeMeta(b('3개년 추이: 한국 신고 수출(FOB) / 점유율: 필리핀 신고 수입(2024)', 'Trend: Korea-reported exports (FOB) / shares: PH-reported imports (2024)')),
+      meta: comtradeMeta(b('3개년 추이: 한국 신고 수출(FOB) / 점유율: 필리핀 신고 수입(2025)', 'Trend: Korea-reported exports (FOB) / shares: PH-reported imports (2025)')),
     },
     logistics: [
       { from: 'Busan', to: 'Manila', mode: 'FCL 40ft', cost: [650, 1200], transitDays: [4, 6], frequency: b('주 7항차 이상 직항', '7+ direct sailings/week'), note: b('40ft 약 1,800~2,000 카톤', '≈1,800–2,000 cartons per 40ft') },
@@ -1778,7 +1790,7 @@ export const PRODUCTS: TradeProduct[] = [
     name: b('스마트 건자재 (디지털 도어락 · 인테리어 바닥재)', 'Smart building materials (digital door locks · interior flooring)'),
     category: b('건자재 · 스마트홈', 'Building materials · Smart home'),
     aliases: ['건자재', '스마트 건자재', '인테리어', '인테리어 자재', '도어락', '디지털도어락', '스마트도어락', '바닥재', '마루', 'pvc', 'spc', 'door lock', 'smart lock', 'digital lock', 'building materials', 'flooring', 'interior', '8301', '8301.40', '3918'],
-    tagline: b('필리핀 전자식 자물쇠 수입의 73%가 중국산 — 한국은 B2B 디벨로퍼 프로젝트로 프리미엄 포지셔닝해야 합니다.', '73% of PH electronic-lock imports are Chinese — Korea should go premium via developer projects.'),
+    tagline: b('필리핀 자물쇠(8301.40) 수입의 67%가 중국산, 관세는 1%뿐 — 승부처는 관세가 아니라 인증과 B2B 프로젝트입니다.', '67% of PH lock imports (8301.40) are Chinese and duty is only 1% — win on certification and B2B projects, not tariffs.'),
     hs: [
       {
         code: '8301.40.1000',
@@ -1806,17 +1818,17 @@ export const PRODUCTS: TradeProduct[] = [
       },
     ],
     tariffs: [
-      { scheme: 'MFN', rate: 10, roo: '-', certificate: CERT.none, note: b('필리핀 MFN 실행세율', 'PH MFN applied rate') },
+      { scheme: 'MFN', rate: 1, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
       { scheme: 'AKFTA', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('일반품목 철폐 완료', 'Normal-track elimination complete') },
-      { scheme: 'RCEP', rate: 5, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
+      { scheme: 'RCEP', rate: 1, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('MFN 이하로 상한 — 양허세율 확인 필요', 'Capped at MFN — confirm the scheduled rate') },
       { scheme: 'KRPH', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
     ],
     tariffMeta: TARIFF_META_PH,
     bestFta: {
       scheme: 'KRPH',
       reason: b(
-        'AKFTA·한-필 FTA 모두 0% — 중국산 부품(모터·칩) 비중이 높으면 RVC 40% 충족이 관건이므로, BOM 기준 원산지 판정 후 유리한 협정 선택. 기본 권장은 한-필 FTA(양자 협정, 사후검증 대응 단순).',
-        'AKFTA and KR-PH FTA are both 0% — with many Chinese parts (motors, chips) the RVC 40% test decides; run a BOM-based origin check. Default: KR-PH FTA (bilateral, simpler verification).',
+        '도어락(8301.40)은 필리핀 MFN이 1%로 FTA 절감 효과가 미미 — 원산지 서류 비용 대비 실익을 따져볼 것. 반면 패키지로 수출하는 PVC 바닥재(3918.10)는 MFN 15%라 FTA 0% 적용 가치가 큼. 중국산 부품 비중이 높으면 BOM 기준 RVC 40% 판정 후 한-필 FTA 적용 권장.',
+        'Door locks (8301.40) carry only 1% PH MFN, so FTA savings are marginal — weigh them against CO paperwork. PVC flooring (3918.10) shipped in the same package carries 15% MFN, so FTA 0% matters there. With many Chinese parts, run a BOM-based RVC 40% check and use the KR-PH FTA.',
       ),
     },
     requirements: [
@@ -1879,20 +1891,21 @@ export const PRODUCTS: TradeProduct[] = [
         { year: 2024, value: 517_755 },
         { year: 2025, value: 232_021 },
       ],
-      marketSize: { year: 2024, value: 25_232_148, label: b('필리핀 HS 8301.40 총수입 (2024, 필리핀 신고)', 'PH total HS 8301.40 imports (2024, PH-reported)') },
+      marketSize: { year: 2025, value: 26_585_993, label: b('필리핀 HS 8301.40 총수입 (2025, 필리핀 신고)', 'PH total HS 8301.40 imports (2025, PH-reported)') },
       competitors: [
-        { country: b('중국', 'China'), flag: '🇨🇳', share: 73.1 },
-        { country: b('대만', 'Taiwan'), flag: '🇹🇼', share: 5.2 },
-        { country: b('일본', 'Japan'), flag: '🇯🇵', share: 4.3 },
-        { country: b('미국', 'USA'), flag: '🇺🇸', share: 2.8 },
-        { country: b('싱가포르', 'Singapore'), flag: '🇸🇬', share: 2.4 },
-        { country: b('대한민국 (수출통계 기준)', 'Korea (KR export data)'), flag: '🇰🇷', share: 2.1, highlight: true },
+        { country: b('중국', 'China'), flag: '🇨🇳', share: 67.4 },
+        { country: b('일본', 'Japan'), flag: '🇯🇵', share: 5.8 },
+        { country: b('대만', 'Taiwan'), flag: '🇹🇼', share: 5.6 },
+        { country: b('멕시코', 'Mexico'), flag: '🇲🇽', share: 4.4 },
+        { country: b('미국', 'USA'), flag: '🇺🇸', share: 2.6 },
+        { country: b('대한민국', 'Korea'), flag: '🇰🇷', share: 0.9, highlight: true },
       ],
+      insightYear: 2025,
       insight: b(
-        '한국의 대필리핀 도어락 수출은 2023 $0.74M → 2025 $0.23M로 감소, 중국산이 73%를 장악. 바닥재(3918.10)는 한국이 필리핀 수입의 6.1%(2024, $25.4M 시장, 중국 67.2%). 리테일 가격 경쟁보다 콘도 디벨로퍼 B2B 일괄 납품(도어락+바닥재 패키지)이 승부처.',
-        'Korean door-lock exports to PH fell from $0.74M (2023) to $0.23M (2025) while China holds 73%. In flooring (3918.10) Korea has 6.1% of a $25.4M market (2024; China 67.2%). Win via condo-developer B2B packages (lock + flooring), not retail price wars.',
+        '한국의 대필리핀 도어락 수출은 2023 $0.74M → 2025 $0.23M로 감소, 필리핀 신고 기준 한국 점유율 0.9%·중국 67.4%. 관세(MFN 1%)는 장벽이 아니므로 NTC 형식승인·현지 A/S와 콘도 디벨로퍼 B2B 일괄 납품(도어락+바닥재 패키지)이 승부처. 바닥재(3918.10)는 2024년 기준 한국 6.1%·중국 67.2%.',
+        'Korean door-lock exports to PH fell from $0.74M (2023) to $0.23M (2025); PH-reported shares are Korea 0.9% vs China 67.4%. With MFN at 1%, tariffs are not the barrier — NTC type approval, local after-sales and condo-developer B2B packages (lock + flooring) decide. Flooring (3918.10, 2024): Korea 6.1%, China 67.2%.',
       ),
-      meta: comtradeMeta(b('3개년 추이: 한국 신고 수출(FOB) / 점유율: 필리핀 신고 수입(2024)', 'Trend: Korea-reported exports (FOB) / shares: PH-reported imports (2024)')),
+      meta: comtradeMeta(b('3개년 추이: 한국 신고 수출(FOB) / 점유율: 필리핀 신고 수입(2025)', 'Trend: Korea-reported exports (FOB) / shares: PH-reported imports (2025)')),
     },
     logistics: [
       { from: 'Busan', to: 'Manila', mode: 'FCL 20ft', cost: [400, 750], transitDays: [4, 6], frequency: b('주 7항차 이상', '7+ sailings/week'), note: b('바닥재 중량화물 — 20ft 중량 한도 확인', 'Heavy flooring — check 20ft weight limits') },
@@ -2022,6 +2035,9 @@ export const PRODUCTS: TradeProduct[] = [
     ],
   },
 ];
+
+/** Seed values merged with the official snapshot and human-verified overrides (see ./official). */
+export const PRODUCTS: TradeProduct[] = SEED_PRODUCTS.map(applyOfficialLayer);
 
 export const PRODUCT_INDEX: Record<string, TradeProduct> = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));
 
