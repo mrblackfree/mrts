@@ -49,11 +49,18 @@ export default function BriefingModule({ report, product, onOpenTrust }: { repor
       />
       <div className="grid gap-5 p-5 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 lg:col-span-2">
-          {(report.match.directionAdjusted || report.match.confidence === 'low') && (
-            <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+          {report.match.supported === false ? (
+            <p role="note" className="flex items-start gap-2 rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-800 dark:bg-rose-500/10 dark:text-rose-300">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              {report.match.directionAdjusted ? t('directionNotice') : t('lowMatchNotice')}
+              {t('exampleNotice')}
             </p>
+          ) : (
+            (report.match.directionAdjusted || report.match.confidence === 'low') && (
+              <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                {report.match.directionAdjusted ? t('directionNotice') : t('lowMatchNotice')}
+              </p>
+            )
           )}
           <div>
             <p className="text-xs font-bold text-brand-700 dark:text-brand-400">{DIRECTION_LABEL[product.direction][lang]}</p>
@@ -72,7 +79,17 @@ export default function BriefingModule({ report, product, onOpenTrust }: { repor
                   {focusLabel[f] ?? f}
                 </Badge>
               ))}
-              {report.intent.amountUsd !== undefined && <Badge tone="green">{t('amount')}: {formatUsd(report.intent.amountUsd)}</Badge>}
+              {report.intent.amountUsd !== undefined && (
+                <Badge tone="green">
+                  {t('amount')}: {formatUsd(report.intent.amountUsd)}
+                  {report.intent.incoterm ? ` ${report.intent.incoterm.split(' ')[0]}` : ''}
+                </Badge>
+              )}
+              {report.intent.customsValueUsd !== undefined && (
+                <Badge tone="amber">
+                  {t('cifValue')}: {formatUsd(report.intent.customsValueUsd)}
+                </Badge>
+              )}
               {report.intent.region && <Badge tone="amber">{t('region')}: {report.intent.region}</Badge>}
               {report.intent.incoterm && <Badge>{report.intent.incoterm}</Badge>}
               {report.intent.matchedTerms.slice(0, 4).map((m) => (

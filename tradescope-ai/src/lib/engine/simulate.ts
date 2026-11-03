@@ -150,11 +150,23 @@ function latestTrend(product: TradeProduct) {
   return { last, prev, growth: prev ? yoy(last.value, prev.value) : 0 };
 }
 
-export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrieval: Pick<RetrievalResult, 'confidence' | 'directionAdjusted'>, query: string, lang: Lang): Briefing {
+export function buildBriefing(
+  product: TradeProduct,
+  intent: QueryIntent,
+  retrieval: Pick<RetrievalResult, 'confidence' | 'directionAdjusted'> & Partial<Pick<RetrievalResult, 'supported' | 'unsupportedReason'>>,
+  query: string,
+  lang: Lang,
+): Briefing {
   const best = bestTariff(product);
   const mfn = mfnTariff(product);
-  const amount = intent.amountUsd ?? 50_000;
+  // duty is assessed on the CIF value; a stated FOB/EXW/DDP amount is converted first (see customsValueFromAmount)
+  const amount = intent.customsValueUsd ?? intent.amountUsd ?? 50_000;
   const saving = ((mfn.rate - best.rate) / 100) * amount;
+  const basisTerm = intent.customsValueUsd !== undefined && intent.incoterm ? intent.incoterm.split(' ')[0] : undefined;
+  const basisKo = basisTerm ? `과세가격(CIF 환산, ${basisTerm} ${formatUsd(intent.amountUsd ?? 0)}에 운임·보험료 추정 반영) ${formatUsd(amount)}` : `과세가격(CIF) ${formatUsd(amount)}`;
+  const basisEn = basisTerm
+    ? `${formatUsd(amount)} CIF customs value (${basisTerm} ${formatUsd(intent.amountUsd ?? 0)} plus estimated freight and insurance)`
+    : `${formatUsd(amount)} CIF customs value`;
   const hs0 = product.hs[0];
   const hs1 = product.hs[1];
   const partners = rankPartners(product, intent);
@@ -176,14 +188,20 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
 
   if (lang === 'ko') {
     const caveats: string[] = [];
-    if (retrieval.confidence === 'low') caveats.push(`정확히 일치하는 시드 품목이 없어 가장 가까운 '${name}' 시나리오로 시뮬레이션했습니다.`);
+    if (retrieval.supported === false)
+      caveats.push(
+        retrieval.unsupportedReason === 'other-form'
+          ? `입력하신 품목은 '${name}'과 형태가 다른 제품이라(예: 신선품·다른 가공품) HS·관세·요건이 다릅니다. 아래는 '${name}' 예시 데이터이며 답이 아닙니다.`
+          : `입력하신 품목은 아직 데이터베이스(7개 품목)에 없습니다. 아래는 예시 품목 '${name}'의 데이터이며 입력하신 품목의 관세·요건과 다릅니다.`,
+      );
+    else if (retrieval.confidence === 'low') caveats.push(`품목 일치도가 낮아 '${name}' 시나리오로 분석했습니다. 품목명이 맞는지 확인하세요.`);
     if (retrieval.directionAdjusted) caveats.push(`선택한 방향 대신 시드 데이터 방향(${DIRECTION_LABEL[product.direction].ko})으로 분석했습니다.`);
     return {
       headline: `${product.emoji} ${name} — ${bestLabel} 적용 시 관세 ${best.rate}% (기본 ${mfn.rate}% 대비 ${formatNumber(mfn.rate - best.rate, (mfn.rate - best.rate) % 1 ? 1 : 0)}%p 절감)`,
       summary: [
         ...caveats,
         `"${shortQuery}" 질의를 [${focus}] 관점으로 분석했습니다.`,
-        `1순위 HS ${hs0.code}(적합도 ${hs0.fit}%)로 분류하고 ${bestLabel}를 적용하면 과세가격 ${formatUsd(amount)} 기준 관세 ${formatUsd(saving)}를 절감합니다.`,
+        `1순위 HS ${hs0.code}(적합도 ${hs0.fit}%)로 분류하고 ${bestLabel}를 적용하면 ${basisKo} 기준 관세 ${formatUsd(saving)}를 절감합니다.`,
         `${pick(product.market.seriesLabel, 'ko')}은 ${last.year}년 ${formatUsd(last.value, { compact: true })}(전년 대비 ${formatPct(growth, 1, true)})이며, 최적 ${topRole}는 ${top.name}(${top.score}% Match)입니다.`,
       ].join(' '),
       keyPoints: [
@@ -212,14 +230,20 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
   }
 
   const caveats: string[] = [];
-  if (retrieval.confidence === 'low') caveats.push(`No exact seed product matched, so the closest scenario ('${name}') was simulated.`);
+  if (retrieval.supported === false)
+    caveats.push(
+      retrieval.unsupportedReason === 'other-form'
+        ? `The product you asked about is a different form of '${name}' (e.g. fresh or another processed good), so its HS code, duty and requirements differ. The data below is the '${name}' example, not an answer.`
+        : `The product you asked about is not in the knowledge base yet (7 products). The data below is the example product '${name}' and does not apply to your product.`,
+    );
+  else if (retrieval.confidence === 'low') caveats.push(`Weak product match — analysed as '${name}'. Check that this is the product you meant.`);
   if (retrieval.directionAdjusted) caveats.push(`Analysed in the seed data's direction (${DIRECTION_LABEL[product.direction].en}) instead of the selected one.`);
   return {
     headline: `${product.emoji} ${name} — ${best.rate}% duty under the ${bestLabel} (${formatNumber(mfn.rate - best.rate, (mfn.rate - best.rate) % 1 ? 1 : 0)} pp below MFN ${mfn.rate}%)`,
     summary: [
       ...caveats,
       `Your question ("${shortQuery}") was analysed for ${focus}.`,
-      `Classifying under HS ${hs0.code} (fit ${hs0.fit}%) and claiming the ${bestLabel} saves ${formatUsd(saving)} in duty on a ${formatUsd(amount)} customs value.`,
+      `Classifying under HS ${hs0.code} (fit ${hs0.fit}%) and claiming the ${bestLabel} saves ${formatUsd(saving)} in duty on a ${basisEn}.`,
       `${pick(product.market.seriesLabel, 'en')} reached ${formatUsd(last.value, { compact: true })} in ${last.year} (${formatPct(growth, 1, true)} YoY); the best-fit ${topRole} is ${top.name} (${top.score}% match).`,
     ].join(' '),
     keyPoints: [
@@ -255,14 +279,22 @@ export function analyzeLocal(query: string, direction: Direction): { report: Ana
   const started = Date.now();
   refreshOfficialLayer(); // apply validUntil expiry in long-running servers
   const retrieval = retrieveProduct(query, direction);
-  const intent = { ...parseIntent(query), matchedTerms: retrieval.matchedTerms };
   const product = retrieval.product;
+  const parsed = parseIntent(query);
+  const customsValueUsd = parsed.amountUsd !== undefined && parsed.incoterm ? customsValueFromAmount(product, parsed.amountUsd, parsed.incoterm) : undefined;
+  const intent: QueryIntent = { ...parsed, matchedTerms: retrieval.matchedTerms, ...(customsValueUsd !== undefined ? { customsValueUsd } : {}) };
   const report: AnalysisReport = {
     id: `rpt_${Date.now().toString(36)}`,
     query,
     direction: product.direction,
     productId: product.id,
-    match: { score: retrieval.score, confidence: retrieval.confidence, directionAdjusted: retrieval.directionAdjusted },
+    match: {
+      score: retrieval.score,
+      confidence: retrieval.confidence,
+      directionAdjusted: retrieval.directionAdjusted,
+      supported: retrieval.supported,
+      ...(retrieval.unsupportedReason ? { unsupportedReason: retrieval.unsupportedReason } : {}),
+    },
     intent,
     briefing: {
       ko: buildBriefing(product, intent, retrieval, query, 'ko'),
@@ -289,6 +321,20 @@ function incotermFactor(product: TradeProduct, incoterm: string): number | undef
   const f = INCOTERM_UPLIFT[term];
   if (f === undefined) return undefined;
   return term === 'DDP' ? f * (1 + bestTariff(product).rate / 100) * (1 + importVat(product.direction) / 100) : f;
+}
+
+/**
+ * CIF value for duty purposes from an amount quoted on another incoterm, or undefined when the amount already is
+ * CIF / CIP or the term is unknown. Korea and the Philippines both assess duty on the CIF value, so a FOB price
+ * understates the duty and a DDP price (which already contains duty and VAT) overstates it.
+ */
+export function customsValueFromAmount(product: TradeProduct, amount: number, incoterm: string): number | undefined {
+  const term = incoterm.split(' ')[0].toUpperCase();
+  if (term === 'CIF' || term === 'CIP') return undefined;
+  const from = incotermFactor(product, term);
+  const cif = incotermFactor(product, 'CIF');
+  if (!from || !cif) return undefined;
+  return Math.round((amount * cif) / from);
 }
 
 /** Indicative unit price for an incoterm, starting from the seed FOB price. */

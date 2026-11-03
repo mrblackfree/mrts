@@ -50,7 +50,16 @@ interface TariffTableView {
 const fmtHs6 = (hs6: string) => `${hs6.slice(0, 4)}.${hs6.slice(4)}`;
 const fmtRange = (min: number, max: number) => (min === max ? `${min}%` : `${min}–${max}%`);
 
-export default function TariffModule({ product, initialAmount }: { product: TradeProduct; initialAmount?: number }) {
+export default function TariffModule({
+  product,
+  initialAmount,
+  convertedFrom,
+}: {
+  product: TradeProduct;
+  initialAmount?: number;
+  /** the query's amount when it was quoted on another incoterm and converted to CIF for `initialAmount` */
+  convertedFrom?: { term: string; amount: number };
+}) {
   const { t, p, lang } = useI18n();
   const [amount, setAmount] = useState<number>(initialAmount ?? 50_000);
 
@@ -199,6 +208,11 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                   {t('calculator')}
                 </span>
                 <span className="text-xs text-slate-500">{t('customsValue')}</span>
+                {convertedFrom && amount === initialAmount && (
+                  <span className="mt-0.5 block text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                    {t('cifConverted').replace('{term}', convertedFrom.term).replace('{amount}', formatUsd(convertedFrom.amount))}
+                  </span>
+                )}
                 <span className="mt-1.5 flex items-center rounded-xl border border-slate-200 bg-white px-3 shadow-hairline transition-[border-color,box-shadow] focus-within:border-brand-400 focus-within:shadow-[0_0_0_4px_rgb(42_133_166/0.12)] dark:border-white/10 dark:bg-white/[0.03]">
                   <span className="text-sm font-bold text-slate-400">$</span>
                   <input

@@ -110,6 +110,16 @@ export interface RetrievalResult {
   confidence: 'high' | 'medium' | 'low';
   matchedTerms: string[];
   directionAdjusted: boolean;
+  /** false: the query names no product in the knowledge base — `product` is only an example */
+  supported: boolean;
+  unsupportedReason?: 'no-match' | 'other-form' | 'heading-only';
+}
+
+/** Same matching rule as the aliases: substring for multi-syllable terms, standalone for single syllables. */
+function termHit(q: string, low: string, term: string): boolean {
+  const a = compact(term);
+  if (a.length >= 2) return q.includes(a);
+  return new RegExp(`(^|\\s)${a}(\\s|$|을|를|이|은|는|에|의|과|와|도)`).test(low);
 }
 
 export function retrieveProduct(query: string, direction: Direction): RetrievalResult {
@@ -121,42 +131,58 @@ export function retrieveProduct(query: string, direction: Direction): RetrievalR
   const scored = PRODUCTS.map((p) => {
     let score = 0;
     const matched: string[] = [];
-    for (const alias of p.aliases) {
-      const a = compact(alias);
-      if (/^\d+$/.test(a)) continue; // HS codes are handled below
-      const hit =
-        a.length >= 2
-          ? q.includes(a)
-          : // single-syllable Korean aliases (e.g. "김") must stand alone or carry a particle
-            new RegExp(`(^|\\s)${a}(\\s|$|을|를|이|은|는|에|의|과|와|도)`).test(low);
-      if (hit) {
-        score += 10 + a.length * 2;
-        matched.push(alias);
-      }
-    }
-    for (const digits of codes) {
-      for (const hs of p.hs) {
-        const code = hs.code.replace(/\./g, '');
-        const overlap = Math.min(digits.length, code.length);
-        if (overlap >= 4 && code.slice(0, overlap) === digits.slice(0, overlap)) {
-          score += 15 + overlap * 3;
-          matched.push(hs.code);
+    // a different form of the product ("생바나나" for banana chips): its HS, duty and requirements do not apply
+    const otherForm = (p.excludeTerms ?? []).some((term) => termHit(q, low, term));
+    let aliasHit = false;
+    if (!otherForm) {
+      for (const alias of p.aliases) {
+        if (/^\d+$/.test(compact(alias))) continue; // HS codes are handled below
+        if (termHit(q, low, alias)) {
+          score += 10 + compact(alias).length * 2;
+          matched.push(alias);
+          aliasHit = true;
         }
       }
     }
+    // An HS code is evidence when it reaches the subheading (6+ digits) or names the product's own heading.
+    // A 4-digit heading that only matches an alternative candidate (e.g. 1905 bakery vs a laver snack's
+    // fallback line) describes a different product.
+    let hsHit = false;
+    let headingOnly = false;
+    for (const digits of codes) {
+      p.hs.forEach((hs, i) => {
+        const code = hs.code.replace(/\./g, '');
+        const overlap = Math.min(digits.length, code.length);
+        if (overlap < 4 || code.slice(0, overlap) !== digits.slice(0, overlap)) return;
+        if (overlap >= 6 || i === 0) {
+          score += 15 + overlap * 3 - (i === 0 ? 0 : 6);
+          matched.push(hs.code);
+          hsHit = true;
+        } else headingOnly = true;
+      });
+    }
     if (p.direction === direction) score += 4;
     if (inferred && p.direction === inferred) score += 3;
-    return { p, score, matched: Array.from(new Set(matched)) };
-  }).sort((a, b) => b.score - a.score);
+    return { p, score, matched: Array.from(new Set(matched)), evidence: aliasHit || hsHit, otherForm, headingOnly };
+  }).sort((a, b) => Number(b.evidence) - Number(a.evidence) || b.score - a.score);
 
   const best = scored[0];
-  const hasRealMatch = best.matched.length > 0;
 
-  if (!hasRealMatch) {
-    // No keyword/HS hit: fall back to the flagship scenario for the chosen direction.
-    const fallbackId = (inferred ?? direction) === 'PH_TO_KR' ? 'banana-chips' : 'seasoned-laver';
+  if (!best.evidence) {
+    // Nothing in the knowledge base matches. Keep an example product so the dashboard can still show what a
+    // report looks like, but flag it: its numbers are not an answer to this query.
+    const near = scored.find((s) => s.otherForm) ?? scored.find((s) => s.headingOnly);
+    const fallbackId = near?.p.id ?? ((inferred ?? direction) === 'PH_TO_KR' ? 'banana-chips' : 'seasoned-laver');
     const product = PRODUCTS.find((p) => p.id === fallbackId)!;
-    return { product, score: 0, confidence: 'low', matchedTerms: [], directionAdjusted: product.direction !== direction };
+    return {
+      product,
+      score: 0,
+      confidence: 'low',
+      matchedTerms: [],
+      directionAdjusted: product.direction !== direction,
+      supported: false,
+      unsupportedReason: near?.otherForm ? 'other-form' : near?.headingOnly ? 'heading-only' : 'no-match',
+    };
   }
 
   const confidence = best.score >= 40 ? 'high' : best.score >= 18 ? 'medium' : 'low';
@@ -166,5 +192,6 @@ export function retrieveProduct(query: string, direction: Direction): RetrievalR
     confidence,
     matchedTerms: best.matched,
     directionAdjusted: best.p.direction !== direction,
+    supported: true,
   };
 }

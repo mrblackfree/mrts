@@ -16,6 +16,7 @@ import MarketModule from './modules/MarketModule';
 import PartnersModule from './modules/PartnersModule';
 import TariffModule from './modules/TariffModule';
 import Overview from './Overview';
+import UnsupportedNotice from './UnsupportedNotice';
 import { Button, cx } from './ui';
 import { useBusinessDay } from './useBusinessDay';
 
@@ -41,6 +42,8 @@ function WorkspaceInner() {
   const [assistant, setAssistant] = useState<{ partnerId: string; tab: 'analysis' | 'email' } | null>(null);
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [trustOpen, setTrustOpen] = useState(false);
+  // a query for a product outside the knowledge base: the example report stays hidden until asked for
+  const [showExample, setShowExample] = useState(false);
   // re-applies the official layer at the day boundary so expired overrides drop out of an open dashboard
   const businessDay = useBusinessDay();
   const trustScore = useMemo(() => overallTrustScore(), [businessDay]);
@@ -59,6 +62,7 @@ function WorkspaceInner() {
       const id = ++requestId.current;
       setStatus('loading');
       setStep(0);
+      setShowExample(false);
       setActiveDemo(demoId);
       setAssistant(null);
       requestAnimationFrame(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -219,7 +223,10 @@ function WorkspaceInner() {
         <div ref={resultsRef} className="scroll-mt-20 space-y-5">
           {status === 'idle' && <Overview onPick={onPick} />}
           {status === 'loading' && <AnalysisProgress step={step} />}
-          {status === 'done' && report && product && (
+          {status === 'done' && report && product && report.match.supported === false && (
+            <UnsupportedNotice report={report} example={product} showExample={showExample} onToggleExample={() => setShowExample((v) => !v)} onPick={onPick} />
+          )}
+          {status === 'done' && report && product && (report.match.supported !== false || showExample) && (
             <>
               {/* Print-only report header */}
               <div className="print-only">
@@ -260,7 +267,12 @@ function WorkspaceInner() {
               </nav>
 
               <BriefingModule key={`b-${report.id}`} report={report} product={product} onOpenTrust={() => setTrustOpen(true)} />
-              <TariffModule key={`t-${report.id}`} product={product} initialAmount={report.intent.amountUsd} />
+              <TariffModule
+                key={`t-${report.id}`}
+                product={product}
+                initialAmount={report.intent.customsValueUsd ?? report.intent.amountUsd}
+                convertedFrom={report.intent.customsValueUsd !== undefined && report.intent.incoterm ? { term: report.intent.incoterm.split(' ')[0], amount: report.intent.amountUsd ?? 0 } : undefined}
+              />
               <MarketModule key={`m-${report.id}`} product={product} />
               <div className="print-break" />
               <PartnersModule key={`p-${report.id}`} product={product} intent={report.intent} onOpen={(partnerId, tab) => setAssistant({ partnerId, tab })} />

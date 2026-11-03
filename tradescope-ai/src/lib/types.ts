@@ -260,8 +260,14 @@ export interface TradeProduct {
   direction: Direction;
   name: Bilingual;
   category: Bilingual;
-  /** keywords for retrieval (ko/en/HS) */
+  /** keywords for retrieval (ko/en/HS) — words that name the product itself, not regions or channels */
   aliases: string[];
+  /**
+   * Terms naming a different form or product that shares an alias ("생바나나" vs banana chips, "아이스크림" vs
+   * "크림"). When one appears, the aliases are not evidence for this product: its data (HS, duty, requirements)
+   * would be wrong for what was asked.
+   */
+  excludeTerms?: string[];
   tagline: Bilingual;
   hs: HsCandidate[];
   /** tariffs applied by the importing country */
@@ -288,7 +294,14 @@ export type IntentFocus = 'tariff' | 'regulation' | 'partners' | 'logistics' | '
 
 export interface QueryIntent {
   focus: IntentFocus[];
+  /** amount stated in the query, on the basis of `incoterm` when one was given */
   amountUsd?: number;
+  /**
+   * The stated amount converted to the CIF value both Korea (관세법 제30조) and the Philippines (CMTA s.701)
+   * assess duty on — set only when the query names a non-CIF incoterm (FOB, EXW, DDP, …). An estimate: freight
+   * and insurance use the indicative incoterm uplift, not a quote.
+   */
+  customsValueUsd?: number;
   region?: string;
   incoterm?: string;
   matchedTerms: string[];
@@ -315,7 +328,18 @@ export interface AnalysisReport {
   query: string;
   direction: Direction;
   productId: string;
-  match: { score: number; confidence: 'high' | 'medium' | 'low'; directionAdjusted: boolean };
+  match: {
+    score: number;
+    confidence: 'high' | 'medium' | 'low';
+    directionAdjusted: boolean;
+    /**
+     * false when the query names no product in the knowledge base. The report then holds an example product's
+     * data, which must not be presented as the answer (the UI says so and the LLM is not called).
+     */
+    supported: boolean;
+    /** why it is unsupported: nothing matched, a different form of a known product, or only an HS heading */
+    unsupportedReason?: 'no-match' | 'other-form' | 'heading-only';
+  };
   intent: QueryIntent;
   briefing: Record<Lang, Briefing>;
   engine: EngineInfo;

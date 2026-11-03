@@ -364,7 +364,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
     direction: 'PH_TO_KR',
     name: b('필리핀 세부·민다나오산 바나나칩', 'Philippine banana chips (Cebu / Mindanao)'),
     category: b('가공식품 · 스낵', 'Processed food · Snacks'),
-    aliases: ['바나나칩', '바나나 칩', '바나나', '말린바나나', '건조바나나', 'banana chips', 'banana chip', 'banana', 'dried banana', '세부', 'cebu', '다바오', 'davao', '2008.99', '0803.90', '0803'],
+    aliases: ['바나나칩', '바나나 칩', '바나나', '말린바나나', '건조바나나', 'banana chips', 'banana chip', 'banana', 'dried banana', '2008.99', '0803.90', '0803'],
+    excludeTerms: ['생바나나', '생 바나나', '바나나 생과', '신선 바나나', '바나나 원물', 'fresh banana', 'fresh bananas', '바나나케첩', '바나나 케첩', 'banana ketchup', '바나나우유', '바나나 우유', 'banana milk'],
     tagline: b('유탕·가당 처리 여부가 HS 분류와 식물검역을 동시에 결정합니다.', 'Frying / sugaring decides both HS classification and plant quarantine.'),
     hs: [
       {
@@ -621,6 +622,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     name: b('필리핀 세부산 건조 망고', 'Philippine dried mango (Cebu)'),
     category: b('가공식품 · 건과일', 'Processed food · Dried fruit'),
     aliases: ['건망고', '건조망고', '건조 망고', '말린망고', '망고', 'dried mango', 'mango', '7d', '0804.50', '0804'],
+    excludeTerms: ['생망고', '생 망고', '망고 생과', '신선 망고', '망고 원물', 'fresh mango', 'fresh mangoes', '망고주스', '망고 주스', 'mango juice', '망고퓨레', '망고 퓨레', 'mango puree', '냉동망고', '냉동 망고', 'frozen mango'],
     tagline: b('시판 세부 건망고 대부분은 가당 제품 — 0804.50이 아닌 2008.99 검토가 출발점입니다.', 'Most Cebu dried mango is sugared — start from 2008.99, not 0804.50.'),
     hs: [
       {
@@ -853,6 +855,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     name: b('필리핀산 코코넛 오일 (VCO·정제유)', 'Philippine coconut oil (VCO / refined)'),
     category: b('식물성 유지', 'Vegetable oils'),
     aliases: ['코코넛오일', '코코넛 오일', '코코넛유', '버진코코넛오일', 'vco', 'coconut oil', 'virgin coconut oil', 'coconut', '코코넛', '1513', '1513.19', '1513.11'],
+    excludeTerms: ['코코넛워터', '코코넛 워터', 'coconut water', '코코넛밀크', '코코넛 밀크', 'coconut milk', '코코넛칩', '코코넛 칩', 'coconut chips', '건조코코넛', '코코넛 가루', 'desiccated coconut', '코프라', 'copra', '코코넛 슈가', 'coconut sugar', '코코피트', 'coco peat', 'coir'],
     tagline: b('한국 코코넛유(1513.19) 수입의 53%가 필리핀산 — 3년간 2배 성장한 소싱 품목입니다.', 'PH supplies 53% of Korea’s coconut oil (1513.19) — doubled in 3 years.'),
     hs: [
       {
@@ -1310,6 +1313,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
     name: b('K-뷰티 기초화장품 (스킨케어)', 'K-beauty skincare'),
     category: b('화장품', 'Cosmetics'),
     aliases: ['k-뷰티', 'k뷰티', '케이뷰티', '화장품', '스킨케어', '기초화장품', '토너', '세럼', '에센스', '크림', '선크림', 'cosmetics', 'skincare', 'k-beauty', 'kbeauty', 'beauty', 'toner', 'serum', '3304', '3304.99'],
+    // other HS headings (3303 perfume, 3305 hair, 3306 oral care) or not cosmetics at all
+    excludeTerms: ['아이스크림', 'ice cream', '생크림', '휘핑크림', '크림치즈', 'cream cheese', '샴푸', 'shampoo', '린스', '헤어', 'hair', '향수', 'perfume', 'fragrance', '치약', 'toothpaste', '에센스 오일', 'essential oil'],
     tagline: b('필리핀 3304.99 수입시장 2위(16.9%) — 1위 태국(23.7%) 추격이 목표입니다.', '#2 in PH 3304.99 imports (16.9%) — chasing Thailand (23.7%).'),
     hs: [
       {
@@ -1579,7 +1584,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
     direction: 'KR_TO_PH',
     name: b('한국 즉석 라면 (봉지·컵)', 'Korean instant ramen (bag & cup)'),
     category: b('가공식품 · 면류', 'Processed food · Noodles'),
-    aliases: ['라면', '즉석라면', '컵라면', '봉지라면', '불닭', '신라면', '즉석면', '면', 'ramen', 'ramyun', 'instant noodles', 'noodles', 'cup noodles', '1902', '1902.30'],
+    aliases: ['라면', '즉석라면', '컵라면', '봉지라면', '불닭', '신라면', '즉석면', 'ramen', 'ramyun', 'instant noodles', 'noodles', 'cup noodles', '1902', '1902.30'],
+    excludeTerms: ['쌀국수', 'rice noodle', 'rice noodles', '파스타', 'pasta', '냉면', '소면', '당면', 'glass noodles'],
     tagline: b('필리핀 즉석면(1902.30) 수입 1위는 한국(31.5%) — 대형마트 벤더 확보가 확장의 열쇠입니다.', 'Korea is #1 in PH instant-noodle imports (31.5%) — supermarket vendors unlock scale.'),
     hs: [
       {

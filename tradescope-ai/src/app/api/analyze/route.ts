@@ -44,6 +44,8 @@ async function analyze(input: AnalyzeInput, opts: { allowLlm: boolean; clientId:
   const cfg = getAiConfig();
   const simulation = (fallbackReason: string): AnalysisReport => ({ ...report, engine: { mode: 'simulation', latencyMs: Date.now() - started, fallbackReason } });
 
+  // the retrieved context belongs to an example product, so an LLM briefing would describe the wrong goods
+  if (report.match.supported === false) return simulation('unsupported-product');
   if (!cfg.enabled) return simulation('no-api-key');
   if (!opts.allowLlm) return simulation('llm-disabled-for-get');
   const gate = allowLlmCall(opts.clientId);
