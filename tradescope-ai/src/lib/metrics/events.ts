@@ -10,7 +10,7 @@ export const STEP_IDS = ['product', 'tariff', 'permits', 'partners', 'contract',
 export type MetricStep = (typeof STEP_IDS)[number];
 
 /** where an expert request was started */
-export const EXPERT_SOURCES = ['checklist', 'card', 'unsupported', 'customs'] as const;
+export const EXPERT_SOURCES = ['checklist', 'card', 'unsupported', 'customs', 'landing'] as const;
 export type ExpertSource = (typeof EXPERT_SOURCES)[number];
 
 export const TRACK_KINDS = ['demo', 'live', 'pending', 'not-found', 'not-covered', 'failed'] as const;

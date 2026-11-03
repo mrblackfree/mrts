@@ -1116,6 +1116,7 @@ const SOURCE_LABEL: Record<string, { ko: string; en: string }> = {
   card: { ko: '서비스 카드', en: 'Service card' },
   customs: { ko: '통관 단계', en: 'Clearance step' },
   unsupported: { ko: '미지원 품목', en: 'Unsupported product' },
+  landing: { ko: '첫 화면', en: 'Landing page' },
 };
 
 const STATUS_LABEL: Record<ConsultStatus, { ko: string; en: string; tone: 'red' | 'amber' | 'brand' | 'green' | 'slate' }> = {
@@ -1413,8 +1414,8 @@ function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () =
                     { k: ko ? '방문(탭 세션)' : 'Visits (tab sessions)', n: v('visit'), d: '' },
                     { k: ko ? '분석 결과 표시' : 'Reports shown', n: v('report'), d: ko ? `지원 품목 ${nf(v('report:supported'))} · 미지원 ${nf(v('report:unsupported'))}` : `supported ${nf(v('report:supported'))} · unsupported ${nf(v('report:unsupported'))}` },
                     { k: ko ? '인허가 단계 첫 진입' : 'Permits step, first open', n: v('step_first:permits'), d: ko ? `선적 단계 첫 진입 ${nf(v('step_first:shipping'))}` : `shipping step first open ${nf(v('step_first:shipping'))}` },
-                    { k: ko ? '「맡기기」 열기' : '“Hand it to an expert” opened', n: v('expert_open'), d: `${ko ? '체크리스트' : 'checklist'} ${nf(v('expert_open:checklist'))} · ${ko ? '서비스 카드' : 'cards'} ${nf(v('expert_open:card'))} · ${ko ? '통관' : 'customs'} ${nf(v('expert_open:customs'))} · ${ko ? '미지원 품목' : 'unsupported'} ${nf(v('expert_open:unsupported'))}` },
-                    { k: ko ? '요청 제출' : 'Requests sent', n: v('consult_submit'), d: `${ko ? '인허가 단계에서 처음 보낸 브라우저·품목' : 'first from the permits step (browser·product)'} ${nf(v('consult_first:checklist') + v('consult_first:card'))} · ${ko ? '체크리스트' : 'checklist'} ${nf(v('consult_submit:checklist'))} · ${ko ? '서비스 카드' : 'cards'} ${nf(v('consult_submit:card'))} · ${ko ? '통관' : 'customs'} ${nf(v('consult_submit:customs'))} · ${ko ? '미지원 품목' : 'unsupported'} ${nf(v('consult_submit:unsupported'))}` },
+                    { k: ko ? '「맡기기」 열기' : '“Hand it to an expert” opened', n: v('expert_open'), d: `${ko ? '체크리스트' : 'checklist'} ${nf(v('expert_open:checklist'))} · ${ko ? '서비스 카드' : 'cards'} ${nf(v('expert_open:card'))} · ${ko ? '통관' : 'customs'} ${nf(v('expert_open:customs'))} · ${ko ? '미지원 품목' : 'unsupported'} ${nf(v('expert_open:unsupported'))} · ${ko ? '첫 화면' : 'landing'} ${nf(v('expert_open:landing'))}` },
+                    { k: ko ? '요청 제출' : 'Requests sent', n: v('consult_submit'), d: `${ko ? '인허가 단계에서 처음 보낸 브라우저·품목' : 'first from the permits step (browser·product)'} ${nf(v('consult_first:checklist') + v('consult_first:card'))} · ${ko ? '체크리스트' : 'checklist'} ${nf(v('consult_submit:checklist'))} · ${ko ? '서비스 카드' : 'cards'} ${nf(v('consult_submit:card'))} · ${ko ? '통관' : 'customs'} ${nf(v('consult_submit:customs'))} · ${ko ? '미지원 품목' : 'unsupported'} ${nf(v('consult_submit:unsupported'))} · ${ko ? '첫 화면' : 'landing'} ${nf(v('consult_submit:landing'))}` },
                   ].map((r) => (
                     <tr key={r.k} className="border-b border-slate-100 last:border-0 dark:border-white/[0.05]">
                       <td className="py-2 pr-3 font-semibold">{r.k}</td>

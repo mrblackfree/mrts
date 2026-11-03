@@ -55,43 +55,6 @@ export function TrendColumns({ series, ariaLabel, accent = '#2a85a6' }: { series
   );
 }
 
-/** Grouped columns (exports vs imports) for the bilateral overview. */
-export function GroupedColumns({ a, b, labelA, labelB }: { a: YearValue[]; b: YearValue[]; labelA: string; labelB: string }) {
-  const W = 420;
-  const H = 200;
-  const padX = 24;
-  const top = 26;
-  const bottom = 26;
-  const max = Math.max(...a.map((s) => s.value), ...b.map((s) => s.value)) * 1.1;
-  const slot = (W - padX * 2) / a.length;
-  const barW = Math.min(44, slot * 0.32);
-  const y = (v: number) => top + (H - top - bottom) * (1 - v / max);
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${labelA} / ${labelB}`} className="h-auto w-full">
-      <line x1={padX} x2={W - padX} y1={H - bottom} y2={H - bottom} className="stroke-slate-200 dark:stroke-slate-700" />
-      {a.map((s, i) => {
-        const c = padX + slot * i + slot / 2;
-        const bv = b[i]?.value ?? 0;
-        return (
-          <g key={s.year}>
-            <rect x={c - barW - 3} y={y(s.value)} width={barW} height={H - bottom - y(s.value)} rx={5} fill="#cd2e3a" />
-            <rect x={c + 3} y={y(bv)} width={barW} height={H - bottom - y(bv)} rx={5} fill="#0038a8" className="dark:fill-[#3b82f6]" />
-            <text x={c - barW / 2 - 3} y={y(s.value) - 6} textAnchor="middle" className="fill-slate-700 text-[10.5px] font-bold dark:fill-slate-200">
-              {formatUsd(s.value, { compact: true })}
-            </text>
-            <text x={c + barW / 2 + 3} y={y(bv) - 6} textAnchor="middle" className="fill-slate-700 text-[10.5px] font-bold dark:fill-slate-200">
-              {formatUsd(bv, { compact: true })}
-            </text>
-            <text x={c} y={H - 8} textAnchor="middle" className="fill-slate-500 text-[11px] font-semibold dark:fill-slate-400">
-              {s.year}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
-  );
-}
-
 export function ShareBars({ rows, label }: { rows: Array<CompetitorShare & { name: string }>; label: string }) {
   const max = Math.max(...rows.map((r) => r.share), 1);
   return (

@@ -2100,6 +2100,7 @@ export function getProduct(id: string): TradeProduct | undefined {
 export const DEMO_SCENARIOS = [
   {
     id: 'demo-banana',
+    short: b('바나나칩 수입', 'Banana chips import'),
     productId: 'banana-chips',
     direction: 'PH_TO_KR' as const,
     label: b('🍌 필리핀 바나나칩 → 한국 수입·통관·공급사 분석', '🍌 PH banana chips → Korea import, customs & suppliers'),
@@ -2110,6 +2111,7 @@ export const DEMO_SCENARIOS = [
   },
   {
     id: 'demo-laver',
+    short: b('조미김 수출', 'Seasoned laver export'),
     productId: 'seasoned-laver',
     direction: 'KR_TO_PH' as const,
     label: b('🍙 한국 조미김 → 필리핀 수출·FDA·바이어 발굴', '🍙 Korean seasoned laver → PH export, FDA & buyers'),
@@ -2120,6 +2122,7 @@ export const DEMO_SCENARIOS = [
   },
   {
     id: 'demo-beauty',
+    short: b('K-뷰티 수출', 'K-beauty export'),
     productId: 'k-beauty',
     direction: 'KR_TO_PH' as const,
     label: b('💄 K-뷰티 스킨케어 → 필리핀 마닐라 유통사 매칭', '💄 K-beauty skincare → Manila distributor matching'),
@@ -2130,6 +2133,7 @@ export const DEMO_SCENARIOS = [
   },
   {
     id: 'demo-ramen',
+    short: b('즉석라면 수출', 'Instant ramen export'),
     productId: 'instant-ramen',
     direction: 'KR_TO_PH' as const,
     label: b('🍜 한국 즉석라면 → 필리핀 대형마트 벤더 탐색', '🍜 Korean instant ramen → PH supermarket vendors'),

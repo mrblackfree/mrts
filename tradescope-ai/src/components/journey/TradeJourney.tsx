@@ -47,7 +47,7 @@ interface StepDef {
   owner: Bilingual;
 }
 
-const STEPS: StepDef[] = [
+export const STEPS: StepDef[] = [
   { id: 'product', icon: <PackageSearch className="size-4" />, title: b('품목 확인', 'Product'), goal: b('HS 코드를 확정하고 시장성을 확인합니다.', 'Pin down the HS code and check the market.'), owner: b('나 · 관세사 확인', 'You · broker check') },
   { id: 'tariff', icon: <BadgePercent className="size-4" />, title: b('관세·FTA', 'Duty & FTA'), goal: b('적용할 협정과 원산지 기준을 정하고 예상 관세를 계산합니다.', 'Choose the agreement, check the rule of origin and estimate the duty.'), owner: b('나', 'You') },
   { id: 'permits', icon: <FileStack className="size-4" />, title: b('인허가·서류', 'Permits'), goal: b('양국에서 필요한 등록·인증을 오래 걸리는 것부터 준비합니다.', 'Prepare the registrations both countries require, longest first.'), owner: b('나 · 현지 전문가', 'You · local expert') },

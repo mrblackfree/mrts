@@ -1,6 +1,6 @@
 'use client';
 
-import { Container, FileDown, ShieldCheck } from 'lucide-react';
+import { FileDown, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEMO_SCENARIOS, getProduct } from '@/data/kr-ph-trade-db';
 import { analyzeLocal, cifAdjustment, DIRECTION_LABEL, rankPartners } from '@/lib/engine/simulate';
@@ -15,7 +15,7 @@ import BriefingModule from './modules/BriefingModule';
 import MarketModule from './modules/MarketModule';
 import PartnersModule from './modules/PartnersModule';
 import TariffModule from './modules/TariffModule';
-import Overview from './Overview';
+import Landing from './Landing';
 import UnsupportedNotice from './UnsupportedNotice';
 import { oncePerSession, sendMetric } from '@/lib/metrics/client';
 import ExpertRequestDialog, { type ExpertContext } from './expert/ExpertRequestDialog';
@@ -204,13 +204,14 @@ function WorkspaceInner() {
 
   return (
     <>
-      <Header health={health} trustScore={trustScore} onOpenTrust={() => setTrustOpen(true)} />
+      <Header health={health} trustScore={trustScore} onOpenTrust={() => setTrustOpen(true)} nav={status === 'idle'} />
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 sm:py-7">
         <HeroSearch
           query={query}
           direction={direction}
           loading={status === 'loading'}
           activeDemo={activeDemo}
+          compact={status !== 'idle'}
           onQuery={setQuery}
           onDirection={setDirection}
           onSubmit={() => void run(query, direction)}
@@ -218,7 +219,9 @@ function WorkspaceInner() {
         />
 
         <div ref={resultsRef} className="scroll-mt-20 space-y-5">
-          {status === 'idle' && <Overview onPick={onPick} />}
+          {status === 'idle' && (
+            <Landing onPick={onPick} onOpenTrust={() => setTrustOpen(true)} onExpert={() => openExpert({ topic: t('expertsTopic'), serviceIds: [], source: 'landing' })} />
+          )}
           {status === 'loading' && <AnalysisProgress step={step} />}
           {status === 'done' && report && product && report.match.supported === false && (
             <UnsupportedNotice
@@ -259,22 +262,17 @@ function WorkspaceInner() {
         </div>
       </main>
 
-      <footer className="mx-auto max-w-7xl px-4 pb-10 pt-2 sm:px-6">
-        <div className="rounded-[20px] border border-slate-200/80 bg-white/70 p-5 text-xs leading-relaxed text-slate-500 shadow-hairline backdrop-blur sm:p-6 dark:border-white/[0.07] dark:bg-white/[0.02] dark:text-slate-400">
-          <p className="flex items-start gap-2.5">
-            <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-200/70 dark:bg-emerald-400/10 dark:text-emerald-400 dark:ring-emerald-400/20">
-              <ShieldCheck className="size-3.5" aria-hidden />
-            </span>
-            <span className="pt-0.5">{t('footerNote')}</span>
+      <footer className="mx-auto mt-16 max-w-7xl px-4 pb-10 sm:px-6">
+        <div className="border-t border-slate-200/80 pt-8 text-[12.5px] leading-relaxed text-slate-500 dark:border-white/[0.07] dark:text-slate-400">
+          <p className="flex max-w-4xl items-start gap-2.5">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+            <span>{t('footerNote')}</span>
           </p>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-slate-100 pt-4 font-medium text-slate-400 dark:border-white/[0.06]">
-            <span>
-              <span className="font-semibold text-slate-600 dark:text-slate-300">TradeScope AI</span> · {t('projectTag')}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Container className="size-3.5" aria-hidden /> Next.js · standalone · Docker-ready
-            </span>
-          </div>
+          <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-400">
+            <span className="font-semibold text-slate-600 dark:text-slate-300">TradeScope AI</span>
+            <span aria-hidden>·</span>
+            <span>{t('projectTag')}</span>
+          </p>
         </div>
       </footer>
 
