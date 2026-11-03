@@ -6,6 +6,7 @@ import { PRODUCTS } from '@/data/kr-ph-trade-db';
 import { todayIso } from '@/lib/format';
 import { useI18n } from './I18nProvider';
 import { CopyButton, cx } from './ui';
+import { useBusinessDay } from './useBusinessDay';
 
 type TargetType = 'tariff' | 'hs' | 'partner' | 'requirement' | 'logistics' | 'pricing';
 const TYPES: TargetType[] = ['tariff', 'hs', 'partner', 'requirement', 'logistics', 'pricing'];
@@ -38,13 +39,14 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
   const hsTables = Object.entries(product.tariffsByHs ?? {});
   const tariffTable = f.hs && product.tariffsByHs?.[f.hs] ? product.tariffsByHs[f.hs].tariffs : product.tariffs;
   const editUrl = process.env.NEXT_PUBLIC_OVERRIDES_EDIT_URL;
+  // expiry checks follow the calendar, also in a page left open past midnight
+  const today = useBusinessDay();
 
   const { entry, missing, invalid } = useMemo(() => {
     const num = (k: string) => (f[k] !== undefined && f[k] !== '' ? Number(f[k]) : undefined);
     let target: Record<string, unknown> = { type };
     const need: string[] = [];
     const bad: string[] = [];
-    const today = todayIso();
     const inRange = (k: string, lo: number, hi: number, msg: string) => {
       const v = num(k);
       if (v !== undefined && (!Number.isFinite(v) || v < lo || v > hi)) bad.push(msg);
@@ -98,7 +100,7 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
       ...(f.validUntil ? { validUntil: f.validUntil } : {}),
     };
     return { entry: JSON.stringify(e, null, 2), missing: need, invalid: bad };
-  }, [f, type, productId, product]);
+  }, [f, type, productId, product, today]);
 
   const input =
     'h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900 shadow-hairline outline-none transition-[border-color,box-shadow] focus:border-brand-400 focus:shadow-[0_0_0_4px_rgb(42_133_166/0.12)] dark:border-white/10 dark:bg-white/[0.03] dark:text-white';

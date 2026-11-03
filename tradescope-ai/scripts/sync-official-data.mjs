@@ -302,11 +302,18 @@ async function witsMfn(reporter, hs6) {
 }
 
 /** Partner-specific preferential rate (TARIFFTYPE=PREF) actually applied by `reporter` to goods from `partner`. */
+/**
+ * Latest PREF observation for a reporter/partner/HS6. Returns the observation, `null` when TRAINS has no PREF record
+ * (every year answered 200 without PREF, or 404 NoRecordsFound), or `{ failed }` when a request itself failed —
+ * so a transient outage is never mistaken for "not published".
+ */
 async function witsPref(reporter, partner, hs6) {
   const nowYear = new Date().getUTCFullYear();
+  const failures = [];
   for (let y = nowYear - 1; y >= nowYear - 10; y--) {
     const url = `https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/${reporter}/partner/${partner}/product/${hs6}/year/${y}/datatype/reported`;
     const res = await getText(url, { retries: 1 });
+    if (res.status !== 200 && res.status !== 404) failures.push(`${y}:${res.status || res.error || 'error'}`);
     const obs = res.text.match(/<Obs\b[^>]*TARIFFTYPE="PREF"[^>]*\/>/);
     if (res.status === 200 && obs) {
       const attr = (n) => obs[0].match(new RegExp(`${n}="([^"]*)"`))?.[1];
@@ -322,7 +329,7 @@ async function witsPref(reporter, partner, hs6) {
     }
     await sleep(250);
   }
-  return null;
+  return failures.length ? { failed: failures.join(',') } : null;
 }
 
 async function syncWits(snapshot) {
@@ -335,11 +342,14 @@ async function syncWits(snapshot) {
   const errors = [];
   const missing = [];
   let fetched = 0;
-  const keepPref = (label, prevValue) => {
-    if (prevValue) errors.push(`${label}: lookup failed (kept previous)`);
+  // result: observation | null (TRAINS has no PREF record) | { failed } (request errors)
+  const keepPref = (label, result, prevValue) => {
+    if (result?.failed) errors.push(`${label}: request failed (${result.failed})${prevValue ? ' — kept previous' : ''}`);
+    else if (prevValue) errors.push(`${label}: no PREF record any more (kept previous)`);
     else missing.push(`${label}: not published in TRAINS`);
     return prevValue;
   };
+  const isObs = (r) => !!r && !r.failed;
   for (const m of MANIFEST) {
     const reporter = m.direction === 'PH_TO_KR' ? KR : PH;
     out[m.id] = {};
@@ -357,22 +367,22 @@ async function syncWits(snapshot) {
     // preferential rate applied by the importing country to the counterpart (primary HS6 only)
     const partner = m.direction === 'PH_TO_KR' ? PH : KR;
     const pr = await witsPref(reporter, partner, m.hs6[0]);
-    if (pr) pref[m.id] = { reporter, partner, hs6: m.hs6[0], ...pr };
+    if (isObs(pr)) pref[m.id] = { reporter, partner, hs6: m.hs6[0], ...pr };
     else {
-      const kept = keepPref(`pref ${m.id} ${reporter}←${partner}/${m.hs6[0]}`, prevPref[m.id]);
+      const kept = keepPref(`pref ${m.id} ${reporter}←${partner}/${m.hs6[0]}`, pr, prevPref[m.id]);
       if (kept) pref[m.id] = kept;
     }
-    log(`  wits pref ${m.id} ${reporter}←${partner}/${m.hs6[0]}: ${pr ? `${pr.year} ${pr.min === pr.max ? pr.min : `${pr.min}–${pr.max}`}% (${pr.prefLines}/${pr.lines} pref lines)` : 'no record'}`);
+    log(`  wits pref ${m.id} ${reporter}←${partner}/${m.hs6[0]}: ${isObs(pr) ? `${pr.year} ${pr.min === pr.max ? pr.min : `${pr.min}–${pr.max}`}% (${pr.prefLines}/${pr.lines} pref lines)` : pr?.failed ? `request failed (${pr.failed})` : 'no record'}`);
     // HS-specific tariff tables (e.g. flooring next to door locks)
     for (const hs6 of m.prefHs ?? []) {
       const alt = await witsPref(reporter, partner, hs6);
       prefByHs[m.id] ??= {};
-      if (alt) prefByHs[m.id][hs6] = { reporter, partner, hs6, ...alt };
+      if (isObs(alt)) prefByHs[m.id][hs6] = { reporter, partner, hs6, ...alt };
       else {
-        const kept = keepPref(`pref ${m.id} ${reporter}←${partner}/${hs6}`, prevPrefByHs[m.id]?.[hs6]);
+        const kept = keepPref(`pref ${m.id} ${reporter}←${partner}/${hs6}`, alt, prevPrefByHs[m.id]?.[hs6]);
         if (kept) prefByHs[m.id][hs6] = kept;
       }
-      log(`  wits pref ${m.id} ${reporter}←${partner}/${hs6}: ${alt ? `${alt.year} ${alt.min === alt.max ? alt.min : `${alt.min}–${alt.max}`}%` : 'no record'}`);
+      log(`  wits pref ${m.id} ${reporter}←${partner}/${hs6}: ${isObs(alt) ? `${alt.year} ${alt.min === alt.max ? alt.min : `${alt.min}–${alt.max}`}%` : alt?.failed ? `request failed (${alt.failed})` : 'no record'}`);
     }
   }
   snapshot.witsPref = pref;

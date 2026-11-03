@@ -1,6 +1,7 @@
 # TradeScope AI — requires Docker Compose v2.24+ (optional env_file)
 #   App + automatic HTTPS for a domain:    DOMAIN=trade.example.com docker compose --profile https up -d --build
-#   App only over plain HTTP (no proxy):   APP_BIND=0.0.0.0 TRUST_PROXY=0 docker compose up -d --build   → http://SERVER_IP:3000
+#   App only over plain HTTP (no proxy):   set TRUST_PROXY=0 in .env.local, then
+#                                          APP_BIND=0.0.0.0 docker compose up -d --build   → http://SERVER_IP:3000
 #   Behind a host Nginx/Caddy:             docker compose up -d --build                    → 127.0.0.1:3000
 # Port 3000 is bound to 127.0.0.1 by default, so it can never bypass the HTTPS proxy by accident;
 # opening it to the network is an explicit APP_BIND=0.0.0.0 choice.
@@ -16,15 +17,15 @@ services:
     restart: unless-stopped
     ports:
       - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
-    # Optional — without it the built-in KR-PH simulation engine is used.
+    # deploy/compose.env holds the defaults (e.g. TRUST_PROXY=1); .env.local is optional and overrides them.
+    # Without an AI key the built-in KR-PH simulation engine is used.
     env_file:
+      - path: deploy/compose.env
+        required: true
       - path: .env.local
         required: false
     environment:
       NODE_ENV: production
-      # One proxy hop (Caddy / host Nginx) sets X-Forwarded-For for the per-client LLM limit. Safe by default because
-      # port 3000 is only reachable from that proxy; use TRUST_PROXY=0 together with APP_BIND=0.0.0.0.
-      TRUST_PROXY: ${TRUST_PROXY:-1}
 
   # Reverse proxy with automatic Let's Encrypt certificates (enable with --profile https).
   caddy:

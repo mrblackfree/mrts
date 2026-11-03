@@ -41,7 +41,7 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
                 <p
                   className={cx(
                     'mt-2 inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
-                    { up: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400', down: 'bg-rose-50 text-rose-700 dark:bg-rose-400/10 dark:text-rose-400', flat: 'bg-slate-100 text-slate-500 dark:bg-white/[0.06]' }[trend(k.delta)],
+                    { up: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400', down: 'bg-rose-50 text-rose-700 dark:bg-rose-400/10 dark:text-rose-400', flat: 'bg-slate-100 text-slate-500 dark:bg-white/[0.06] dark:text-slate-400' }[trend(k.delta)],
                   )}
                 >
                   {t('yoyLabel')} {formatPct(k.delta, 1, true)}

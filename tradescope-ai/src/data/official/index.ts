@@ -277,7 +277,7 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     p.market.competitors = comps;
     p.market.meta = {
       sources: ['UN Comtrade API', ...p.market.meta.sources.filter((s) => s !== 'UN Comtrade')],
-      asOf: ymd(syncAt) ?? p.market.meta.asOf,
+      asOf: ymd(m.fetchedAt ?? syncAt) ?? p.market.meta.asOf,
       status: 'official',
       note: p.market.meta.note,
     };

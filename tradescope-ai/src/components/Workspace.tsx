@@ -17,6 +17,7 @@ import PartnersModule from './modules/PartnersModule';
 import TariffModule from './modules/TariffModule';
 import Overview from './Overview';
 import { Button, cx } from './ui';
+import { useBusinessDay } from './useBusinessDay';
 
 export default function Workspace() {
   return (
@@ -40,7 +41,9 @@ function WorkspaceInner() {
   const [assistant, setAssistant] = useState<{ partnerId: string; tab: 'analysis' | 'email' } | null>(null);
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [trustOpen, setTrustOpen] = useState(false);
-  const trustScore = useMemo(overallTrustScore, []);
+  // re-applies the official layer at the day boundary so expired overrides drop out of an open dashboard
+  const businessDay = useBusinessDay();
+  const trustScore = useMemo(() => overallTrustScore(), [businessDay]);
   const resultsRef = useRef<HTMLDivElement>(null);
   const requestId = useRef(0);
 

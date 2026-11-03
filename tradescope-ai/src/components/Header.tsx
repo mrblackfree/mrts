@@ -83,7 +83,8 @@ export default function Header({ health, trustScore, onOpenTrust }: { health: He
               <span key={s.label} title={`${s.label} — ${SRC_TITLE[s.state]}`} className="flex items-center gap-1.5 border-l border-slate-200 pl-2 first-of-type:border-l-0 dark:border-white/10">
                 <span className={cx('size-1.5 rounded-full', SRC_DOT[s.state])} aria-hidden />
                 <span className={s.state === 'reference' ? 'text-slate-400 dark:text-slate-500' : undefined}>{s.short}</span>
-                {s.state === 'reference' && <span className="sr-only">· {t('srcRef')}</span>}
+                {/* the dot colour is decorative; the state is also given in text */}
+                <span className="sr-only">: {SRC_TITLE[s.state]}</span>
                 {s.state === 'reference' && (
                   <span aria-hidden className="rounded bg-slate-100 px-1 text-[9.5px] font-semibold uppercase tracking-wide text-slate-400 dark:bg-white/[0.06]">
                     {t('srcRef')}
@@ -94,7 +95,7 @@ export default function Header({ health, trustScore, onOpenTrust }: { health: He
           </div>
           <span
             title={sources.map((s) => `${s.label}: ${SRC_TITLE[s.state]}`).join('\n')}
-            aria-label={`${t('sourcesConnected')}: ${sources.map((s) => s.label).join(', ')}`}
+            aria-label={`${t('sourcesConnected')}: ${sources.map((s) => `${s.label} (${SRC_TITLE[s.state]})`).join(', ')}`}
             className={cx(pill, 'hidden border-slate-200/80 bg-white/70 px-2.5 text-slate-500 sm:inline-flex xl:hidden dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400')}
           >
             <Database className="size-3.5" aria-hidden />

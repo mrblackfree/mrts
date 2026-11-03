@@ -26,7 +26,7 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
       ? [{ label: `${lang === 'ko' ? '공식 통관 단가' : 'Official unit value'} (${m.unitValue.year} ${m.unitValue.basis})`, value: `$${m.unitValue.usdPerKg}/kg`, sub: `${(m.unitValue.netWgtKg / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} t · Comtrade`, tone: 'flat' }]
       : []),
     ...(m.latestMonthly
-      ? [{ label: `${t('ytdKcs')} ${m.latestMonthly.from.slice(0, 4)}.${m.latestMonthly.from.slice(4)}–${m.latestMonthly.to.slice(4)}`, value: formatUsd(m.latestMonthly.value, { compact: true }), sub: m.latestMonthly.source, tone: 'flat' }]
+      ? [{ label: `${t('ytdMonthly')} ${m.latestMonthly.from.slice(0, 4)}.${m.latestMonthly.from.slice(4)}–${m.latestMonthly.to.slice(4)}`, value: formatUsd(m.latestMonthly.value, { compact: true }), sub: m.latestMonthly.source, tone: 'flat' }]
       : []),
   ];
 
@@ -73,7 +73,7 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
             </p>
             {p(m.insight)}
             {product.verification?.insightStale && <p className="mt-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">⚠ {t('insightStale')}</p>}
-            {m.mirror && Math.abs(m.mirror.ratio - 1) >= 0.2 && (
+            {m.mirror && m.mirror.phReported > 0 && Math.abs(m.mirror.krReported / m.mirror.phReported - 1) >= 0.2 && (
               <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
                 ⓘ{' '}
                 {t('mirrorGap')
