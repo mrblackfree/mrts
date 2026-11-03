@@ -1,6 +1,7 @@
 /* Grounding check for LLM briefings: real figures pass, invented rates / HS codes / amounts are flagged. */
 import { PRODUCTS } from '@/data/kr-ph-trade-db';
 import { analyzeLocal } from '@/lib/engine/simulate';
+import { collectAmounts, collectHsCodes } from '@/lib/engine/grounding';
 import { ungroundedFigures } from '@/lib/engine/llm';
 import type { Briefing } from '@/lib/types';
 let fails = 0;
@@ -25,8 +26,8 @@ const p = PRODUCTS.find((x) => x.id === 'banana-chips')!;
 const q = '필리핀 바나나칩 한국 수입 5만 달러';
 const { report } = analyzeLocal(q, p.direction);
 const base: Briefing = { headline: 'h', summary: 's', keyPoints: ['k'], nextActions: ['a'] };
-// "real" figures are read from the product data, so the weekly data sync cannot break them; the invented ones are
-// checked below to still be absent from the data before they are used
+// "real" figures are read from the product data, so the weekly data sync cannot break them; the invented rates,
+// HS codes and amounts are checked below to still be absent from the product data before they are used
 const rate = (scheme: string) => p.tariffs.find((t) => t.scheme === scheme)!.rate;
 const mfn = rate('MFN');
 const akfta = rate('AKFTA');
@@ -40,7 +41,11 @@ const ph = p.market.competitors.find((c) => c.highlight)!;
 const hs = p.hs[0].code; // e.g. 2008.99.9000
 const hs6 = hs.slice(0, 7);
 const fmt1 = (n: number) => n.toFixed(1);
-const eok = (v: number) => `${Math.floor(v / 1e8)}억 ${Math.round((v % 1e8) / 1e7)}천만`;
+// round once in 천만 units, then split, so 1.96억 reads "2억 0천만" and never "1억 10천만"
+const eok = (v: number) => {
+  const r = Math.round(v / 1e7);
+  return `${Math.floor(r / 10)}억 ${r % 10}천만`;
+};
 const [lo, hi] = [Math.min(akfta, rcep), Math.max(akfta, rcep)];
 const fcl = p.logistics[0].cost[1];
 const usd = (n: number) => `$${n.toLocaleString('en-US')}`;
@@ -84,9 +89,18 @@ const cases: Array<[string, string, boolean]> = [
   ['range (no first %)', `세율 ${lo}-${hi}%`, false],
   ['real signed growth', `전년 대비 ${growth < 0 ? '-' : '+'}${fmt1(Math.abs(growth))}%`, false],
 ];
-// invented rates must stay invented whatever the sync brings in
+// invented figures must stay invented whatever the sync brings in
 const known = new Set([...p.tariffs.map((t) => t.rate), ...p.market.competitors.map((c) => c.share)]);
 for (const v of [17.5, 12, 22]) if (known.has(v)) throw new Error(`fixture: ${v}% is now a real figure for ${p.id}; pick another invented value`);
+const realHs = new Set(collectHsCodes(p));
+for (const code of [`${hs6}.1234`, '999999']) {
+  const digits = code.replace(/\D/g, '');
+  if ([...realHs].some((h) => h.startsWith(digits))) throw new Error(`fixture: HS ${code} is now a real code for ${p.id}`);
+}
+const realAmounts = new Set(collectAmounts(p));
+for (const v of [14, 12345, 987.6e6, 1.2e6, 3.7e8, 7.9e6, Number(hs.slice(-4))]) {
+  if (realAmounts.has(v)) throw new Error(`fixture: $${v} is now a real amount for ${p.id}; pick another invented value`);
+}
 for (const [name, text, expectBad] of cases) {
   const bad = ungroundedFigures(p, report.intent, q, 'ko', { ...base, summary: text });
   const ok = (bad.length > 0) === expectBad;
