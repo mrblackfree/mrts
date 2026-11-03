@@ -498,7 +498,7 @@ async function validateOverrides(snapshot) {
   const knownHs = new Set([...db.matchAll(/\bcode: '(\d{4}\.\d{2}\.\d{4})'/g)].map((m) => m[1]));
   // keys of `tariffsByHs` blocks (HS-specific tariff tables), per product: product blocks in SEED_PRODUCTS start
   // with a 4-space-indented `id:`; table keys inside a block belong to that product
-  const tablesByProduct = {};
+  const tablesByProduct = Object.create(null); // no prototype keys (e.g. a productId "constructor")
   {
     const start = db.indexOf('const SEED_PRODUCTS');
     const seed = db.slice(start, db.indexOf('\n];\n', start));
