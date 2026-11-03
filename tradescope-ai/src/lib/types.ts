@@ -101,6 +101,8 @@ export interface MarketStats {
   meta: SourceMeta;
   /** latest monthly year-to-date figure from Korea Customs (when the KCS connector is configured) */
   latestMonthly?: { from: string; to: string; value: number; source: string };
+  /** official customs unit value for the HS basis (USD/kg) */
+  unitValue?: { year: number; usdPerKg: number; netWgtKg: number; basis: 'CIF' | 'FOB' };
 }
 
 // ---------- verification layer ----------
@@ -151,6 +153,10 @@ export interface ProductVerification {
   score: number;
   counts: Record<VerificationLevel, number>;
   mfnCheck?: MfnCheck;
+  /** official preferential rate applied by the importer to the counterpart (WITS TARIFFTYPE=PREF) */
+  prefCheck?: { hs6: string; year: number; min: number; max: number; lines: number; scheme: 'AKFTA' | 'BEST'; seedRate?: number; status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range'; url: string };
+  /** seed price vs official customs unit value */
+  priceCheck?: { year: number; usdPerKg: number; basis: 'CIF' | 'FOB'; seedPerKg: number; ratio: number; status: 'consistent' | 'outlier' | 'not-comparable' };
   /** official MFN summaries for the alternative HS candidates, keyed by HS6 */
   altMfn?: Record<string, { year: number; min: number; max: number; lines: number }>;
   insightStale?: boolean;
@@ -199,6 +205,10 @@ export interface Partner {
 export interface PricingSeed {
   item: Bilingual;
   unit: string;
+  /** net kg per pricing unit — used for the official customs unit-value cross-check */
+  unitKg?: number;
+  /** false when the HS-basis unit value is not comparable with this item */
+  priceComparable?: boolean;
   /** indicative unit price at the default incoterm (USD) */
   unitPrice: number;
   moq: number;

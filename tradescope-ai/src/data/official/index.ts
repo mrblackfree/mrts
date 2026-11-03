@@ -9,6 +9,10 @@
  *  - Statistics come from the UN Comtrade snapshot (level: official).
  *  - MFN is cross-checked against World Bank WITS TRAINS (HS6). When every national line in the HS6 has the
  *    same rate, that rate is authoritative and replaces the seed (level: official, conflict noted).
+ *  - AKFTA is cross-checked against the preferential rate the importer actually applied to the counterpart
+ *    (WITS TARIFFTYPE=PREF). Before June 2023 AKFTA was the only agreement in force between KR and PH, so a
+ *    single-rate PREF observation from those years is the official AKFTA rate.
+ *  - Seed prices are compared with the official customs unit value (UN Comtrade value / net weight).
  *  - Preferential (FTA) rates can never exceed MFN — values above MFN are capped.
  *  - Overrides raise a datum to 'verified' until their validUntil date passes.
  */
@@ -46,6 +50,8 @@ interface SnapProduct {
   hsBasis: string;
   series: YearValue[];
   seriesSource: string;
+  unitValue?: { year: number; usdPerKg: number; netWgtKg: number; basis: 'CIF' | 'FOB' } | null;
+  ytd?: { from: string; to: string; value: number; source: string };
   market: null | { year: number; reporter: number; world: number; competitors: SnapPartner[]; counterpart: SnapPartner; source: string };
 }
 
@@ -74,6 +80,7 @@ interface Snapshot {
   sources?: Partial<Record<'comtrade' | 'wits' | 'kcs' | 'links' | 'overrides', SourceStatus>>;
   comtrade?: { products?: Record<string, SnapProduct>; overview?: { krExportsToPh: YearValue[]; krImportsFromPh: YearValue[] } };
   wits?: Record<string, Record<string, WitsEntry>>;
+  witsPref?: Record<string, WitsEntry & { partner: number; hs6: string; prefLines: number }>;
   kcs?: { ytd?: Record<string, { from: string; to: string; expUsd: number; impUsd: number; source: string }>; fx?: { usdKrw: number; appliedFrom: string; source: string } | null };
   links?: Record<string, LinkCheck>;
 }
@@ -176,6 +183,8 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
 
   const ytd = SNAP.kcs?.ytd?.[p.id];
   if (ytd) p.market.latestMonthly = { from: ytd.from, to: ytd.to, value: p.direction === 'PH_TO_KR' ? ytd.impUsd : ytd.expUsd, source: ytd.source };
+  else if (snapP?.ytd) p.market.latestMonthly = snapP.ytd;
+  if (snapP?.unitValue) p.market.unitValue = snapP.unitValue;
 
   // 2) MFN cross-check (WITS) --------------------------------------------------
   const mfn = p.tariffs.find((t) => t.scheme === 'MFN');
@@ -210,6 +219,39 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       .filter(([hs6]) => hs6 !== primary6)
       .map(([hs6, v]) => [hs6, { year: v.year, min: v.min, max: v.max, lines: v.lines }]),
   );
+
+  // AKFTA cross-check against the preferential rate actually applied (WITS PREF)
+  const pref = SNAP.witsPref?.[p.id];
+  const akfta = p.tariffs.find((t) => t.scheme === 'AKFTA');
+  let akftaConflict: Bilingual | undefined;
+  if (pref && akfta) {
+    const onlyAkfta = pref.year < 2023; // RCEP (PH: 2023-06) and the KR-PH FTA (2024-12) were not yet in force
+    const seedRate = akfta.rate;
+    let status: NonNullable<ProductVerification['prefCheck']>['status'];
+    if (onlyAkfta && pref.min === pref.max) {
+      if (seedRate === pref.min) status = 'exact-match';
+      else {
+        status = 'corrected';
+        akfta.rate = pref.min;
+        akftaConflict = b(`시드 ${seedRate}% → WITS ${pref.year} 공식 특혜세율 ${pref.min}%로 자동 보정`, `Seed ${seedRate}% auto-corrected to the official preferential ${pref.min}% (WITS ${pref.year})`);
+      }
+      akfta.level = 'official';
+      akfta.verifiedNote = `World Bank WITS TRAINS · PREF ${pref.year} · HS ${pref.hs6}`;
+    } else {
+      status = seedRate >= pref.min && seedRate <= pref.max ? 'within-range' : 'out-of-range';
+      if (status === 'within-range') akfta.level = 'crosscheck';
+    }
+    verification.prefCheck = { hs6: pref.hs6, year: pref.year, min: pref.min, max: pref.max, lines: pref.lines, scheme: onlyAkfta ? 'AKFTA' : 'BEST', seedRate, status, url: pref.url };
+  }
+
+  // Seed price vs official customs unit value (USD/kg)
+  const uv = snapP?.unitValue;
+  if (uv && p.pricing.unitKg) {
+    const seedPerKg = Math.round((p.pricing.unitPrice / p.pricing.unitKg) * 100) / 100;
+    const ratio = Math.round((seedPerKg / uv.usdPerKg) * 100) / 100;
+    const status = p.pricing.priceComparable === false ? 'not-comparable' : ratio >= 0.5 && ratio <= 2 ? 'consistent' : 'outlier';
+    verification.priceCheck = { year: uv.year, usdPerKg: uv.usdPerKg, basis: uv.basis, seedPerKg, ratio, status };
+  }
 
   // Preferential rates can never exceed MFN.
   if (mfn) {
@@ -279,9 +321,11 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       key: `tariff:${t.scheme}`,
       category: 'fta',
       label: b(`${t.scheme} 협정세율`, `${t.scheme} preferential rate`),
-      level: t.level === 'verified' ? 'verified' : 'seed',
-      source: t.level === 'verified' ? t.verifiedNote : undefined,
-      conflict: t.verifiedNote === 'capped-at-mfn' ? b('시드값이 MFN보다 높아 MFN으로 상한 적용', 'Seed exceeded MFN — capped at MFN') : undefined,
+      level: t.level ?? 'seed',
+      source: t.level && t.verifiedNote !== 'capped-at-mfn' ? t.verifiedNote : undefined,
+      checkedAt: t.level === 'official' || t.level === 'crosscheck' ? SNAP.sources?.wits?.fetchedAt : undefined,
+      conflict:
+        t.verifiedNote === 'capped-at-mfn' ? b('시드값이 MFN보다 높아 MFN으로 상한 적용', 'Seed exceeded MFN — capped at MFN') : t.scheme === 'AKFTA' ? akftaConflict : undefined,
     });
   }
   const best = p.tariffs.find((t) => t.scheme === p.bestFta.scheme);
@@ -290,8 +334,14 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     key: 'hs',
     category: 'hs',
     label: b(`HS ${p.hs[0].code} 품목분류`, `HS ${p.hs[0].code} classification`),
-    level: p.hs[0].ruling ? 'verified' : 'seed',
-    source: p.hs[0].ruling?.text,
+    // An official HS6 with national tariff lines proves the code is valid; the classification itself needs a ruling.
+    level: p.hs[0].ruling ? 'verified' : mc && mc.lines > 0 ? 'crosscheck' : 'seed',
+    source: p.hs[0].ruling?.text ?? (mc ? `World Bank WITS TRAINS · HS ${mc.hs6} · ${mc.year}` : undefined),
+    detail: p.hs[0].ruling
+      ? undefined
+      : mc
+        ? b(`HS6 코드 유효성 확인(공식 세번 ${mc.lines}개) — 분류 판단 확정은 사전심사 필요`, `HS6 validity confirmed (${mc.lines} official lines) — the classification itself needs an advance ruling`)
+        : undefined,
   });
   for (const r of p.requirements) {
     items.push({
@@ -318,7 +368,19 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
   p.logistics.forEach((l, i) =>
     items.push({ key: `lane:${i}`, category: 'logistics', label: b(`${l.from}→${l.to} ${l.mode}`, `${l.from}→${l.to} ${l.mode}`), level: l.quote ? 'verified' : 'seed', source: l.quote?.reference, checkedAt: l.quote?.verifiedAt }),
   );
-  items.push({ key: 'pricing', category: 'pricing', label: b('기준 단가·MOQ', 'Reference price & MOQ'), level: p.pricing.verified ? 'verified' : 'seed', source: p.pricing.verified?.reference });
+  const pc = verification.priceCheck;
+  items.push({
+    key: 'pricing',
+    category: 'pricing',
+    label: b('기준 단가·MOQ', 'Reference price & MOQ'),
+    level: p.pricing.verified ? 'verified' : pc?.status === 'consistent' ? 'crosscheck' : 'seed',
+    source: p.pricing.verified?.reference ?? (pc ? `UN Comtrade unit value · ${pc.year} · ${pc.basis}` : undefined),
+    checkedAt: pc ? syncAt : undefined,
+    detail: pc
+      ? b(`시드 $${pc.seedPerKg}/kg vs 공식 통관 단가 $${pc.usdPerKg}/kg (${pc.ratio}배)${pc.status === 'not-comparable' ? ' — HS 기준 상이로 비교 불가' : ''}`, `Seed $${pc.seedPerKg}/kg vs official unit value $${pc.usdPerKg}/kg (${pc.ratio}×)${pc.status === 'not-comparable' ? ' — HS basis not comparable' : ''}`)
+      : undefined,
+    conflict: pc?.status === 'outlier' ? b(`시드 단가가 공식 통관 단가의 ${pc.ratio}배 — 견적으로 재확인 필요`, `Seed price is ${pc.ratio}× the official unit value — confirm with a quotation`) : undefined,
+  });
 
   // 6) score: every category weighs the same; inside a category items are averaged
   const byCat = new Map<VerificationCategory, number[]>();

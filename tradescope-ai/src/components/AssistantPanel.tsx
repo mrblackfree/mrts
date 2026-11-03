@@ -239,6 +239,12 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                     <input type="number" min={0} className={inputCls} value={options.moq} onChange={(e) => update({ moq: Math.max(0, Number(e.target.value)) })} />
                   </label>
                   <p className="col-span-2 -mt-1 text-[11px] text-slate-400 sm:col-span-4">{t('priceHint')}</p>
+                  {product.verification?.priceCheck && product.pricing.unitKg && product.verification.priceCheck.status !== 'not-comparable' && (
+                    <p className="col-span-2 -mt-1 text-[11px] font-semibold text-emerald-700 sm:col-span-4 dark:text-emerald-400">
+                      {lang === 'ko' ? '공식 통관 단가 기준' : 'Official unit-value benchmark'}: ${product.verification.priceCheck.usdPerKg}/kg ({product.verification.priceCheck.year} {product.verification.priceCheck.basis}) →{' '}
+                      {lang === 'ko' ? '현재 단가' : 'current price'} ${(options.unitPrice / product.pricing.unitKg).toFixed(2)}/kg ({(options.unitPrice / product.pricing.unitKg / product.verification.priceCheck.usdPerKg).toFixed(2)}×)
+                    </p>
+                  )}
                   <label className="col-span-2">
                     <span className={labelCls}>{t('payment')}</span>
                     <select className={inputCls} value={options.payment} onChange={(e) => update({ payment: e.target.value as DraftOptions['payment'] })}>

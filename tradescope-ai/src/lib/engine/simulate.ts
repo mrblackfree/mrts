@@ -155,7 +155,7 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
   const shortQuery = query.length > 60 ? `${query.slice(0, 60)}…` : query;
   const v = product.verification;
   const mfnState = v?.mfnCheck?.status;
-  const ftaSeed = product.tariffs.filter((x) => x.scheme !== 'MFN' && x.level !== 'verified').length;
+  const ftaSeed = product.tariffs.filter((x) => x.scheme !== 'MFN' && x.level !== 'verified' && x.level !== 'official').length;
 
   if (lang === 'ko') {
     const caveats: string[] = [];
@@ -177,7 +177,7 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
         `물류: ${lane.from}→${lane.to} ${lane.mode} $${formatNumber(lane.cost[0])}~${formatNumber(lane.cost[1])}, ${lane.transitDays[0]}~${lane.transitDays[1]}일`,
         ...(v
           ? [
-              `데이터 신뢰도 ${v.score}/100: 통계 공식(UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? '공식 세율 확인(WITS)' : mfnState === 'within-range' ? '공식 HS6 범위 내(WITS)' : '미검증'} · FTA 협정세율 ${ftaSeed ? `${ftaSeed}건 시드 — UNI-PASS·Tariff Finder 확인 필요` : '전문가 검증 완료'}`,
+              `데이터 신뢰도 ${v.score}/100: 통계 공식(UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? '공식 세율 확인(WITS)' : mfnState === 'within-range' ? '공식 HS6 범위 내(WITS)' : '미검증'} · FTA 협정세율 ${ftaSeed ? `${ftaSeed}건 미검증 — UNI-PASS·Tariff Finder 확인 필요` : '모두 공식·전문가 검증'}`,
             ]
           : []),
       ],
@@ -213,7 +213,7 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
       `Logistics: ${lane.from}→${lane.to} ${lane.mode} $${formatNumber(lane.cost[0])}–${formatNumber(lane.cost[1])}, ${lane.transitDays[0]}–${lane.transitDays[1]} days`,
       ...(v
         ? [
-            `Data trust ${v.score}/100: statistics official (UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? 'official rate confirmed (WITS)' : mfnState === 'within-range' ? 'within official HS6 range (WITS)' : 'unverified'} · FTA rates ${ftaSeed ? `${ftaSeed} seed — confirm in UNI-PASS / Tariff Finder` : 'expert-verified'}`,
+            `Data trust ${v.score}/100: statistics official (UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? 'official rate confirmed (WITS)' : mfnState === 'within-range' ? 'within official HS6 range (WITS)' : 'unverified'} · FTA rates ${ftaSeed ? `${ftaSeed} unverified — confirm in UNI-PASS / Tariff Finder` : 'all official or expert-verified'}`,
           ]
         : []),
     ],

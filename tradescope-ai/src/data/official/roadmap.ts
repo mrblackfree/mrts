@@ -39,13 +39,14 @@ export const ROADMAP: RoadmapItem[] = [
     id: 'wits',
     status: 'live',
     categories: ['mfn'],
-    title: b('기본세율(MFN) 공식 교차검증·자동 보정', 'Official MFN cross-check & auto-correction'),
+    title: b('MFN·AKFTA 공식 교차검증·자동 보정', 'Official MFN & AKFTA cross-check & auto-correction'),
     now: b(
-      'World Bank WITS TRAINS(각국 정부 통보 세율)로 HS6 단위 검증 — 단일세율이면 자동 보정, 범위면 범위 내 여부 판정',
-      'World Bank WITS TRAINS (government-notified tariffs) checks each HS6 — single-rate HS6 auto-corrects, ranges are range-checked',
+      'World Bank WITS TRAINS(각국 정부 통보 세율)로 HS6 단위 검증 — MFN과, 필리핀이 한국산에 실제 적용한 특혜세율(AKFTA)을 자동 보정. 통관 단가(Comtrade)로 시드 단가도 교차검증',
+      'World Bank WITS TRAINS (government-notified tariffs) checks each HS6 — auto-corrects MFN and the preferential rate the Philippines applied to Korean goods (AKFTA). Seed prices are cross-checked with Comtrade unit values',
     ),
     steps: [
-      b('한계: HS6 단위·통보 연도 지연(현재 2023) — 10단위 확정은 아래 "10단위 세율" 항목으로', 'Limits: HS6 level and reporting lag (currently 2023) — confirm 10-digit rates below'),
+      b('한계: HS6 단위·통보 연도 지연(MFN 2023, 특혜 2021) — 10단위·당해연도 확정은 아래 "10단위 세율" 항목으로', 'Limits: HS6 level and reporting lag (MFN 2023, preferential 2021) — confirm 10-digit current-year rates below'),
+      b('한국 측 특혜세율(PH→KR)은 WITS에 없음 — UNI-PASS 조회 → 검증 입력 필요', 'Korea-side preferential rates (PH→KR) are not in WITS — use UNI-PASS lookups → verified input'),
     ],
     links: [{ label: 'WITS API', url: 'https://wits.worldbank.org/witsapiintro.aspx' }],
   },
@@ -54,7 +55,7 @@ export const ROADMAP: RoadmapItem[] = [
     status: 'key',
     categories: ['stats'],
     title: b('관세청 월별 수출입실적 (올해 누적)', 'Korea Customs monthly trade (year-to-date)'),
-    now: b('커넥터 구현 완료 — 공공데이터포털 서비스키만 넣으면 자동 수집', 'Connector built — add a data.go.kr service key to activate'),
+    now: b('커넥터 구현 완료 — 공공데이터포털 서비스키만 넣으면 자동 수집 (UN Comtrade 월별 2026년분은 아직 미공개라 키 경로가 유일)', 'Connector built — add a data.go.kr service key (UN Comtrade has not published 2026 monthly data yet, so this is the only path)'),
     steps: [
       b('공공데이터포털 회원가입 → 「관세청_품목별 국가별 수출입실적(GW)」 활용신청 (자동승인·무료)', 'Sign up at data.go.kr → apply for “관세청_품목별 국가별 수출입실적(GW)” (auto-approved, free)'),
       b('GitHub 저장소 Secrets 또는 .env.local 에 DATA_GO_KR_SERVICE_KEY 등록', 'Store DATA_GO_KR_SERVICE_KEY in GitHub Secrets or .env.local'),

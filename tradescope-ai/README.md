@@ -108,7 +108,10 @@ cp .env.example .env.local
 | 원천 | 상태 | 방법 |
 |------|------|------|
 | UN Comtrade | ✅ 자동 (키 불필요) | `npm run data:sync` · 주 1회 GitHub Actions가 변경 시 PR 생성 |
-| World Bank WITS TRAINS | ✅ 자동 (키 불필요) | MFN HS6 교차검증·자동 보정. 첫 동기화에서 시드 오류 4건 보정(코코넛오일 8→3%, 조미김 15→10%, K-뷰티 10→7%, 도어락 10→1%) |
+| World Bank WITS TRAINS (MFN) | ✅ 자동 (키 불필요) | MFN HS6 교차검증·자동 보정. 시드 오류 4건 보정(코코넛오일 8→3%, 조미김 15→10%, K-뷰티 10→7%, 도어락 10→1%) |
+| World Bank WITS TRAINS (PREF) | ✅ 자동 (키 불필요) | 필리핀이 한국산에 실제 적용한 특혜세율(2021, 당시 유일 협정 AKFTA)로 AKFTA 검증 — 조미김·라면 5→0% 보정, 수출 4품목 AKFTA "공식 API" 등급 |
+| 공식 통관 단가 | ✅ 자동 (키 불필요) | Comtrade 금액/순중량(USD/kg)으로 시드 단가 교차검증 (0.5~2배 범위면 교차검증 등급) |
+| HS6 코드 유효성 | ✅ 자동 | 공식 HS6 세번 존재 확인 → 교차검증(분류 판단 확정은 사전심사) |
 | 링크 점검 | ✅ 자동 | 61개 URL을 ok / protected(봇 차단) / unreachable / broken으로 분류 |
 | 관세청 월별 수출입실적 | 🔑 키만 넣으면 자동 | data.go.kr 「관세청_품목별 국가별 수출입실적(GW)」 → `DATA_GO_KR_SERVICE_KEY` |
 | 관세청 과세환율 | 🔑 키만 넣으면 자동 | data.go.kr 「관세청_관세환율정보(GW)」 → 원화 관세 표시 |
@@ -166,10 +169,16 @@ curl -s -X POST http://localhost:3000/api/analyze \
 
 `next.config.mjs`에 `output: 'standalone'`이 설정되어 있어 빌드 결과물(`.next/standalone`)만으로 어떤 서버에서도 실행됩니다.
 
-### A. Vercel (가장 빠름)
-1. GitHub 저장소를 Vercel에 Import → **Root Directory를 `tradescope-ai`로 지정**
-2. (선택) Settings → Environment Variables에 `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` 추가
-3. Settings → Domains에서 도메인 추가 → 안내되는 DNS 레코드(A `76.76.21.21` 또는 CNAME `cname.vercel-dns.com`)를 도메인 업체에 등록
+### A. Vercel (가장 빠름, 약 1분)
+1. [vercel.com/new](https://vercel.com/new) → **Import Git Repository**에서 이 저장소 선택
+2. **Root Directory → `tradescope-ai`** 로 지정 (Framework는 Next.js 자동 감지, 빌드 설정은 기본값 그대로)
+3. **Deploy** → `https://<project>.vercel.app` 발급. 이후 PR마다 Preview URL이 자동 생성됨
+4. (선택) Settings → Environment Variables에 `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` 추가 → Redeploy
+5. Settings → Domains에서 도메인 추가 → 안내되는 DNS 레코드(A `76.76.21.21` 또는 CNAME `cname.vercel-dns.com`)를 도메인 업체에 등록
+
+`tradescope-ai/vercel.json`이 서버 함수를 서울 리전(`icn1`)으로 고정합니다. 공식 데이터는 빌드에 포함된 스냅샷(`src/data/official/snapshot.json`)을 쓰므로, Vercel에는 데이터용 키가 필요 없습니다. 갱신은 주간 GitHub Actions PR → 머지 → 자동 재배포 순서로 이루어집니다.
+
+CLI로 배포하려면: `npx vercel@latest --cwd tradescope-ai --prod` (Vercel 로그인 또는 `VERCEL_TOKEN` 필요)
 
 ### B. Netlify
 1. New site from Git → Base directory `tradescope-ai`, Build command `npm run build` (Next.js 런타임 자동 감지)

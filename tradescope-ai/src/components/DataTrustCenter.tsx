@@ -9,6 +9,7 @@ import { ROADMAP, type RoadmapStatus } from '@/data/official/roadmap';
 import type { DictKey } from '@/lib/i18n';
 import type { VerificationLevel } from '@/lib/types';
 import { useI18n } from './I18nProvider';
+import OverrideHelper from './OverrideHelper';
 import { Badge, cx, LevelBadge, ProgressBar, ScoreRing } from './ui';
 
 const CHANGELOG = (changelogJson as { entries: Array<{ date: string; productId: string; field: string; from: string; to: string; source: string }> }).entries;
@@ -26,6 +27,19 @@ const RM_META: Record<RoadmapStatus, { key: DictKey; tone: 'green' | 'brand' | '
   manual: { key: 'rmManual', tone: 'amber', icon: <PenLine className="size-3" /> },
 };
 const LEVELS: VerificationLevel[] = ['official', 'verified', 'crosscheck', 'seed'];
+/** which roadmap item closes the gap of each category */
+const CATEGORY_ROADMAP: Record<string, string> = {
+  stats: 'kcs-trade',
+  market: 'comtrade',
+  mfn: 'tariff-10',
+  fta: 'tariff-10',
+  roo: 'tariff-10',
+  hs: 'hs-ruling',
+  requirements: 'regulation',
+  partners: 'partners',
+  logistics: 'freight',
+  pricing: 'freight',
+};
 const LEVEL_BAR: Record<VerificationLevel, string> = { official: 'bg-emerald-500', verified: 'bg-violet-500', crosscheck: 'bg-brand-400', seed: 'bg-amber-300 dark:bg-amber-500/60' };
 
 export default function DataTrustCenter({ focusProductId, onClose }: { focusProductId?: string; onClose: () => void }) {
@@ -192,6 +206,26 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                     </button>
                     {isOpen && (
                       <div className="space-y-3 border-t border-slate-100 p-3 dark:border-slate-800">
+                        {(() => {
+                          const cats = categoryBreakdown(prod);
+                          const gains = cats
+                            .filter((c) => c.value < 1)
+                            .map((c) => ({ ...c, gain: Math.round(((1 - c.value) / cats.length) * 100), rm: ROADMAP.find((r) => r.id === CATEGORY_ROADMAP[c.category]) }))
+                            .sort((a, b) => b.gain - a.gain)
+                            .slice(0, 3);
+                          return gains.length ? (
+                            <div className="rounded-xl bg-violet-50 p-3 dark:bg-violet-500/10">
+                              <p className="mb-1.5 text-xs font-bold text-violet-800 dark:text-violet-200">{lang === 'ko' ? '점수를 올리는 다음 검증' : 'Next verifications to raise the score'}</p>
+                              <ul className="space-y-1 text-[11.5px] text-violet-900 dark:text-violet-200">
+                                {gains.map((g) => (
+                                  <li key={g.category}>
+                                    <b>+{g.gain}</b> · {p(CATEGORY_LABEL[g.category])} — {g.rm ? p(g.rm.title) : ''}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null;
+                        })()}
                         {categoryBreakdown(prod).map((cat) => (
                           <div key={cat.category}>
                             <div className="mb-1 flex items-center gap-2">
@@ -260,6 +294,20 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                 );
               })}
             </div>
+          </section>
+
+          {/* verified-value entry helper */}
+          <section className="rounded-2xl border border-violet-200 p-4 dark:border-violet-500/30">
+            <h3 className="mb-1 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-slate-100">
+              <PenLine className="size-4 text-violet-500" />
+              {lang === 'ko' ? '검증값 입력 도우미 (관세사·담당자용)' : 'Verified-value entry helper (for brokers / reviewers)'}
+            </h3>
+            <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+              {lang === 'ko'
+                ? '공식 문서로 확인한 값을 입력하면 verified-overrides.json 형식의 항목이 생성됩니다. 커밋 후 배포되면 해당 항목이 "전문가 검증"으로 승격됩니다.'
+                : 'Enter a value confirmed on an official document to generate a verified-overrides.json entry. Once committed and deployed, the datum is promoted to “expert-verified”.'}
+            </p>
+            <OverrideHelper defaultProductId={focusProductId} />
           </section>
 
           {feedbackUrl && (

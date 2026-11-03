@@ -595,6 +595,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     pricing: {
       item: b('바나나칩 (가당, 10kg 벌크 카톤)', 'Banana chips (sweetened, 10 kg bulk carton)'),
       unit: 'kg',
+      unitKg: 1,
       unitPrice: 3.1,
       moq: 2000,
       moqUnit: 'kg',
@@ -824,6 +825,9 @@ const SEED_PRODUCTS: TradeProduct[] = [
     pricing: {
       item: b('건망고 100g 소매 포장', 'Dried mango 100 g retail pack'),
       unit: 'pack',
+      unitKg: 0.1,
+      // HS 0804.50 unit value is dominated by fresh mango — not comparable with dried retail packs
+      priceComparable: false,
       unitPrice: 1.05,
       moq: 10000,
       moqUnit: 'packs',
@@ -1047,6 +1051,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     pricing: {
       item: b('식품용 버진코코넛오일 (190kg 드럼)', 'Food-grade virgin coconut oil (190 kg drum)'),
       unit: 'kg',
+      unitKg: 1,
       unitPrice: 4.3,
       moq: 3800,
       moqUnit: 'kg (20 drums)',
@@ -1106,16 +1111,16 @@ const SEED_PRODUCTS: TradeProduct[] = [
     ],
     tariffs: [
       { scheme: 'MFN', rate: 10, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
-      { scheme: 'AKFTA', rate: 5, roo: 'CTH (originating laver) or RVC 40%', certificate: CERT.ak, note: b('민감품목 트랙 가정', 'Assumes sensitive track') },
+      { scheme: 'AKFTA', rate: 0, roo: 'CTH (originating laver) or RVC 40%', certificate: CERT.ak, note: b('WITS 공식 특혜세율(필리핀→한국산)과 일치', 'Matches the WITS official PH preferential rate for Korean goods') },
       { scheme: 'RCEP', rate: 10, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
       { scheme: 'KRPH', rate: 0, roo: 'CTH (wholly obtained laver)', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
     ],
     tariffMeta: TARIFF_META_PH,
     bestFta: {
-      scheme: 'KRPH',
+      scheme: 'AKFTA',
       reason: b(
-        '한-필 FTA 0%로 MFN 10% 대비 과세가격의 10%p, AKFTA 대비 5%p 추가 절감. 국산 김(완전생산) 사용 시 원산지 충족이 확실해 사후검증 리스크도 낮음.',
-        'KR-PH FTA 0% saves 10 pp vs MFN and 5 pp vs AKFTA. Using Korean-harvested laver (wholly obtained) makes origin compliance straightforward.',
+        '한-아세안 FTA 0%는 필리핀이 실제 한국산에 적용한 공식 특혜세율(WITS)로 확인됨 — MFN 10% 대비 과세가격의 10%p 절감. 한-필 FTA도 0%로 예상되나 아직 미검증이므로 Form AK를 기본으로, 국산 김(완전생산) 사용 시 어느 협정이든 원산지 충족이 확실.',
+        'The ASEAN-Korea FTA 0% is confirmed as the official preferential rate the Philippines applied to Korean goods (WITS) — saving 10 pp vs MFN 10%. The KR-PH FTA is likely 0% too but unverified, so use Form AK by default; Korean-harvested laver meets origin under either agreement.',
       ),
     },
     requirements: phFoodRequirements([
@@ -1279,6 +1284,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     pricing: {
       item: b('조미김 도시락김 4g × 16봉 번들', 'Seasoned laver 4 g × 16 packs bundle'),
       unit: 'bundle',
+      unitKg: 0.064,
       unitPrice: 2.1,
       moq: 2000,
       moqUnit: 'bundles',
@@ -1548,6 +1554,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     pricing: {
       item: b('하이드레이팅 토너 150ml', 'Hydrating toner 150 ml'),
       unit: 'pcs',
+      unitKg: 0.17,
       unitPrice: 4.2,
       moq: 3000,
       moqUnit: 'pcs',
@@ -1601,16 +1608,16 @@ const SEED_PRODUCTS: TradeProduct[] = [
     ],
     tariffs: [
       { scheme: 'MFN', rate: 15, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
-      { scheme: 'AKFTA', rate: 5, roo: 'CTH (wheat flour 1101 → 1902 qualifies) or RVC 40%', certificate: CERT.ak, note: b('민감품목 트랙 가정', 'Assumes sensitive track') },
+      { scheme: 'AKFTA', rate: 0, roo: 'CTH (wheat flour 1101 → 1902 qualifies) or RVC 40%', certificate: CERT.ak, note: b('WITS 공식 특혜세율(필리핀→한국산)과 일치', 'Matches the WITS official PH preferential rate for Korean goods') },
       { scheme: 'RCEP', rate: 10, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
       { scheme: 'KRPH', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
     ],
     tariffMeta: TARIFF_META_PH,
     bestFta: {
-      scheme: 'KRPH',
+      scheme: 'AKFTA',
       reason: b(
-        '한-필 FTA 0%로 MFN 15% 대비 15%p 절감. 수입 밀가루(1101) 사용 시에도 세번변경(CTH)으로 원산지 충족 — 중국·인니산 대비 가격 격차 축소.',
-        'KR-PH FTA 0% saves 15 pp vs MFN. Even with imported wheat flour (1101) the CTH rule is met — narrowing the price gap with Chinese / Indonesian noodles.',
+        '한-아세안 FTA 0%는 필리핀이 실제 한국산 라면에 적용한 공식 특혜세율(WITS)로 확인됨 — MFN 15% 대비 15%p 절감. 수입 밀가루(1101) 사용 시에도 세번변경(CTH)으로 원산지 충족. 한-필 FTA 세율은 미검증이므로 Form AK 우선.',
+        'The ASEAN-Korea FTA 0% is confirmed as the official preferential rate the Philippines applied to Korean ramen (WITS) — saving 15 pp vs MFN. Imported wheat flour (1101) still meets the CTH rule. The KR-PH FTA rate is unverified, so prefer Form AK.',
       ),
     },
     requirements: phFoodRequirements([
@@ -1766,6 +1773,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     pricing: {
       item: b('봉지라면 120g × 40입 카톤', 'Instant ramen 120 g × 40 packs carton'),
       unit: 'carton',
+      unitKg: 4.8,
       unitPrice: 17.5,
       moq: 1200,
       moqUnit: 'cartons',
@@ -1825,10 +1833,10 @@ const SEED_PRODUCTS: TradeProduct[] = [
     ],
     tariffMeta: TARIFF_META_PH,
     bestFta: {
-      scheme: 'KRPH',
+      scheme: 'AKFTA',
       reason: b(
-        '도어락(8301.40)은 필리핀 MFN이 1%로 FTA 절감 효과가 미미 — 원산지 서류 비용 대비 실익을 따져볼 것. 반면 패키지로 수출하는 PVC 바닥재(3918.10)는 MFN 15%라 FTA 0% 적용 가치가 큼. 중국산 부품 비중이 높으면 BOM 기준 RVC 40% 판정 후 한-필 FTA 적용 권장.',
-        'Door locks (8301.40) carry only 1% PH MFN, so FTA savings are marginal — weigh them against CO paperwork. PVC flooring (3918.10) shipped in the same package carries 15% MFN, so FTA 0% matters there. With many Chinese parts, run a BOM-based RVC 40% check and use the KR-PH FTA.',
+        '도어락(8301.40)은 필리핀 MFN이 1%로 FTA 절감 효과가 미미 — 원산지 서류 비용 대비 실익을 따져볼 것. 반면 패키지로 수출하는 PVC 바닥재(3918.10)는 MFN 15%라 FTA 0% 적용 가치가 큼. AKFTA 0%는 WITS 공식 특혜세율로 확인됨 — 중국산 부품 비중이 높으면 BOM 기준 RVC 40% 판정 필수.',
+        'Door locks (8301.40) carry only 1% PH MFN, so FTA savings are marginal — weigh them against CO paperwork. PVC flooring (3918.10) shipped in the same package carries 15% MFN, so FTA 0% matters there. AKFTA 0% is confirmed by WITS; with many Chinese parts a BOM-based RVC 40% check is essential.',
       ),
     },
     requirements: [
@@ -2021,6 +2029,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     pricing: {
       item: b('스마트 디지털 도어락 (지문·Wi-Fi/BLE)', 'Smart digital door lock (fingerprint, Wi-Fi/BLE)'),
       unit: 'set',
+      unitKg: 3.5,
       unitPrice: 86,
       moq: 300,
       moqUnit: 'sets',

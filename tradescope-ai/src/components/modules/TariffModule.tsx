@@ -20,6 +20,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
   const bestLine = duties.find((d) => d.scheme === best)!;
   const officialFinder = product.direction === 'KR_TO_PH' ? AGENCY_LINKS.phTcPhkr : AGENCY_LINKS.ftaPortal;
   const mfnCheck = product.verification?.mfnCheck;
+  const prefCheck = product.verification?.prefCheck;
   const fx = OFFICIAL.fx;
 
   return (
@@ -87,6 +88,33 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                   {mfnCheck.status === 'within-range' ? (lang === 'ko' ? ' · 10단위 세율 확정은 UNI-PASS 조회 필요' : ' · confirm the 10-digit rate in UNI-PASS') : ''}
                 </p>
                 <a href={mfnCheck.url} target="_blank" rel="noreferrer" className="no-print mt-1 inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline">
+                  WITS API <ExternalLink className="size-3" />
+                </a>
+              </div>
+            </div>
+          )}
+
+          {prefCheck && (
+            <div
+              className={cx(
+                'flex items-start gap-2.5 rounded-xl border p-3 text-xs',
+                prefCheck.status === 'out-of-range'
+                  ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200'
+                  : 'border-emerald-200 bg-emerald-50/70 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+              )}
+            >
+              {prefCheck.status === 'out-of-range' ? <TriangleAlert className="mt-0.5 size-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 size-4 shrink-0" />}
+              <div className="min-w-0">
+                <p className="font-bold">
+                  {lang === 'ko' ? '공식 특혜세율 교차검증 (WITS PREF)' : 'Official preferential-rate check (WITS PREF)'} ·{' '}
+                  {prefCheck.status === 'exact-match' ? t('mfnExact') : prefCheck.status === 'corrected' ? t('mfnCorrected') : prefCheck.status === 'within-range' ? t('mfnWithin') : t('mfnOut')}
+                </p>
+                <p className="mt-0.5 leading-relaxed">
+                  {lang === 'ko'
+                    ? `필리핀이 한국산에 실제 적용한 특혜세율 · ${prefCheck.year}년 · HS ${prefCheck.hs6.slice(0, 4)}.${prefCheck.hs6.slice(4)} · ${prefCheck.min === prefCheck.max ? `${prefCheck.min}%` : `${prefCheck.min}–${prefCheck.max}%`} (${prefCheck.lines}개 세번)${prefCheck.scheme === 'AKFTA' ? ' — 당시 유일한 양국 협정은 AKFTA' : ''}`
+                    : `Preferential rate the Philippines applied to Korean goods · ${prefCheck.year} · HS ${prefCheck.hs6.slice(0, 4)}.${prefCheck.hs6.slice(4)} · ${prefCheck.min === prefCheck.max ? `${prefCheck.min}%` : `${prefCheck.min}–${prefCheck.max}%`} (${prefCheck.lines} lines)${prefCheck.scheme === 'AKFTA' ? ' — AKFTA was the only KR-PH agreement in force' : ''}`}
+                </p>
+                <a href={prefCheck.url} target="_blank" rel="noreferrer" className="no-print mt-1 inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline">
                   WITS API <ExternalLink className="size-3" />
                 </a>
               </div>

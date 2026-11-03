@@ -13,7 +13,8 @@
  *
  * Sources
  *  - UN Comtrade public API        https://comtradeapi.un.org   (annual bilateral & market statistics)
- *  - World Bank WITS TRAINS API    https://wits.worldbank.org   (official MFN tariff summary per HS6)
+ *  - World Bank WITS TRAINS API    https://wits.worldbank.org   (official MFN + partner-specific preferential tariffs per HS6)
+ *  - UN Comtrade monthly           current-year year-to-date bilateral flows (keyless)
  *  - 관세청 품목별 국가별 수출입실적  https://apis.data.go.kr/1220000/nitemtrade/getNitemtradeList (key)
  *  - 관세청 관세환율정보            https://apis.data.go.kr/1220000/retrieveTrifFxrtInfo/getRetrieveTrifFxrtInfo (key)
  *  - Link check of every URL in src/data/kr-ph-trade-db.ts
@@ -104,8 +105,8 @@ async function getText(url, { headers = {}, timeoutMs = 25_000, retries = 2 } = 
 const COMTRADE_KEY = process.env.COMTRADE_API_KEY?.trim();
 let lastComtradeCall = 0;
 
-async function comtrade(params) {
-  const base = COMTRADE_KEY ? 'https://comtradeapi.un.org/data/v1/get/C/A/HS' : 'https://comtradeapi.un.org/public/v1/preview/C/A/HS';
+async function comtrade(params, freq = 'A') {
+  const base = COMTRADE_KEY ? `https://comtradeapi.un.org/data/v1/get/C/${freq}/HS` : `https://comtradeapi.un.org/public/v1/preview/C/${freq}/HS`;
   const qs = new URLSearchParams(params).toString();
   const url = `${base}?${qs}`;
   const wait = 1300 - (Date.now() - lastComtradeCall);
@@ -147,7 +148,7 @@ async function syncComtrade(snapshot) {
     ]) {
       const r = await comtrade({ reporterCode: KR, partnerCode: PH, period: y, cmdCode: codes.join(','), flowCode: flow });
       if (!r.data) out.errors.push(`series ${flow} ${y}: ${r.error ?? r.status}`);
-      for (const row of r.data ?? []) bilateral[`${flow}:${row.cmdCode}:${y}`] = { value: Math.round(row.primaryValue), url: r.url };
+      for (const row of r.data ?? []) bilateral[`${flow}:${row.cmdCode}:${y}`] = { value: Math.round(row.primaryValue), netWgt: Number(row.netWgt) || 0, url: r.url };
       log(`  comtrade series ${flow} ${y}: ${r.data?.length ?? 0} rows`);
     }
   }
@@ -183,9 +184,15 @@ async function syncComtrade(snapshot) {
     const counterpart = m.direction === 'PH_TO_KR' ? PH : KR;
     const market = markets[`${importer}:${m.basis}`];
     const counterpartRow = market?.partners.find((p) => p.code === counterpart);
+    const latest = bilateral[`${flow}:${m.basis}:${lastFull}`];
     out.products[m.id] = {
       hsBasis: m.basis,
       series,
+      // Official customs unit value (USD per kg): imports CIF, exports FOB.
+      unitValue:
+        latest && latest.netWgt > 0
+          ? { year: lastFull, usdPerKg: Math.round((latest.value / latest.netWgt) * 100) / 100, netWgtKg: Math.round(latest.netWgt), basis: flow === 'M' ? 'CIF' : 'FOB' }
+          : null,
       seriesSource: `UN Comtrade · reporter ${KR} (Korea) · partner ${PH} · flow ${flow} · HS ${m.basis}`,
       market: market
         ? {
@@ -210,6 +217,28 @@ async function syncComtrade(snapshot) {
     log(`  comtrade totals ${y}: ${r.data?.length ?? 0} rows`);
   }
   out.overview = overview;
+
+  // 4) current-year monthly year-to-date (Korea-reported) — one call per month, both flows
+  const allCodes = [...new Set(MANIFEST.map((m) => m.basis))];
+  const ytd = {};
+  const months = [];
+  const thisMonth = new Date().getUTCMonth() + 1;
+  for (let mo = 1; mo < thisMonth; mo++) {
+    const period = `${nowYear}${String(mo).padStart(2, '0')}`;
+    const r = await comtrade({ reporterCode: KR, partnerCode: PH, period, cmdCode: allCodes.join(','), flowCode: 'M,X' }, 'M');
+    if (!r.data || !r.data.length) break;
+    months.push(period);
+    for (const row of r.data) ytd[`${row.flowCode}:${row.cmdCode}`] = (ytd[`${row.flowCode}:${row.cmdCode}`] ?? 0) + row.primaryValue;
+    log(`  comtrade monthly ${period}: ${r.data.length} rows`);
+  }
+  if (months.length) {
+    for (const m of MANIFEST) {
+      const flow = m.direction === 'PH_TO_KR' ? 'M' : 'X';
+      const value = ytd[`${flow}:${m.basis}`];
+      if (value) out.products[m.id].ytd = { from: months[0], to: months[months.length - 1], value: Math.round(value), source: 'UN Comtrade monthly (Korea-reported)' };
+    }
+  }
+
   snapshot.sources.comtrade = {
     status: out.errors.length ? 'partial' : 'ok',
     fetchedAt: new Date().toISOString(),
@@ -246,8 +275,33 @@ async function witsMfn(reporter, hs6) {
   return null;
 }
 
+/** Partner-specific preferential rate (TARIFFTYPE=PREF) actually applied by `reporter` to goods from `partner`. */
+async function witsPref(reporter, partner, hs6) {
+  const nowYear = new Date().getUTCFullYear();
+  for (let y = nowYear - 1; y >= nowYear - 10; y--) {
+    const url = `https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/${reporter}/partner/${partner}/product/${hs6}/year/${y}/datatype/reported`;
+    const res = await getText(url, { retries: 1 });
+    const obs = res.text.match(/<Obs\b[^>]*TARIFFTYPE="PREF"[^>]*\/>/);
+    if (res.status === 200 && obs) {
+      const attr = (n) => obs[0].match(new RegExp(`${n}="([^"]*)"`))?.[1];
+      return {
+        year: Number(attr('TIME_PERIOD')),
+        avg: Math.round(Number(attr('OBS_VALUE')) * 100) / 100,
+        min: Number(attr('MIN_RATE')),
+        max: Number(attr('MAX_RATE')),
+        lines: Number(attr('TOTALNOOFLINES')),
+        prefLines: Number(attr('NBR_PREF_LINES')),
+        url,
+      };
+    }
+    await sleep(250);
+  }
+  return null;
+}
+
 async function syncWits(snapshot) {
   const out = {};
+  const pref = {};
   const errors = [];
   for (const m of MANIFEST) {
     const reporter = m.direction === 'PH_TO_KR' ? KR : PH;
@@ -258,7 +312,13 @@ async function syncWits(snapshot) {
       else errors.push(`${m.id} ${reporter}/${hs6}: no record`);
       log(`  wits ${m.id} ${reporter}/${hs6}: ${r ? `${r.year} avg ${r.avg}% (min ${r.min}–max ${r.max}, ${r.lines} lines)` : 'no record'}`);
     }
+    // preferential rate applied by the importing country to the counterpart (primary HS6 only)
+    const partner = m.direction === 'PH_TO_KR' ? PH : KR;
+    const pr = await witsPref(reporter, partner, m.hs6[0]);
+    if (pr) pref[m.id] = { reporter, partner, hs6: m.hs6[0], ...pr };
+    log(`  wits pref ${m.id} ${reporter}←${partner}/${m.hs6[0]}: ${pr ? `${pr.year} ${pr.min === pr.max ? pr.min : `${pr.min}–${pr.max}`}% (${pr.prefLines}/${pr.lines} pref lines)` : 'no record'}`);
   }
+  snapshot.witsPref = pref;
   snapshot.sources.wits = { status: errors.length ? 'partial' : 'ok', fetchedAt: new Date().toISOString(), endpoint: 'wits.worldbank.org/API/V1/SDMX (TRAINS, MFN, HS6)', errors };
   snapshot.wits = out;
 }
