@@ -68,7 +68,8 @@ export default function Header({ health, trustScore, onOpenTrust }: { health: He
             </span>
             <span className="block whitespace-nowrap text-[10.5px] font-medium tracking-wide text-slate-500 dark:text-slate-400">
               <span className="inline-flex items-center gap-1">
-                <span className="hidden sm:inline">{t('appBadge')} ·</span>
+                {/* the full label only fits next to the right-hand controls from lg */}
+                <span className="hidden lg:inline">{t('appBadge')} ·</span>
                 <Flag code="KR" label={t('countryKR')} />
                 <span aria-hidden>↔</span>
                 <Flag code="PH" label={t('countryPH')} />
@@ -143,7 +144,7 @@ export default function Header({ health, trustScore, onOpenTrust }: { health: He
               <span className={cx('relative inline-flex size-1.5 rounded-full', aiOn ? 'bg-emerald-500' : 'bg-brand-500')} />
             </span>
             <Cpu className="size-3.5" aria-hidden />
-            <span className="sr-only sm:not-sr-only">{t('aiReady')}</span>
+            <span className="sr-only md:not-sr-only">{t('aiReady')}</span>
             <span className="hidden font-medium text-slate-400 lg:inline dark:text-slate-500">· {aiOn ? (health?.ai.model ?? 'LLM') : t('aiSim')}</span>
           </span>
 
