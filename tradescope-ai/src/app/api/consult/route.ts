@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { EXPERT_INDEX } from '@/data/experts';
 import { getProduct } from '@/data/kr-ph-trade-db';
-import { appendRequest, type ConsultRequest } from '@/lib/consult/store';
+import { notify, webhookUrl } from '@/lib/consult/notify';
+import { appendRequest, newRequestId, type ConsultRequest } from '@/lib/consult/store';
 import { readJsonLimited } from '@/lib/http';
 import { clientKey, windowLimiter } from '@/lib/rate-limit';
 import { getSetting, storageState } from '@/lib/settings';
@@ -19,7 +20,7 @@ const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 /** Whether this server can take requests online, and the fallback contact otherwise. */
 export function GET() {
   const contact = getSetting('CONSULT_CONTACT_EMAIL') ?? null;
-  const accepting = storageState().writable || !!getSetting('CONSULT_WEBHOOK_URL');
+  const accepting = storageState().writable || !!webhookUrl();
   return NextResponse.json({ ok: true, accepting, contact }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
 
   if (!allow(clientKey(req))) return NextResponse.json({ ok: false, error: 'rate-limited' }, { status: 429 });
 
-  const productId = typeof body.productId === 'string' && getProduct(body.productId) ? body.productId : undefined;
+  const productId = typeof body.productId === 'string' && getProduct(body.productId)?.id === body.productId ? body.productId : undefined;
   const input: Omit<ConsultRequest, 'id' | 'createdAt' | 'status'> = {
     name,
     company: text(body.company, 100),
@@ -58,31 +59,23 @@ export async function POST(req: Request) {
     lang: body.lang === 'en' ? 'en' : 'ko',
   };
 
-  const webhook = getSetting('CONSULT_WEBHOOK_URL');
+  const webhook = webhookUrl();
   const canStore = storageState().writable;
-  if (!canStore && !webhook) {
-    return NextResponse.json({ ok: false, error: 'not-accepting', contact: getSetting('CONSULT_CONTACT_EMAIL') ?? null }, { status: 503 });
-  }
+  const contact = getSetting('CONSULT_CONTACT_EMAIL') ?? null;
+  if (!canStore && !webhook) return NextResponse.json({ ok: false, error: 'not-accepting', contact }, { status: 503 });
 
   let record: ConsultRequest;
   try {
-    record = canStore ? appendRequest(input) : { id: `TS-${Date.now().toString(36).toUpperCase()}`, createdAt: new Date().toISOString(), status: 'new', ...input };
+    record = canStore ? appendRequest(input) : { id: newRequestId(), createdAt: new Date().toISOString(), status: 'new', ...input };
   } catch {
-    return NextResponse.json({ ok: false, error: 'storage-error', contact: getSetting('CONSULT_CONTACT_EMAIL') ?? null }, { status: 503 });
+    return NextResponse.json({ ok: false, error: 'storage-error', contact }, { status: 503 });
   }
 
-  if (webhook && /^https:\/\//i.test(webhook)) {
-    const services = record.serviceIds.map((id) => EXPERT_INDEX[id]?.title.ko ?? id).join(', ');
-    const summary = `[TradeScope] 전문가 서비스 요청 ${record.id}\n${record.name}${record.company ? ` (${record.company})` : ''} · ${record.email}${record.phone ? ` · ${record.phone}` : ''}\n서비스: ${services || '-'}\n주제: ${record.topic || '-'}\n${record.message}`;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 5000);
-    try {
-      await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: summary, request: record }), signal: ctrl.signal });
-    } catch {
-      /* the request is stored; a failed notification must not fail it */
-    } finally {
-      clearTimeout(timer);
-    }
+  if (webhook) {
+    const delivered = await notify(webhook, record);
+    // without storage the webhook is the only copy: tell the trader so they can retry or use the email
+    if (!delivered && !canStore) return NextResponse.json({ ok: false, error: 'delivery-failed', contact }, { status: 502 });
   }
   return NextResponse.json({ ok: true, id: record.id });
 }
+

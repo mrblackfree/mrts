@@ -128,8 +128,11 @@ export async function trackUnipass(key: string, q: TrackQuery): Promise<TrackRes
     if (!r) continue;
     if ('many' in r) {
       if (!r.many.length) continue;
+      // several consignments under one B/L (e.g. house B/Ls): show the first, list the others so each can be
+      // looked up on its own — their timelines are different cargo and are not merged
       const one = fromUnipassXml(q, await query(key, { cargMtNo: r.many[0] }));
-      return one && !('many' in one) ? one : null;
+      if (!one || 'many' in one) return null;
+      return { ...one, relatedRefs: r.many.slice(1, 20) };
     }
     return r;
   }

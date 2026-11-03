@@ -51,6 +51,10 @@ export interface TrackResult {
   customsStatus?: string;
   /** the source accepted the reference but has no events yet (first lookup at an aggregator) */
   pending?: boolean;
+  /** the source returned only part of the history (a paged answer): the latest steps may be missing */
+  partial?: boolean;
+  /** other references found for the same number (e.g. house B/Ls under one master B/L), each trackable */
+  relatedRefs?: string[];
   /** true for the built-in sample timeline (no tracking source configured) */
   demo?: boolean;
   fetchedAt: string;
@@ -84,7 +88,8 @@ export function isContainerNumber(raw: string): boolean {
   return (sum % 11) % 10 === Number(v[10]);
 }
 
-export const normaliseReference = (raw: string) => raw.replace(/[\s-]/g, '').toUpperCase().slice(0, 40);
+/** Spaces and dashes removed, upper case. Length is checked by the caller, never cut: a cut number is a different one. */
+export const normaliseReference = (raw: string) => raw.replace(/[\s-]/g, '').toUpperCase();
 
 /** Latest actual milestone of a timeline. */
 export function statusOf(events: TrackEvent[]): Milestone | 'unknown' {

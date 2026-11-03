@@ -2093,7 +2093,8 @@ export function refreshOfficialLayer(): void {
 
 export function getProduct(id: string): TradeProduct | undefined {
   refreshOfficialLayer();
-  return PRODUCT_INDEX[id];
+  // own keys only: ids such as `constructor` or `__proto__` must not resolve to Object.prototype members
+  return Object.hasOwn(PRODUCT_INDEX, id) ? PRODUCT_INDEX[id] : undefined;
 }
 
 export const DEMO_SCENARIOS = [

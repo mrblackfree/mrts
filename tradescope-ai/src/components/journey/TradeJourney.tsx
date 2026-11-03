@@ -164,18 +164,22 @@ export default function TradeJourney({
   tariffProps: Pick<React.ComponentProps<typeof TariffModule>, 'initialAmount' | 'convertedFrom' | 'assumedCif'>;
 }) {
   const { p, lang } = useI18n();
-  const [progress, setProgress] = useState<Progress>({ step: 0, done: [], checks: [] });
+  // `pid` is the product the progress was loaded for: nothing is saved until the stored progress has been read,
+  // so the empty default never overwrites it (also under StrictMode's double-run effects)
+  const [progress, setProgress] = useState<Progress & { pid: string | null }>({ pid: null, step: 0, done: [], checks: [] });
   const [showMarket, setShowMarket] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
 
   // per-product progress survives reloads in this browser
   useEffect(() => {
-    setProgress(loadProgress(product.id));
+    setProgress({ ...loadProgress(product.id), pid: product.id });
     setShowMarket(false);
   }, [product.id]);
   useEffect(() => {
+    if (progress.pid !== product.id) return;
+    const { pid: _pid, ...saved } = progress;
     try {
-      localStorage.setItem(storeKey(product.id), JSON.stringify(progress));
+      localStorage.setItem(storeKey(product.id), JSON.stringify(saved));
     } catch {
       /* storage unavailable */
     }
@@ -204,8 +208,8 @@ export default function TradeJourney({
   const expertForService = (svc: ExpertService) => onExpert({ product, topic: p(svc.title), serviceIds: [svc.id] });
 
   const L = lang === 'ko'
-    ? { guide: '거래 진행 가이드', progress: '{n}/7 단계 완료', step: '단계', of: '/ 7', todo: '이번 단계에서 할 일', owner: '담당', prev: '이전 단계', next: '이 단계 완료 · 다음 단계', finish: '거래 완료로 표시', allDone: '모든 단계를 마쳤습니다. 다음 거래도 같은 순서로 진행하세요.', market: '시장 데이터 자세히 보기', hideMarket: '시장 데이터 접기', experts: '이 품목에 맞는 현지 전문가 서비스', expertsSub: '직접 하기 어려운 서류는 TradeScope 파트너 전문가가 대신 진행합니다. 요청하면 운영팀이 진행 방법과 견적을 안내합니다.', request: '요청하기', needs: '준비할 서류와 근거', pi: '제안 메일·PI 만들기', piSub: '조건을 입력하면 국/영 제안 메일과 Proforma Invoice가 바로 만들어집니다.', handover: '통관을 맡길 관세사가 필요하면', pdf: 'PDF 리포트' }
-    : { guide: 'Trade guide', progress: '{n}/7 steps done', step: 'Step', of: '/ 7', todo: 'To do in this step', owner: 'Owner', prev: 'Previous', next: 'Done · next step', finish: 'Mark the trade complete', allDone: 'All steps are done. Run the next trade in the same order.', market: 'Show market data', hideMarket: 'Hide market data', experts: 'Local expert services for this product', expertsSub: 'Paperwork you cannot easily do yourself is handled by a TradeScope partner expert. Send a request and the team explains the process and the quote.', request: 'Request', needs: 'What you provide · sources', pi: 'Create proposal email & PI', piSub: 'Enter the terms and get a Korean/English proposal email and a proforma invoice.', handover: 'Need a customs broker for clearance?', pdf: 'PDF report' };
+    ? { guide: '거래 진행 가이드', progress: `{n}/${STEPS.length} 단계 완료`, step: '단계', of: `/ ${STEPS.length}`, todo: '이번 단계에서 할 일', owner: '담당', prev: '이전 단계', next: '이 단계 완료 · 다음 단계', finish: '거래 완료로 표시', allDone: '모든 단계를 마쳤습니다. 다음 거래도 같은 순서로 진행하세요.', market: '시장 데이터 자세히 보기', hideMarket: '시장 데이터 접기', experts: '이 품목에 맞는 현지 전문가 서비스', expertsSub: '직접 하기 어려운 서류는 TradeScope 파트너 전문가가 대신 진행합니다. 요청하면 운영팀이 진행 방법과 견적을 안내합니다.', request: '요청하기', needs: '준비할 서류와 근거', pi: '제안 메일·PI 만들기', piSub: '조건을 입력하면 국/영 제안 메일과 Proforma Invoice가 바로 만들어집니다.', handover: '통관을 맡길 관세사가 필요하면', pdf: 'PDF 리포트' }
+    : { guide: 'Trade guide', progress: `{n}/${STEPS.length} steps done`, step: 'Step', of: `/ ${STEPS.length}`, todo: 'To do in this step', owner: 'Owner', prev: 'Previous', next: 'Done · next step', finish: 'Mark the trade complete', allDone: 'All steps are done. Run the next trade in the same order.', market: 'Show market data', hideMarket: 'Hide market data', experts: 'Local expert services for this product', expertsSub: 'Paperwork you cannot easily do yourself is handled by a TradeScope partner expert. Send a request and the team explains the process and the quote.', request: 'Request', needs: 'What you provide · sources', pi: 'Create proposal email & PI', piSub: 'Enter the terms and get a Korean/English proposal email and a proforma invoice.', handover: 'Need a customs broker for clearance?', pdf: 'PDF report' };
 
   const todos = (id: StepId) => todosFor(id, product, report, lang);
 

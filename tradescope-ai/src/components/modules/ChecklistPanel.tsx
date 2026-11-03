@@ -89,6 +89,7 @@ export default function ChecklistPanel({ product, onExpert }: { product: TradePr
                             onClick={() => onExpert?.(r)}
                             className="no-print shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50 dark:text-brand-300 dark:ring-brand-400/30 dark:hover:bg-brand-400/10"
                             title={p(service.title)}
+                            aria-label={`${lang === 'ko' ? '맡기기' : 'Delegate'}: ${p(r.title)}`}
                           >
                             <UserRoundCheck className="mr-0.5 inline size-3.5 align-[-0.15em]" aria-hidden />
                             {lang === 'ko' ? '맡기기' : 'Delegate'}

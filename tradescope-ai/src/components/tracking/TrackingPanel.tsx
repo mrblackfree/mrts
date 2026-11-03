@@ -1,6 +1,6 @@
 'use client';
 
-import { Anchor, CheckCircle2, Circle, Container, Info, Loader2, MapPin, Radar, RefreshCw, Search } from 'lucide-react';
+import { Anchor, CheckCircle2, Circle, Container, Info, MapPin, Radar, RefreshCw, Search } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { isContainerNumber, normaliseReference, type Milestone, type TrackKind, type TrackResult } from '@/lib/tracking/types';
 import type { TradeProduct } from '@/lib/types';
@@ -42,7 +42,7 @@ const L = {
     placeholderBl: '예: HDMUPUSA1234567',
     badNumber: '컨테이너 번호 형식(영문 4자리 + 숫자 7자리)과 체크 디지트를 확인해 주세요.',
     demo: '예시 데이터',
-    demoNote: '추적 API가 연결되지 않아 예시 타임라인을 보여 드립니다. 관리자 페이지에서 API 키를 넣으면 실제 정보로 바뀝니다.',
+    demoNote: '추적 API가 연결되지 않아 예시 타임라인을 보여 드립니다. 운영자가 추적 API 키를 설정하면(관리자 페이지 또는 서버 환경변수) 실제 정보로 바뀝니다.',
     source: '출처',
     eta: '도착 예정',
     vessel: '선박',
@@ -62,6 +62,8 @@ const L = {
     placeholderCustoms: '예: MEDUAB123456 (M B/L·H B/L) 또는 화물관리번호',
     phCustomsNote:
       '필리핀 관세청(BOC)은 공개 화물 조회 API가 없습니다. 아래에서 마닐라·세부 양하와 반출까지 컨테이너를 추적하고, 수입신고·관세 납부·반출 승인은 파트너 관세사가 단계마다 알려 드립니다.',
+    partial: '선사가 이력의 일부만 보내왔습니다. 가장 최근 단계가 빠져 있을 수 있으니 선사 홈페이지에서도 확인하세요.',
+    related: '같은 B/L의 다른 화물',
     sourceLabel: { demo: '예시 데이터 (API 미연결)', 'UNI-PASS': '관세청 UNI-PASS', ShipsGo: 'ShipsGo', 'Hapag-Lloyd': 'Hapag-Lloyd 공식 API', 'CMA CGM': 'CMA CGM 공식 API' } as Record<string, string>,
   },
   en: {
@@ -81,7 +83,7 @@ const L = {
     placeholderBl: 'e.g. HDMUPUSA1234567',
     badNumber: 'Check the container number format (4 letters + 7 digits) and its check digit.',
     demo: 'Example data',
-    demoNote: 'No tracking API is connected, so an example timeline is shown. Add an API key on the admin page to see live data.',
+    demoNote: 'No tracking API is connected, so an example timeline is shown. Live data appears once the operator sets a tracking API key (admin page or server environment variables).',
     source: 'Source',
     eta: 'ETA',
     vessel: 'Vessel',
@@ -101,6 +103,8 @@ const L = {
     placeholderCustoms: 'e.g. MEDUAB123456 (master / house B/L) or cargo control no.',
     phCustomsNote:
       'The Philippine Bureau of Customs has no public cargo-tracking API. Track the container below through discharge and gate-out in Manila or Cebu; your partner customs broker reports the entry, duty payment and release at each step.',
+    partial: 'The carrier sent only part of the history. The latest steps may be missing — check the carrier website too.',
+    related: 'Other cargo on this B/L',
     sourceLabel: { demo: 'Example data (no API connected)', 'UNI-PASS': 'Korea Customs UNI-PASS', ShipsGo: 'ShipsGo', 'Hapag-Lloyd': 'Hapag-Lloyd official API', 'CMA CGM': 'CMA CGM official API' } as Record<string, string>,
   },
 } as const;
@@ -131,6 +135,8 @@ const fmt = (iso: string, lang: 'ko' | 'en') => {
 
 type Saved = { reference: string; kind: TrackKind; carrier: string };
 const savedKey = (productId: string, mode: string) => `ts-track:v1:${productId}:${mode}`;
+/** fired when a panel saves a reference, so another panel on the same key (shipping and PH customs) shows it */
+const SAVED_EVENT = 'ts-track-saved';
 function readSaved(productId: string, mode: string): Saved | null {
   try {
     const v = JSON.parse(localStorage.getItem(savedKey(productId, mode)) ?? 'null') as Partial<Saved> | null;
@@ -171,6 +177,19 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
       setCarrier(v.carrier);
     }
   }, [product.id, apiMode, customs]);
+  useEffect(() => {
+    const key = savedKey(product.id, apiMode);
+    const onSaved = (e: Event) => {
+      const detail = (e as CustomEvent<{ key: string; value: Saved }>).detail;
+      if (detail?.key !== key) return;
+      setSaved(detail.value);
+      setReference(detail.value.reference);
+      setKind(customs && detail.value.kind !== 'bl' ? 'bl' : detail.value.kind);
+      setCarrier(detail.value.carrier);
+    };
+    window.addEventListener(SAVED_EVENT, onSaved);
+    return () => window.removeEventListener(SAVED_EVENT, onSaved);
+  }, [product.id, apiMode, customs]);
 
   const lookup = async (q: Saved) => {
     setState({ kind: 'loading' });
@@ -188,6 +207,7 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
           /* private mode */
         }
         setSaved(q);
+        window.dispatchEvent(new CustomEvent(SAVED_EVENT, { detail: { key: savedKey(product.id, apiMode), value: q } }));
         return setState({ kind: 'done', result: j.result as TrackResult, tried: j.tried });
       }
       const message = j?.error === 'not-found' ? s.notFound : j?.error === 'not-covered' ? s.notCovered : j?.error === 'rate-limited' ? s.rateLimited : s.failed;
@@ -308,6 +328,11 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
                 </Button>
               </div>
             )}
+            {r.partial && (
+              <p role="note" className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+                {s.partial}
+              </p>
+            )}
             <div className="grid gap-2 sm:grid-cols-3">
               <div className="rounded-xl bg-slate-50 p-3 dark:bg-white/[0.04]">
                 <p className="text-[11px] text-slate-500">{s.status}</p>
@@ -322,7 +347,7 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
                 <p className="mt-0.5 truncate text-sm font-bold text-slate-900 dark:text-white">{r.vessel ?? '—'}</p>
               </div>
             </div>
-            {(r.pol || r.pod || r.customsStatus || r.containers?.length) && (
+            {(r.pol || r.pod || r.customsStatus || r.containers?.length || r.relatedRefs?.length) && (
               <dl className="grid gap-x-4 gap-y-1 text-xs text-slate-600 sm:grid-cols-2 dark:text-slate-300">
                 {(r.pol || r.pod) && (
                   <div className="flex gap-1.5">
@@ -338,6 +363,18 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
                     <dd className="min-w-0 font-semibold">{r.customsStatus}</dd>
                   </div>
                 )}
+                {r.relatedRefs?.length ? (
+                  <div className="flex flex-wrap items-center gap-1.5 sm:col-span-2">
+                    <dt className="text-slate-400">{s.related}</dt>
+                    {r.relatedRefs.map((ref) => (
+                      <dd key={ref} className="m-0">
+                        <button type="button" onClick={() => void lookup({ reference: ref, kind: 'bl', carrier: '' })} className="no-print rounded-md px-1.5 py-0.5 font-mono text-[11.5px] text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50 dark:text-brand-300 dark:ring-brand-400/30">
+                          {ref}
+                        </button>
+                      </dd>
+                    ))}
+                  </div>
+                ) : null}
                 {r.containers?.length ? (
                   <div className="flex gap-1.5 sm:col-span-2">
                     <dt className="text-slate-400">{s.containers}</dt>
@@ -382,7 +419,6 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
             </p>
           </div>
         )}
-        {state.kind === 'loading' && <Loader2 className="mx-auto size-5 animate-spin text-slate-400" aria-hidden />}
       </div>
     </Card>
   );

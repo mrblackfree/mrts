@@ -1,6 +1,7 @@
 /**
  * ShipsGo Ocean API v2 (paid aggregator, most carriers). A reference is registered once as a "shipment"
- * (one credit) and read back by its id; registering it again answers 409 with the existing id at no cost.
+ * (one credit) and read back by its id. Before registering, the account's existing shipments are searched by
+ * number (free), so a known shipment never needs a POST; a POST of a known one would answer 409 at no cost.
  */
 import { callApi, parseJson, place, TrackApiError } from './fetch';
 import { statusOf, type Milestone, type TrackEvent, type TrackQuery, type TrackResult } from './types';
@@ -48,7 +49,8 @@ const carrierParam = (c?: string) => (c && /^[A-Z0-9]{4}$/.test(c) ? c : undefin
 // reference → shipment id, so a known shipment is read directly next time
 const ids = new Map<string, number>();
 
-// new registrations cost credits: cap them per UTC day (TRACK_SHIPSGO_DAILY_NEW)
+// New registrations cost credits: cap them per UTC day (TRACK_SHIPSGO_DAILY_NEW). The counter lives in process
+// memory, so each server instance (or serverless cold start) has its own — with N instances up to N × the cap.
 let day = '';
 let spent = 0;
 function takeCredit(limit: number): boolean {
@@ -65,6 +67,21 @@ const refundCredit = () => {
   spent = Math.max(0, spent - 1);
 };
 
+const headersFor = (token: string) => ({ 'X-Shipsgo-User-Token': token, Accept: 'application/json' });
+
+/** Id of a shipment already registered on the account for this number (free list search), or null. */
+async function findExisting(token: string, q: TrackQuery): Promise<number | null> {
+  const field = q.kind === 'container' ? 'container_number' : 'booking_number';
+  const params = new URLSearchParams({ [`filters[${field}]`]: `eq:${q.reference}`, take: '1' });
+  const res = await callApi(SOURCE, `${BASE}/ocean/shipments?${params.toString()}`, { headers: headersFor(token) });
+  if (res.status !== 200) {
+    if (res.status === 401 || res.status === 403) throw new TrackApiError(SOURCE, res.status, 'token rejected');
+    return null; // search unavailable: fall through to registration (409 still reuses an existing one)
+  }
+  const id = parseJson<{ shipments?: Array<{ id?: number }> }>(SOURCE, res.text).shipments?.[0]?.id;
+  return typeof id === 'number' ? id : null;
+}
+
 async function register(token: string, q: TrackQuery, dailyNew: number): Promise<number | null> {
   if (!takeCredit(dailyNew)) throw new TrackApiError(SOURCE, 429, 'daily new-shipment limit reached');
   const body: Record<string, unknown> = { reference: `TradeScope ${q.reference}`.slice(0, 128), tags: ['TRADESCOPE'] };
@@ -72,18 +89,14 @@ async function register(token: string, q: TrackQuery, dailyNew: number): Promise
   else body.booking_number = q.reference;
   const carrier = carrierParam(q.carrier);
   if (carrier) body.carrier = carrier;
-  let res: { status: number; text: string };
-  try {
-    res = await callApi(SOURCE, `${BASE}/ocean/shipments`, {
-      method: 'POST',
-      headers: { 'X-Shipsgo-User-Token': token, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(body),
-    });
-  } catch (e) {
-    refundCredit();
-    throw e;
-  }
-  if (res.status !== 200) refundCredit(); // 409 = already registered (no credit); errors cost nothing either
+  // A timeout or dropped connection may come after ShipsGo has accepted (and charged) the POST, so the slot
+  // stays reserved; the next lookup finds that shipment by number and costs nothing.
+  const res = await callApi(SOURCE, `${BASE}/ocean/shipments`, {
+    method: 'POST',
+    headers: { ...headersFor(token), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (res.status !== 200) refundCredit(); // a definite answer other than 200 (409 = already registered) costs nothing
   if (res.status === 200 || res.status === 409) {
     const j = parseJson<{ shipment?: { id?: number } }>(SOURCE, res.text);
     return typeof j.shipment?.id === 'number' ? j.shipment.id : null;
@@ -93,7 +106,7 @@ async function register(token: string, q: TrackQuery, dailyNew: number): Promise
 }
 
 async function read(token: string, id: number): Promise<SgShipment | null> {
-  const res = await callApi(SOURCE, `${BASE}/ocean/shipments/${id}`, { headers: { 'X-Shipsgo-User-Token': token, Accept: 'application/json' } });
+  const res = await callApi(SOURCE, `${BASE}/ocean/shipments/${id}`, { headers: headersFor(token) });
   if (res.status === 404) return null;
   if (res.status !== 200) throw new TrackApiError(SOURCE, res.status, `HTTP ${res.status}`);
   return parseJson<{ shipment?: SgShipment }>(SOURCE, res.text).shipment ?? null;
@@ -141,7 +154,7 @@ export async function trackShipsGo(token: string, q: TrackQuery, dailyNew: numbe
   const key = `${q.kind}:${q.reference}`;
   let id = ids.get(key);
   if (id === undefined) {
-    const got = await register(token, q, dailyNew);
+    const got = (await findExisting(token, q)) ?? (await register(token, q, dailyNew));
     if (got === null) return null;
     id = got;
     if (ids.size > 5000) ids.clear();

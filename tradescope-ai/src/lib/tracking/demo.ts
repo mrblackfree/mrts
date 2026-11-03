@@ -4,7 +4,7 @@ import { statusOf, type TrackEvent, type TrackQuery, type TrackResult } from './
 
 const PORT_LOCODE: Record<string, string> = { Busan: 'KRPUS', Incheon: 'KRINC', Manila: 'PHMNL', Cebu: 'PHCEB', Davao: 'PHDVO' };
 
-export function demoTrack(q: TrackQuery, product?: TradeProduct): TrackResult {
+export function demoTrack(q: TrackQuery, product?: TradeProduct, mode: 'shipping' | 'customs' = 'shipping'): TrackResult {
   const lane = product?.logistics[0];
   const from = lane?.from ?? 'Busan';
   const to = lane?.to ?? 'Manila';
@@ -28,8 +28,19 @@ export function demoTrack(q: TrackQuery, product?: TradeProduct): TrackResult {
     { milestone: 'customs-cleared', description: 'Import customs cleared', at: iso(at(transit + 2)), location: toLoc },
     { milestone: 'gate-out', description: 'Full container gate-out for delivery', at: iso(at(transit + 2.5)), location: toLoc },
   ];
-  const events: TrackEvent[] = plan.map((e) => ({ ...e, actual: new Date(e.at).getTime() <= now }));
+  // customs mode (UNI-PASS shape): the clearance steps after arrival, in the agency's own wording
+  const customsPlan: Array<Omit<TrackEvent, 'actual'>> = [
+    { milestone: 'arrived', description: '입항보고 수리 (예시)', at: iso(at(transit)), location: toLoc },
+    { milestone: 'discharged', description: '하선신고 수리 (예시)', at: iso(at(transit + 0.4)), location: toLoc },
+    { milestone: 'customs', description: '반입신고 (예시)', at: iso(at(transit + 0.8)), location: toLoc },
+    { milestone: 'customs', description: '수입신고 (예시)', at: iso(at(transit + 1.2)), location: toLoc },
+    { milestone: 'customs-cleared', description: '수입신고수리 (예시)', at: iso(at(transit + 2)), location: toLoc },
+    { milestone: 'gate-out', description: '반출신고 (예시)', at: iso(at(transit + 2.5)), location: toLoc },
+  ];
+  const events: TrackEvent[] = (mode === 'customs' ? customsPlan : plan).map((e) => ({ ...e, actual: new Date(e.at).getTime() <= now }));
+  const lastActual = [...events].reverse().find((e) => e.actual);
   return {
+    ...(mode === 'customs' ? { customsStatus: lastActual ? `${lastActual.description}` : '입항 전 (예시)' } : {}),
     provider: 'demo',
     reference: q.reference,
     kind: q.kind,

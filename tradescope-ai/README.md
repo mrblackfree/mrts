@@ -25,10 +25,10 @@
 한국 수출자는 필리핀 FDA·BAI·BOC에 **직접 신청할 수 없습니다** — 영업허가(LTO)와 제품 등록(CPR/CFPR), 수입자 등록은 필리핀 등록 법인 명의로만 받습니다. TradeScope는 요청을 받아 현지 파트너(면허 관세사, FDA/BAI 인허가 컨설턴트, 허가를 가진 수입·유통사)를 연결합니다.
 
 - 서비스 카탈로그: [`src/data/experts.ts`](src/data/experts.ts) — 필리핀 현지 수입자(Importer of Record), FDA 식품(LTO·CPR), FDA 화장품(CPN), **BAI 펫푸드·사료(LTO·CFPR·SPSIC)**, BFAR/DA SPS, DTI/NTC 인증, 할랄, 필리핀·한국 관세사, 한국 수입식품 등록
-- 서비스마다 대행 범위, 고객이 준비할 서류, 기관 민원 안내(Citizen's Charter) 기준 처리 기간과 근거 링크를 표시합니다(보완 요청 기간 제외, 기관 공지로 바뀔 수 있음)
+- 서비스마다 대행 범위와 고객이 준비할 서류를 표시하고, 처리 기간과 근거가 확인된 서비스(현재 FDA 식품, BAI 펫푸드, 필리핀 통관)에는 기관 민원 안내(Citizen's Charter) 기준 처리 기간과 근거 링크를 함께 표시합니다(보완 요청 기간 제외, 기관 공지로 바뀔 수 있음). 나머지는 확인되는 대로 추가합니다
 - 체크리스트 항목의 「맡기기」, 인허가 단계의 서비스 카드, 데이터에 없는 품목(예: 펫푸드 → BAI)의 안내에서 요청 양식이 열립니다
-- 요청은 `TRADESCOPE_DATA_DIR/consult-requests.jsonl`(0600)에 저장되고 `/admin → 전문가 서비스`에서 상태(new → contacted → in-progress → done)를 관리합니다. `CONSULT_WEBHOOK_URL`을 넣으면 Slack 등으로 즉시 알림
-- 남용 방지: 클라이언트당 시간당 5건·전체 60건, 봇 차단용 숨은 필드, 요청 본문 32KB 제한
+- 요청은 `TRADESCOPE_DATA_DIR/consult-requests.jsonl`(0600)에 저장되고 `/admin → 전문가 서비스`에서 상태(new → contacted → in-progress → done, 또는 closed)를 관리합니다. `CONSULT_WEBHOOK_URL`을 넣으면 Slack 등으로 즉시 알림
+- 남용 방지: 시간당 전체 60건, 봇 차단용 숨은 필드, 요청 본문 32KB 제한. 클라이언트당 5건 한도는 클라이언트를 식별할 수 있을 때(`TRUST_PROXY` 또는 Vercel)만 적용되고, 한도는 서버 인스턴스(프로세스)마다 따로 셉니다 — 여러 인스턴스로 운영하면 인스턴스 수만큼 늘어납니다
 
 ### 컨테이너·통관 추적
 
@@ -42,7 +42,7 @@
 - 선사 API는 번호 앞 4자리(또는 사용자가 고른 선사)가 그 선사일 때만 호출하고, 그 외에는 ShipsGo로 넘어갑니다. 결과는 하나의 타임라인(부킹 → 공컨테이너 반출 → 반입 → 선적 → 출항 → 환적 → 입항 → 양하 → 통관 → 반출 → 공컨테이너 반납)으로 정규화되고, 예정 이벤트는 「예정」으로 표시됩니다
 - 필리핀 BOC는 공개 화물 조회 API가 없어, 필리핀 도착 화물의 통관 단계에서는 컨테이너를 반출까지 추적하고 통관 진행은 파트너 관세사가 알려 준다고 안내합니다
 - 키가 하나도 없으면 「예시 데이터」 배지를 단 예시 타임라인을 보여 주고, 키가 있는데 해당 선사를 다루는 소스가 없으면 예시 대신 안내 문구를 보여 줍니다
-- 비용 보호: 클라이언트당 시간당 30회·전체 300회, 같은 번호는 10분 캐시, ShipsGo는 하루 새 등록 상한(기본 30)과 이미 등록된 화물의 재사용(409)으로 크레딧을 아낍니다
+- 비용 보호: 시간당 전체 300회(클라이언트를 식별할 수 있으면 클라이언트당 30회), 같은 번호는 10분 캐시. ShipsGo는 먼저 계정에 등록된 화물을 번호로 무료 검색하고, 없을 때만 새로 등록(크레딧 1개)하며, 새 등록은 하루 상한(기본 30)을 넘지 않습니다. 이 한도들은 서버 인스턴스(프로세스)마다 메모리에서 따로 세므로, Vercel·다중 인스턴스에서는 인스턴스 수만큼 늘어날 수 있습니다
 - 조회한 번호는 이 브라우저에 거래별로 저장되어 「다시 조회」로 이어서 확인합니다
 - 어댑터는 공개 명세(DCSA 2.2, ShipsGo OpenAPI, UNI-PASS API001)에 맞춘 고정 응답과 가짜 `fetch`로 검증했습니다. **실제 키로 호출한 검증은 아직 없습니다** — 키를 넣은 뒤 `/admin → 컨테이너 추적 → 연결 테스트`(크레딧을 쓰지 않는 조회)로 먼저 확인하세요
 
@@ -261,7 +261,7 @@ npm run data:validate    # verified-overrides.json 검증: 필수 필드·날짜
 | `GET` `POST` `DELETE` | `/api/admin/session` | 관리자 로그인 상태 / 로그인(`{ password }`) / 로그아웃 |
 | `GET` `PUT` | `/api/admin/settings` | 설정 조회(비밀값은 마스킹) / 저장(`{ values: { KEY: "값" \| null } }`) — 로그인 필요 |
 | `POST` | `/api/admin/test` | `{ target: "ai" \| "dataGoKr" \| "comtrade" \| "shipsgo" \| "unipass" \| "hapag" \| "cmacgm" }` 저장된 키로 연결 테스트(추적 키는 크레딧을 쓰지 않는 조회) — 로그인 필요 |
-| `GET` `POST` | `/api/consult` | 접수 가능 여부·대체 연락처 / 전문가 요청 접수(`{ name, email, serviceIds[], topic, message?, consent: true, … }`) → `{ ok, id: "TS-XXXXXX" }` |
+| `GET` `POST` | `/api/consult` | 접수 가능 여부·대체 연락처 / 전문가 요청 접수(`{ name, email, serviceIds[], topic, message?, consent: true, … }`) → `{ ok, id }` (`id`는 고객이 문의 때 쓰는 접수번호, 예: `TS-7F3K9QW2` — 형식에 의존하지 마세요) |
 | `GET` `PATCH` | `/api/admin/consult` | 요청 목록 / 상태 변경(`{ id, status }`) — 로그인 필요 |
 | `POST` | `/api/track` | `{ reference, kind: "container" \| "bl" \| "booking", carrier?, productId?, mode: "shipping" \| "customs" }` → `{ ok, result, tried }` (`not-found` 404 · `not-covered` 422 · `failed` 502) |
 
@@ -413,13 +413,16 @@ tradescope-ai/
 npm run typecheck      # tsc --noEmit — 0 errors
 npm run build          # Next.js production build — 0 errors
 npm run data:validate  # verified-overrides.json 형식 검증
+npm test               # tests/*.test.ts — 품목 검색·수치 근거 검사·전문가 카탈로그·요청 저장소·추적 어댑터
 ```
 
-GitHub Actions(저장소 루트): [`../.github/workflows/tradescope-ci.yml`](../.github/workflows/tradescope-ci.yml)은 PR마다 검증·타입체크·빌드를 실행하고, [`../.github/workflows/tradescope-data-sync.yml`](../.github/workflows/tradescope-data-sync.yml)은 매주 월요일 공식 데이터를 동기화해 데이터가 바뀌면 PR을 생성합니다. 원천 동기화가 실패하면 PR을 만들지 않으며, 실패한 원천은 이전 값을 유지합니다.
+`npm test`는 네트워크 없이 돕니다. 추적 어댑터는 공개 명세에 맞춘 고정 응답과 가짜 `fetch`로, 요청 저장소는 테스트마다 새로 만든 임시 데이터 폴더로 확인합니다.
+
+GitHub Actions(저장소 루트): [`../.github/workflows/tradescope-ci.yml`](../.github/workflows/tradescope-ci.yml)은 PR마다 검증·타입체크·테스트·빌드를 실행하고, [`../.github/workflows/tradescope-data-sync.yml`](../.github/workflows/tradescope-data-sync.yml)은 매주 월요일 공식 데이터를 동기화해 데이터가 바뀌면 PR을 생성합니다. 원천 동기화가 실패하면 PR을 만들지 않으며, 실패한 원천은 이전 값을 유지합니다.
 
 Docker Compose는 v2.24 이상이 필요합니다(선택형 `env_file`).
 
-검증 범위: 7단계 가이드(단계 전환·진행 저장·이어 보기·인쇄), 전문가 요청(접수·저장·관리자 상태 변경·봇 필드), 추적 어댑터 69개 케이스(DCSA·ShipsGo·UNI-PASS 매핑, 선사 판별, ShipsGo 409 재사용·하루 상한·402, UNI-PASS M/B/L→H/B/L·다건, 키 없을 때만 예시), 시뮬레이션 모드와 OpenAI 호환 목(mock) 서버 기반 LLM 모드, 401/403/타임아웃 시 폴백, 4개 원클릭 데모, 모바일(390px) 가로 스크롤 없음, 콘솔 에러 0건, `docker build` 및 컨테이너 헬스체크. 품목 검색 43개 질의(지원 품목·미지원 품목·다른 형태·HS 코드) 일치, 7개 품목의 시뮬레이션 브리핑이 수치 근거 검사를 전부 통과(자기 일관성), 지어낸 세율·HS·시장 규모·절감액이 검출되는지 확인.
+검증 범위 — 저장소의 `npm test`: 품목 검색 46개 질의(지원·미지원·다른 형태·HS 코드), 7개 품목 시뮬레이션 브리핑의 수치 근거 자기검사와 지어낸 수치 검출, 전문가 카탈로그(품목별 서비스·질의 힌트·약어 단어 단위 일치), 요청 저장소(끊긴 줄 뒤 기록·상태 변경 시 손상 줄 보존·접수번호), 추적 어댑터(DCSA·ShipsGo·UNI-PASS 매핑, 선사 판별, ShipsGo 무료 검색·하루 상한·타임아웃 시 슬롯 유지·402, UNI-PASS M/B/L→H/B/L·다건, 206 부분 응답, 키 없을 때만 예시). 개발 중 브라우저 검사(Playwright, 저장소 미포함): 7단계 가이드(단계 전환·진행 저장·이어 보기·인쇄), 전문가 요청(접수·관리자 상태 변경), 추적 화면, 시뮬레이션 모드와 OpenAI 호환 목(mock) 서버 기반 LLM 모드, 401/403/타임아웃 시 폴백, 4개 원클릭 데모, 모바일(390px)·태블릿(640~1023px) 가로 스크롤 없음, 콘솔 에러 0건, `docker build` 및 컨테이너 헬스체크.
 
 ## 8. 한계와 다음 단계
 

@@ -152,7 +152,8 @@ export const EXPERT_SERVICES: ExpertService[] = [
     ],
     needs: [b('상업송장·포장명세서·B/L', 'Commercial invoice, packing list, B/L'), b('원산지증명서와 인허가 사본 (LTO·CPR·SPSIC 등)', 'Certificate of origin and permit copies (LTO, CPR, SPSIC …)')],
     leadTime: b('BOC 수입자 등록 약 7영업일, 3년 유효 (CAO 01-2026)', 'BOC importer accreditation about 7 working days, valid 3 years (CAO 01-2026)'),
-    basis: [{ label: 'BOC CAO 01-2026 (importer accreditation)', url: 'https://www.divinalaw.com/wp-content/uploads/2026/05/BOC-01-BOC-CAO-01-2026.pdf' }],
+    // copy of the CAO text hosted by a law firm; the official BOC page was not reachable when this was checked
+    basis: [{ label: 'BOC CAO 01-2026 — law-firm copy (official source to confirm)', url: 'https://www.divinalaw.com/wp-content/uploads/2026/05/BOC-01-BOC-CAO-01-2026.pdf' }],
     covers: (r) => r.side === 'PH' && /Bureau of Customs/.test(r.agency),
     keywords: ['통관', 'customs', 'broker'],
   },
@@ -204,9 +205,19 @@ export function servicesForProduct(product: TradeProduct): ExpertService[] {
 /** Services hinted by a free-text query (used when the product is not in the knowledge base). */
 export function servicesForQuery(query: string): ExpertService[] {
   const q = query.toLowerCase();
-  const hits = EXPERT_SERVICES.filter((s) => (s.keywords ?? []).some((k) => q.includes(k)));
+  const hits = EXPERT_SERVICES.filter((s) => (s.keywords ?? []).some((k) => keywordIn(q, k)));
   // a Philippine FDA / BAI filing needs a licensed local importer first
   if (hits.some((s) => PH_REGISTRATION.has(s.id)) && !hits.some((s) => s.id === 'ph-importer-partner')) hits.push(EXPERT_INDEX['ph-importer-partner']);
   return hits;
 }
 const PH_REGISTRATION = new Set(['ph-fda-food', 'ph-fda-cosmetic', 'ph-bai-petfood']);
+
+/**
+ * Latin keywords match as whole words (so "crisps" is not `sps` and "Dubai" is not `bai`); Korean keywords
+ * match inside words, since Korean attaches particles (펫푸드를, 사료용).
+ */
+function keywordIn(q: string, k: string): boolean {
+  if (!/^[a-z0-9 ]+$/.test(k)) return q.includes(k);
+  const esc = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|[^a-z0-9])${esc}([^a-z0-9]|$)`).test(q);
+}

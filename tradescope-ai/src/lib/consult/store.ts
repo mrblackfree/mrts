@@ -29,18 +29,32 @@ export interface ConsultRequest {
 
 const file = () => path.join(settingsDir(), 'consult-requests.jsonl');
 
-/** Short, readable reference the trader can quote (e.g. TS-7F3K9Q). */
-function newId(): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return `TS-${Array.from(randomBytes(6), (x) => alphabet[x % alphabet.length]).join('')}`;
+/** Readable reference the trader can quote (e.g. TS-7F3K9QW2): 8 of 32 symbols, 40 random bits. */
+export function newRequestId(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 32 symbols: 256 % 32 === 0, so no modulo bias
+  return `TS-${Array.from(randomBytes(8), (x) => alphabet[x % alphabet.length]).join('')}`;
+}
+
+function readRaw(): string {
+  try {
+    return readFileSync(file(), 'utf8');
+  } catch {
+    return '';
+  }
 }
 
 export function appendRequest(input: Omit<ConsultRequest, 'id' | 'createdAt' | 'status'>): ConsultRequest {
-  const record: ConsultRequest = { id: newId(), createdAt: new Date().toISOString(), status: 'new', ...input };
   mkdirSync(settingsDir(), { recursive: true, mode: 0o700 });
   const f = file();
   const created = !existsSync(f);
-  appendFileSync(f, `${JSON.stringify(record)}\n`, { mode: 0o600 });
+  const raw = created ? '' : readRaw();
+  const taken = new Set(parseLines(raw).map((r) => r.id));
+  let id = newRequestId();
+  for (let i = 0; i < 5 && taken.has(id); i++) id = newRequestId();
+  const record: ConsultRequest = { id, createdAt: new Date().toISOString(), status: 'new', ...input };
+  // an interrupted earlier append can leave a partial last line: start a fresh one so this record stays readable
+  const lead = raw && !raw.endsWith('\n') ? '\n' : '';
+  appendFileSync(f, `${lead}${JSON.stringify(record)}\n`, { mode: 0o600 });
   if (created) {
     try {
       chmodSync(f, 0o600);
@@ -51,36 +65,41 @@ export function appendRequest(input: Omit<ConsultRequest, 'id' | 'createdAt' | '
   return record;
 }
 
-/** All requests, newest first. Lines that cannot be parsed are skipped. */
-export function listRequests(): ConsultRequest[] {
-  let raw = '';
+function parseLine(line: string): ConsultRequest | null {
+  if (!line.trim()) return null;
   try {
-    raw = readFileSync(file(), 'utf8');
+    const r = JSON.parse(line) as ConsultRequest;
+    return r && typeof r === 'object' && typeof r.id === 'string' ? r : null;
   } catch {
-    return [];
+    return null;
   }
-  const out: ConsultRequest[] = [];
-  for (const line of raw.split('\n')) {
-    if (!line.trim()) continue;
-    try {
-      const r = JSON.parse(line) as ConsultRequest;
-      if (r && typeof r.id === 'string') out.push(r);
-    } catch {
-      /* skip a damaged line */
-    }
-  }
-  return out.reverse();
+}
+const parseLines = (raw: string) => raw.split('\n').map(parseLine).filter((r): r is ConsultRequest => r !== null);
+
+/** All requests, newest first. Lines that cannot be parsed are skipped (and kept in the file). */
+export function listRequests(): ConsultRequest[] {
+  return parseLines(readRaw()).reverse();
 }
 
-/** Sets a request's status; rewrites the file atomically. Returns false when the id is unknown. */
+/**
+ * Sets a request's status; rewrites the file atomically. Only the matching line changes — damaged or unknown
+ * lines are kept byte for byte, so a status change never deletes anything. Returns false when the id is unknown.
+ */
 export function updateStatus(id: string, status: ConsultStatus): boolean {
-  const all = listRequests().reverse();
-  const hit = all.find((r) => r.id === id);
+  const lines = readRaw().split('\n');
+  let hit = false;
+  const next = lines.map((line) => {
+    if (hit) return line;
+    const r = parseLine(line);
+    if (!r || r.id !== id) return line;
+    hit = true;
+    return JSON.stringify({ ...r, status });
+  });
   if (!hit) return false;
-  hit.status = status;
   const f = file();
   const tmp = `${f}.${process.pid}.tmp`;
-  writeFileSync(tmp, all.map((r) => JSON.stringify(r)).join('\n') + '\n', { mode: 0o600 });
+  const text = next.join('\n');
+  writeFileSync(tmp, text.endsWith('\n') ? text : `${text}\n`, { mode: 0o600 });
   renameSync(tmp, f);
   return true;
 }

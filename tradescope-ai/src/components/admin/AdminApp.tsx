@@ -147,6 +147,7 @@ const S = {
       'base-url-required': '이 제공사의 API 주소를 입력하세요',
       'not-a-url': '올바른 주소(URL)가 아닙니다',
       'not-http-url': 'http(s) 주소만 쓸 수 있습니다',
+      'not-https-url': 'https:// 주소만 쓸 수 있습니다',
       'not-boolean': '켜기/끄기 값이 아닙니다',
       whitespace: '공백을 포함할 수 없습니다',
       'too-long': '너무 깁니다',
@@ -262,6 +263,7 @@ const S = {
       'base-url-required': "Enter this provider's API base URL",
       'not-a-url': 'Not a valid URL',
       'not-http-url': 'Only http(s) URLs are allowed',
+      'not-https-url': 'Only https:// URLs are allowed',
       'not-boolean': 'Not an on/off value',
       whitespace: 'Must not contain spaces',
       'too-long': 'Too long',
@@ -1090,6 +1092,9 @@ interface ConsultRow {
   email: string;
   phone: string;
   productId?: string;
+  /** added by the admin API from the knowledge base */
+  productName?: { ko: string; en: string };
+  productEmoji?: string;
   topic: string;
   serviceIds: string[];
   message: string;
@@ -1114,10 +1119,12 @@ function ConsultRequests({ lang, onUnauthorized }: { lang: Lang; onUnauthorized:
     try {
       const r = await api<{ ok: boolean; requests?: ConsultRow[] }>('/api/admin/consult');
       if (r.status === 401) return onUnauthorized();
-      setRows(r.data?.requests ?? []);
+      // a failed load keeps what is on screen and says so — it is never shown as "no requests"
+      if (r.status !== 200 || !Array.isArray(r.data?.requests)) throw new Error(`load-${r.status}`);
+      setRows(r.data.requests);
       setError('');
     } catch {
-      setError(ko ? '요청 목록을 불러오지 못했습니다.' : 'Could not load requests.');
+      setError(ko ? '요청 목록을 불러오지 못했습니다. 잠시 후 새로고침하세요.' : 'Could not load requests. Refresh in a moment.');
     }
   }, [ko, onUnauthorized]);
   useEffect(() => {
@@ -1128,7 +1135,9 @@ function ConsultRequests({ lang, onUnauthorized }: { lang: Lang; onUnauthorized:
     try {
       const r = await api<{ ok: boolean; requests?: ConsultRow[] }>('/api/admin/consult', 'PATCH', { id, status });
       if (r.status === 401) return onUnauthorized();
-      if (r.data?.requests) setRows(r.data.requests);
+      if (r.status !== 200 || !Array.isArray(r.data?.requests)) throw new Error(`patch-${r.status}`);
+      setRows(r.data.requests);
+      setError('');
     } catch {
       setError(ko ? '상태를 바꾸지 못했습니다.' : 'Could not update the status.');
     }
@@ -1213,7 +1222,17 @@ function ConsultRequests({ lang, onUnauthorized }: { lang: Lang; onUnauthorized:
                   ))}
                 </p>
               )}
-              {x.topic && <p className="mt-2 text-[13px] font-semibold text-slate-800 dark:text-slate-100">{x.topic}</p>}
+              {(x.productName || x.topic) && (
+                <p className="mt-2 text-[13px] font-semibold text-slate-800 dark:text-slate-100">
+                  {x.productName && (
+                    <span className="mr-1.5 font-medium text-slate-500 dark:text-slate-400">
+                      {x.productEmoji} {x.productName[lang]}
+                      {x.topic ? ' ·' : ''}
+                    </span>
+                  )}
+                  {x.topic}
+                </p>
+              )}
               {x.message && <p className="mt-1 whitespace-pre-wrap text-[13px] text-slate-600 dark:text-slate-300">{x.message}</p>}
             </li>
           ))}

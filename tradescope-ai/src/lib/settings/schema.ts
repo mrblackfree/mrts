@@ -24,6 +24,8 @@ export interface SettingDef {
   max?: number;
   /** where the value takes effect */
   scope: 'runtime' | 'sync';
+  /** the value must be an https:// URL (also for secrets, e.g. a webhook address carrying a token) */
+  httpsOnly?: boolean;
 }
 
 const b = (ko: string, en: string): Bilingual => ({ ko, en });
@@ -173,6 +175,7 @@ export const SETTINGS: SettingDef[] = [
     group: 'service',
     type: 'secret',
     scope: 'runtime',
+    httpsOnly: true,
     label: b('새 요청 알림 웹훅', 'New-request webhook'),
     help: b(
       '전문가 서비스 요청이 들어오면 이 주소로 JSON을 보냅니다(Slack Incoming Webhook 등 https 주소). 주소에 토큰이 들어 있어 암호화해 저장합니다.',
@@ -213,8 +216,8 @@ export const SETTINGS: SettingDef[] = [
     scope: 'runtime',
     label: b('ShipsGo 하루 신규 등록 상한', 'ShipsGo new shipments per day'),
     help: b(
-      '크레딧 상한. 처음 조회되는 번호만 크레딧을 쓰며, 넘으면 다음 날(UTC)까지 새 번호는 등록하지 않습니다(이미 등록된 번호는 계속 조회).',
-      'Credit cap. Only numbers seen for the first time use a credit; above the cap new numbers wait until the next UTC day (registered ones keep updating).',
+      '크레딧 상한. 계정에 없는 번호를 새로 등록할 때만 크레딧을 쓰며, 넘으면 다음 날(UTC)까지 새 번호는 등록하지 않습니다(이미 등록된 번호는 계속 조회). 서버 인스턴스마다 따로 세므로 여러 인스턴스·서버리스에서는 인스턴스 수만큼 늘어날 수 있습니다.',
+      'Credit cap. A credit is used only when a number not yet on the account is registered; above the cap new numbers wait until the next UTC day (registered ones keep updating). Counted per server instance, so multiple instances or serverless can multiply it.',
     ),
     default: '30',
     min: 0,
@@ -335,6 +338,16 @@ export function validateSetting(def: SettingDef, raw: string): { ok: true; value
     }
     default:
       if (/\s/.test(v) && def.type === 'secret') return { ok: false, error: 'whitespace' };
+      if (def.httpsOnly && !isHttpsUrl(v)) return { ok: false, error: 'not-https-url' };
       return { ok: true, value: v };
+  }
+}
+
+/** An absolute https:// URL (no other scheme, parses as a URL). */
+export function isHttpsUrl(v: string): boolean {
+  try {
+    return new URL(v).protocol === 'https:';
+  } catch {
+    return false;
   }
 }

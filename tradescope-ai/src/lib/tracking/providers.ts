@@ -46,14 +46,16 @@ function cached(name: string, fn: (q: TrackQuery) => Promise<TrackResult | null>
   };
 }
 
-async function dcsaEvents(source: string, url: string, headers: Record<string, string>): Promise<DcsaEvent[] | null> {
+async function dcsaEvents(source: string, url: string, headers: Record<string, string>): Promise<{ events: DcsaEvent[]; partial: boolean } | null> {
   const res = await callApi(source, url, { headers: { Accept: 'application/json', ...headers } });
   if (res.status === 404) return null;
-  // CMA CGM pages with 206 Partial Content; the first page is enough for a timeline
   if (res.status !== 200 && res.status !== 206) throw new TrackApiError(source, res.status, res.status === 401 || res.status === 403 ? 'key rejected' : `HTTP ${res.status}`);
   const j = parseJson<unknown>(source, res.text);
-  return Array.isArray(j) ? (j as DcsaEvent[]) : null;
+  // 206 Partial Content is one page of a longer history: shown, but flagged so the UI says later steps may be missing
+  return Array.isArray(j) ? { events: j as DcsaEvent[], partial: res.status === 206 } : null;
 }
+
+const withPartial = (r: TrackResult | null, partial: boolean): TrackResult | null => (r && partial ? { ...r, partial: true } : r);
 
 const hapag: TrackProvider = {
   name: 'Hapag-Lloyd',
@@ -63,11 +65,11 @@ const hapag: TrackProvider = {
   accepts: (q) => belongsTo(HAPAG, q),
   track: cached('hlag', async (q) => {
     const url = `https://api.hlag.com/hlag/external/v2/events/?${new URLSearchParams({ [dcsaParam(q)]: q.reference }).toString()}`;
-    const events = await dcsaEvents('Hapag-Lloyd', url, {
+    const got = await dcsaEvents('Hapag-Lloyd', url, {
       'X-IBM-Client-Id': getSetting('TRACK_HLAG_CLIENT_ID') ?? '',
       'X-IBM-Client-Secret': getSetting('TRACK_HLAG_CLIENT_SECRET') ?? '',
     });
-    return events ? fromDcsa('Hapag-Lloyd', q, 'Hapag-Lloyd', events) : null;
+    return got ? withPartial(fromDcsa('Hapag-Lloyd', q, 'Hapag-Lloyd', got.events), got.partial) : null;
   }),
 };
 
@@ -79,8 +81,8 @@ const cmaCgm: TrackProvider = {
   accepts: (q) => belongsTo(CMA, q),
   track: cached('cma', async (q) => {
     const url = `https://apis.cma-cgm.net/operation/trackandtrace/v1/events?${new URLSearchParams({ [dcsaParam(q)]: q.reference }).toString()}`;
-    const events = await dcsaEvents('CMA CGM', url, { KeyId: getSetting('TRACK_CMACGM_KEY') ?? '' });
-    return events ? fromDcsa('CMA CGM', q, 'CMA CGM', events) : null;
+    const got = await dcsaEvents('CMA CGM', url, { KeyId: getSetting('TRACK_CMACGM_KEY') ?? '' });
+    return got ? withPartial(fromDcsa('CMA CGM', q, 'CMA CGM', got.events), got.partial) : null;
   }),
 };
 

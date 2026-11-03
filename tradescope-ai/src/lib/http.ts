@@ -25,11 +25,21 @@ export async function readBodyLimited(req: Request, max: number): Promise<string
 }
 
 /**
- * A JSON object body. `too-large` when over `max` bytes; `bad-json` when it does not parse to an object.
+ * A JSON object body. `too-large` when over `max` bytes; `bad-json` when it does not parse to an object;
+ * `read-failed` when the stream breaks.
  * An empty body counts as `{}`.
  */
-export async function readJsonLimited(req: Request, max: number): Promise<{ ok: true; body: Record<string, unknown> } | { ok: false; error: 'too-large' | 'bad-json' }> {
-  const raw = await readBodyLimited(req, max).catch(() => null);
+export async function readJsonLimited(
+  req: Request,
+  max: number,
+): Promise<{ ok: true; body: Record<string, unknown> } | { ok: false; error: 'too-large' | 'bad-json' | 'read-failed' }> {
+  let raw: string | null;
+  try {
+    raw = await readBodyLimited(req, max);
+  } catch {
+    // client abort or broken stream: not an oversize body
+    return { ok: false, error: 'read-failed' };
+  }
   if (raw === null) return { ok: false, error: 'too-large' };
   if (!raw.trim()) return { ok: true, body: {} };
   try {

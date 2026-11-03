@@ -50,7 +50,9 @@ export function ttlCache<T>(ttlMs: number, maxEntries = 500) {
       return hit.value;
     },
     set(key: string, value: T) {
-      if (store.size >= maxEntries) store.delete(store.keys().next().value as string);
+      // refreshing a key moves it to the newest position; only a new key can push the oldest one out
+      if (store.has(key)) store.delete(key);
+      else if (store.size >= maxEntries) store.delete(store.keys().next().value as string);
       store.set(key, { at: Date.now(), value });
     },
   };

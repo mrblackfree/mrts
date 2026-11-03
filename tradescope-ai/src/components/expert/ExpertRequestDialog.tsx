@@ -105,6 +105,17 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
       return next;
     });
 
+  const FIELD_ORDER: Array<[string, string]> = [
+    ['message', 'msg'],
+    ['name', 'name'],
+    ['email', 'email'],
+    ['consent', 'consent'],
+  ];
+  const focusFirst = (errs: Record<string, string>) => {
+    const first = FIELD_ORDER.find(([k]) => errs[k]);
+    if (first) requestAnimationFrame(() => document.getElementById(`${uid}-${first[1]}`)?.focus());
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
@@ -113,7 +124,7 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
     if (!form.consent) errs.consent = s.required;
     if (!picked.size && !context.topic && !form.message.trim()) errs.message = s.pickOne;
     setErrors(errs);
-    if (Object.keys(errs).length) return;
+    if (Object.keys(errs).length) return focusFirst(errs);
     setState({ kind: 'sending' });
     try {
       const res = await fetch('/api/consult', {
@@ -126,8 +137,10 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
       if (j?.error === 'not-accepting') return setState({ kind: 'error', message: s.notAccepting, contact: j.contact });
       if (res.status === 429) return setState({ kind: 'error', message: s.rateLimited });
       if (j?.errors) {
-        setErrors(Object.fromEntries(Object.entries(j.errors as Record<string, string>).map(([k, v]) => [k, v === 'invalid' ? s.invalidEmail : s.required])));
-        return setState({ kind: 'idle' });
+        const server = Object.fromEntries(Object.entries(j.errors as Record<string, string>).map(([k, v]) => [k, v === 'invalid' ? s.invalidEmail : s.required]));
+        setErrors(server);
+        setState({ kind: 'idle' });
+        return focusFirst(server);
       }
       setState({ kind: 'error', message: s.failed, contact: j?.contact ?? null });
     } catch {
@@ -136,7 +149,15 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
   };
 
   const input = 'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition-[border-color,box-shadow] focus:border-brand-400 focus:shadow-[0_0_0_3px_rgb(42_133_166/0.14)] dark:border-white/10 dark:bg-white/[0.03] dark:text-white';
-  const err = (k: string) => errors[k] && <span className="mt-1 block text-[11.5px] font-semibold text-rose-600 dark:text-rose-400">{errors[k]}</span>;
+  // errors sit outside the labels (not part of the field's name) and are tied to the field with aria-describedby
+  const errId = (k: string) => `${uid}-${k}-err`;
+  const err = (k: string) =>
+    errors[k] && (
+      <span id={errId(k)} className="mt-1 block text-[11.5px] font-semibold text-rose-600 dark:text-rose-400">
+        {errors[k]}
+      </span>
+    );
+  const invalid = (k: string) => (errors[k] ? { 'aria-invalid': true as const, 'aria-describedby': errId(k) } : {});
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/40 p-0 backdrop-blur-sm sm:items-center sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -221,27 +242,33 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
               </div>
             </fieldset>
 
-            <label className="block">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{s.message}</span>
-              <textarea id={`${uid}-msg`} rows={3} maxLength={2000} value={form.message} onChange={(e) => set('message', e.target.value)} placeholder={s.messagePh} className={cx(input, 'mt-1 h-auto py-2')} />
+            <div>
+              <label className="block">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{s.message}</span>
+                <textarea id={`${uid}-msg`} rows={3} maxLength={2000} value={form.message} onChange={(e) => set('message', e.target.value)} placeholder={s.messagePh} className={cx(input, 'mt-1 h-auto py-2')} {...invalid('message')} />
+              </label>
               {err('message')}
-            </label>
+            </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{s.name}</span>
-                <input id={`${uid}-name`} autoComplete="name" maxLength={60} value={form.name} onChange={(e) => set('name', e.target.value)} className={cx(input, 'mt-1')} />
+              <div>
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{s.name}</span>
+                  <input id={`${uid}-name`} autoComplete="name" maxLength={60} value={form.name} onChange={(e) => set('name', e.target.value)} className={cx(input, 'mt-1')} {...invalid('name')} />
+                </label>
                 {err('name')}
-              </label>
+              </div>
               <label className="block">
                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{s.company}</span>
                 <input id={`${uid}-company`} autoComplete="organization" maxLength={100} value={form.company} onChange={(e) => set('company', e.target.value)} className={cx(input, 'mt-1')} />
               </label>
-              <label className="block">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{s.email}</span>
-                <input id={`${uid}-email`} type="email" autoComplete="email" maxLength={200} value={form.email} onChange={(e) => set('email', e.target.value)} className={cx(input, 'mt-1')} />
+              <div>
+                <label className="block">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{s.email}</span>
+                  <input id={`${uid}-email`} type="email" autoComplete="email" maxLength={200} value={form.email} onChange={(e) => set('email', e.target.value)} className={cx(input, 'mt-1')} {...invalid('email')} />
+                </label>
                 {err('email')}
-              </label>
+              </div>
               <label className="block">
                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{s.phone}</span>
                 <input id={`${uid}-phone`} type="tel" autoComplete="tel" maxLength={40} value={form.phone} onChange={(e) => set('phone', e.target.value)} className={cx(input, 'mt-1')} />
@@ -250,13 +277,13 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
             {/* honeypot: hidden from people, filled by bots */}
             <input tabIndex={-1} aria-hidden autoComplete="off" value={form.website} onChange={(e) => set('website', e.target.value)} name="website" className="absolute -left-[9999px] h-0 w-0 opacity-0" />
 
-            <label className="flex items-start gap-2.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-              <input id={`${uid}-consent`} type="checkbox" checked={form.consent} onChange={(e) => set('consent', e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[#1d6c8c]" />
-              <span>
-                {s.consent}
-                {err('consent')}
-              </span>
-            </label>
+            <div>
+              <label className="flex items-start gap-2.5 text-xs leading-relaxed text-slate-600 dark:text-slate-300">
+                <input id={`${uid}-consent`} type="checkbox" checked={form.consent} onChange={(e) => set('consent', e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[#1d6c8c]" {...invalid('consent')} />
+                <span>{s.consent}</span>
+              </label>
+              <div className="pl-[26px]">{err('consent')}</div>
+            </div>
 
             {state.kind === 'error' && (
               <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-300">

@@ -53,6 +53,7 @@ const SHIPMENT_TEXT: Record<string, string> = {
   CANC: 'Booking cancelled',
 };
 
+/** `seenLoad`: a LOAD, departure, arrival or discharge came earlier, i.e. the container has started its voyage. */
 function milestoneOf(e: DcsaEvent, seenLoad: boolean): Milestone | null {
   if (e.eventType === 'TRANSPORT') return e.transportEventTypeCode === 'DEPA' ? 'departed' : e.transportEventTypeCode === 'ARRI' ? 'arrived' : null;
   if (e.eventType === 'EQUIPMENT') {
@@ -66,6 +67,7 @@ function milestoneOf(e: DcsaEvent, seenLoad: boolean): Milestone | null {
         // an empty container coming back after the voyage is the return; a laden one entering is the export gate-in
         return empty && seenLoad ? 'empty-return' : empty ? 'other' : 'gate-in';
       case 'GTOT':
+        // a laden gate-out before the voyage (e.g. depot to port) is not the delivery gate-out
         return empty && !seenLoad ? 'empty-out' : empty ? 'other' : seenLoad ? 'gate-out' : 'other';
       default:
         return 'other';
@@ -107,7 +109,8 @@ export function fromDcsa(provider: string, q: TrackQuery, carrier: string | unde
   for (const e of valid) {
     const m = milestoneOf(e, seenLoad);
     if (!m) continue;
-    if (m === 'loaded') seenLoad = true;
+    // any voyage event counts, so a feed without LOAD still classifies the final gate-out
+    if (m === 'loaded' || m === 'departed' || m === 'arrived' || m === 'discharged') seenLoad = true;
     mapped.push({
       milestone: m,
       description: describe(e),
@@ -120,8 +123,9 @@ export function fromDcsa(provider: string, q: TrackQuery, carrier: string | unde
   }
   if (!mapped.length) return null;
 
-  // an estimate is superseded by the actual event, and by a newer estimate, for the same milestone and place
-  const key = (e: TrackEvent) => `${e.milestone}|${e.location ?? ''}|${e.description}`;
+  // an estimate is superseded by the actual event, and by a newer estimate, for the same milestone and place;
+  // without a place there is nothing to match on, so such events are kept apart by their time
+  const key = (e: TrackEvent) => `${e.milestone}|${e.location ?? `@${e.at}`}|${e.description}`;
   const actualKeys = new Set(mapped.filter((e) => e.actual).map(key));
   const latestEstimate = new Map<string, number>();
   for (const e of mapped) if (!e.actual) latestEstimate.set(key(e), Math.max(latestEstimate.get(key(e)) ?? 0, e.created));

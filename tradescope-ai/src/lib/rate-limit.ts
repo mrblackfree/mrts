@@ -77,9 +77,11 @@ export function allowLlmCall(key: string): LlmGate {
 }
 
 /**
- * Sliding-window limiter for public endpoints (per process): `perClient` hits per client and `overall` hits in
- * total per window. A shared client (no trusted proxy) only counts against the overall limit, so one visitor
- * cannot lock everyone else out.
+ * Sliding-window limiter for public endpoints, kept in process memory: `perClient` hits per client and
+ * `overall` hits in total per window. Each server instance counts on its own, so N instances allow up to N times
+ * the totals. Without a trusted proxy (TRUST_PROXY / Vercel) clients cannot be told apart and only the overall
+ * cap applies — one visitor can then use it up for everyone until the window moves on. That is the trade-off for
+ * protecting paid APIs (tracking credits) and the request inbox without trusting spoofable headers.
  */
 export function windowLimiter(opts: { perClient: number; overall: number; windowMs: number }) {
   const hits = new Map<string, number[]>();

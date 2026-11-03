@@ -94,8 +94,8 @@ async function testDcsa(name: string, url: string, headers: Record<string, strin
   const r = await timedFetch(url, { headers: { Accept: 'application/json', ...headers } });
   const latencyMs = Date.now() - started;
   if ('error' in r) return { ok: false, message: r.error, latencyMs };
-  // signed in: events (200/206) or "no such container" (400/404)
-  if ([200, 206, 400, 404].includes(r.status)) return { ok: true, message: 'ok', latencyMs, detail: `${name} DCSA Track & Trace` };
+  // signed in: events (200/206) or "no such container" (404) — the same answers the tracking client accepts
+  if ([200, 206, 404].includes(r.status)) return { ok: true, message: 'ok', latencyMs, detail: `${name} DCSA Track & Trace` };
   return { ok: false, message: r.status === 401 || r.status === 403 ? 'invalid-key' : `http-${r.status}`, latencyMs };
 }
 
@@ -103,13 +103,13 @@ async function testHapag(): Promise<TestResult> {
   const id = getSetting('TRACK_HLAG_CLIENT_ID');
   const secret = getSetting('TRACK_HLAG_CLIENT_SECRET');
   if (!id || !secret) return { ok: false, message: 'no-key', latencyMs: 0 };
-  return testDcsa('Hapag-Lloyd', 'https://api.hlag.com/hlag/external/v2/events/?equipmentReference=HLXU0000000', { 'X-IBM-Client-Id': id, 'X-IBM-Client-Secret': secret });
+  return testDcsa('Hapag-Lloyd', 'https://api.hlag.com/hlag/external/v2/events/?equipmentReference=HLXU0000002', { 'X-IBM-Client-Id': id, 'X-IBM-Client-Secret': secret });
 }
 
 async function testCmaCgm(): Promise<TestResult> {
   const key = getSetting('TRACK_CMACGM_KEY');
   if (!key) return { ok: false, message: 'no-key', latencyMs: 0 };
-  return testDcsa('CMA CGM', 'https://apis.cma-cgm.net/operation/trackandtrace/v1/events?equipmentReference=CMAU0000000', { KeyId: key });
+  return testDcsa('CMA CGM', 'https://apis.cma-cgm.net/operation/trackandtrace/v1/events?equipmentReference=CMAU0000005', { KeyId: key });
 }
 
 const TESTS: Record<string, () => Promise<TestResult>> = {

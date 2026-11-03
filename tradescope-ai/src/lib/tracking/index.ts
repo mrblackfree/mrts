@@ -23,7 +23,7 @@ export const configuredProviders = (mode?: TrackMode) => PROVIDERS.filter((p) =>
 export async function trackShipment(q: TrackQuery, opts: { mode: TrackMode; product?: TradeProduct }): Promise<TrackOutcome> {
   const configured = PROVIDERS.filter((p) => p.enabled() && p.modes.includes(opts.mode));
   // the example is only shown when nothing real is set up — never in place of a live source that missed
-  if (!configured.length) return { result: demoTrack(q, opts.product), tried: [] };
+  if (!configured.length) return { result: demoTrack(q, opts.product, opts.mode), tried: [] };
   const providers = configured.filter((p) => p.kinds.includes(q.kind) && (!p.accepts || p.accepts(q)));
   if (!providers.length) return { tried: [], error: 'not-covered' };
   const tried: string[] = [];
