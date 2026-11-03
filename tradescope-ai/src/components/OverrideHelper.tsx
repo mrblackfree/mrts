@@ -24,8 +24,12 @@ const PLACEHOLDER = /(O{3}|_{3,}|0000호|\bTEST\b)/;
 /** Fields that point into one product and must be cleared when the product changes. */
 const PRODUCT_SCOPED = ['partnerId', 'reqId', 'lane', 'code', 'hs'];
 
-/** Builds a valid verified-overrides.json entry so reviewers never hand-write JSON. */
-/** `editUrl`: the server-resolved link (null = none); undefined until it is known, then the build-time value is used. */
+/**
+ * Builds a valid verified-overrides.json entry so reviewers never hand-write JSON.
+ *
+ * `editUrl` is the server-resolved edit link, or null for no link. Only while it is still undefined (not loaded yet)
+ * is the build-time NEXT_PUBLIC_OVERRIDES_EDIT_URL used.
+ */
 export default function OverrideHelper({ defaultProductId, editUrl: editUrlProp }: { defaultProductId?: string; editUrl?: string | null }) {
   const { p, lang } = useI18n();
   const [productId, setProductId] = useState(defaultProductId && PRODUCTS.some((x) => x.id === defaultProductId) ? defaultProductId : PRODUCTS[0].id);

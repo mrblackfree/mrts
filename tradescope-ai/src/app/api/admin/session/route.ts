@@ -1,4 +1,16 @@
-import { adminAvailability, clearedCookie, clearLoginFailures, issueSession, loginBlocked, passwordMatches, recordLoginFailure, sameOrigin, sessionCookie, sessionExpiry } from '@/lib/admin/auth';
+import {
+  adminAvailability,
+  clearedCookie,
+  clearLoginFailures,
+  issueSession,
+  loginBlocked,
+  MAX_PASSWORD,
+  passwordMatches,
+  recordLoginFailure,
+  sameOrigin,
+  sessionCookie,
+  sessionExpiry,
+} from '@/lib/admin/auth';
 import { adminJson } from '@/lib/admin/http';
 import { clientKey } from '@/lib/rate-limit';
 
@@ -12,21 +24,48 @@ export function GET(req: Request) {
   return adminJson({ ...availability, authenticated: expiresAt !== null, expiresAt });
 }
 
+// room for a MAX_PASSWORD-character password in multi-byte UTF-8 plus JSON escaping
+const MAX_BODY_BYTES = MAX_PASSWORD * 8 + 256;
+
+/** Reads the request body, giving up (null) once it exceeds `max` bytes — never buffers more than that. */
+async function readBodyLimited(req: Request, max: number): Promise<string | null> {
+  if (Number(req.headers.get('content-length')) > max) return null;
+  if (!req.body) return '';
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 /** Sign in with ADMIN_PASSWORD. */
 export async function POST(req: Request) {
   const availability = adminAvailability();
   if (!availability.enabled) return adminJson({ ok: false, error: 'admin-disabled', reason: availability.reason }, { status: 403 });
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });
+  const client = clientKey(req);
+  // cheap early exit: a blocked client never gets its body read
+  if (loginBlocked(client)) return adminJson({ ok: false, error: 'too-many-attempts' }, { status: 429 });
 
+  const raw = await readBodyLimited(req, MAX_BODY_BYTES);
+  if (raw === null) return adminJson({ ok: false, error: 'too-large' }, { status: 413 });
   let password = '';
   try {
-    const body = (await req.json()) as { password?: unknown };
+    const body = JSON.parse(raw) as { password?: unknown };
     password = typeof body?.password === 'string' ? body.password : '';
   } catch {
-    /* empty body */
+    /* empty or invalid body */
   }
-  // limit check, verification and failure record run with no await in between (see loginBlocked)
-  const client = clientKey(req);
+  // checked again after the await: limit check, verification and failure record run with no await in between
   if (loginBlocked(client)) return adminJson({ ok: false, error: 'too-many-attempts' }, { status: 429 });
   if (!passwordMatches(password)) {
     recordLoginFailure(client);

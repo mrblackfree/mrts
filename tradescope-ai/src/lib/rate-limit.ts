@@ -10,6 +10,8 @@
 import { getSetting } from '@/lib/settings';
 
 const WINDOW_MS = 60 * 60 * 1000;
+/** The client key used when the caller cannot be identified (no trusted proxy): every such caller shares it. */
+export const SHARED_CLIENT = 'shared';
 const hits = new Map<string, number[]>();
 let budgetDay = '';
 let budgetUsed = 0;
@@ -42,7 +44,7 @@ export function clientKey(req: Request): string {
     const ip = chain[chain.length - hops];
     if (ip) return ip.slice(0, 64);
   }
-  return 'shared';
+  return SHARED_CLIENT;
 }
 
 export type LlmGate = { ok: true } | { ok: false; reason: 'rate-limited' | 'daily-budget' };

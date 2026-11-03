@@ -40,6 +40,8 @@ if (typeof process.loadEnvFile === 'function') {
 } else {
   console.warn(`  this Node version cannot load .env.local (needs ≥ 20.12) — export the variables instead`);
 }
+// saved /admin settings live in <project>/.data like the app's, whatever directory the script is run from
+if (!process.env.TRADESCOPE_DATA_DIR?.trim()) process.env.TRADESCOPE_DATA_DIR = path.join(ROOT, '.data');
 const SAVED = (() => {
   try {
     const { values, unreadable, problem } = readSettings();

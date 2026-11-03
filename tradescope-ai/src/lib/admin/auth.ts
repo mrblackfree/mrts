@@ -9,18 +9,22 @@
  * - State-changing admin requests must come from the same origin (CSRF defence on top of SameSite).
  */
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { SHARED_CLIENT } from '@/lib/rate-limit';
 import { masterSecret, MIN_ADMIN_SECRET } from '@/lib/settings/core.mjs';
 
 export const SESSION_COOKIE = 'ts_admin';
 const SESSION_TTL_S = 8 * 60 * 60;
 const MIN_PASSWORD = 10;
+/** Upper bound so a sign-in request body can be size-limited without making a valid password impossible. */
+export const MAX_PASSWORD = 1024;
 
-export type AdminAvailability = { enabled: true } | { enabled: false; reason: 'not-set' | 'too-short' | 'secret-too-short' };
+export type AdminAvailability = { enabled: true } | { enabled: false; reason: 'not-set' | 'too-short' | 'too-long' | 'secret-too-short' };
 
 export function adminAvailability(): AdminAvailability {
   const pw = process.env.ADMIN_PASSWORD?.trim();
   if (!pw) return { enabled: false, reason: 'not-set' };
   if (pw.length < MIN_PASSWORD) return { enabled: false, reason: 'too-short' };
+  if (pw.length > MAX_PASSWORD) return { enabled: false, reason: 'too-long' };
   const secret = process.env.ADMIN_SECRET?.trim();
   if (secret && secret.length < MIN_ADMIN_SECRET) return { enabled: false, reason: 'secret-too-short' };
   return { enabled: true };
@@ -114,7 +118,6 @@ export function sameOrigin(req: Request): boolean {
 const WINDOW_MS = 15 * 60 * 1000;
 const PER_CLIENT = 8;
 const GLOBAL = 100;
-const SHARED = 'shared';
 const failures = new Map<string, number[]>();
 let globalFailures: number[] = [];
 
@@ -125,7 +128,7 @@ export function loginBlocked(client: string): boolean {
   const now = Date.now();
   globalFailures = recent(globalFailures, now);
   if (globalFailures.length >= GLOBAL) return true;
-  if (client === SHARED) return false;
+  if (client === SHARED_CLIENT) return false;
   const mine = recent(failures.get(client) ?? [], now);
   if (mine.length) failures.set(client, mine);
   else failures.delete(client);
@@ -135,7 +138,7 @@ export function loginBlocked(client: string): boolean {
 export function recordLoginFailure(client: string): void {
   const now = Date.now();
   globalFailures.push(now);
-  if (client === SHARED) return;
+  if (client === SHARED_CLIENT) return;
   failures.set(client, [...(failures.get(client) ?? []), now]);
   if (failures.size > 5000) for (const [k, v] of failures) if (!v.some((t) => now - t < WINDOW_MS)) failures.delete(k);
 }

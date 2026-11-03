@@ -40,7 +40,7 @@ interface Snapshot {
   ai: { enabled: boolean; model: string | null; provider: string | null };
   officialData: { generatedAt: string | null; sources: Record<string, string | null>; activeOverrides: number };
 }
-type Session = { enabled: boolean; reason?: 'not-set' | 'too-short' | 'secret-too-short'; authenticated: boolean; expiresAt: number | null };
+type Session = { enabled: boolean; reason?: 'not-set' | 'too-short' | 'too-long' | 'secret-too-short'; authenticated: boolean; expiresAt: number | null };
 type TestResult = { ok: boolean; message: string; latencyMs: number; detail?: string };
 type Section = 'overview' | SettingGroup | 'deploy';
 
@@ -56,9 +56,12 @@ const S = {
     disabledTitle: '관리자 페이지가 꺼져 있습니다',
     disabledNotSet: '서버 환경변수 ADMIN_PASSWORD가 없어 관리자 기능이 비활성화되어 있습니다.',
     disabledShort: 'ADMIN_PASSWORD가 너무 짧습니다(10자 이상 필요).',
+    disabledLong: 'ADMIN_PASSWORD가 너무 깁니다(1024자 이하).',
     disabledSecretShort: 'ADMIN_SECRET이 너무 짧습니다(32자 이상 필요). 늘리거나 지우면 관리자 기능이 켜집니다.',
     simulation: '한국–필리핀 시뮬레이션',
     presetPickModel: '이 제공사는 모델 ID를 직접 입력해야 합니다. 제공사 콘솔에서 쓸 모델 이름을 확인해 아래 모델 칸에 넣으세요.',
+    presetPickBase: '이 제공사는 API 주소를 직접 입력해야 합니다. 제공사 안내에서 주소를 확인해 아래 Base URL 칸에 넣으세요.',
+    presetPickBoth: '이 제공사는 API 주소와 모델 ID를 직접 입력해야 합니다. 제공사 안내에서 확인해 아래 Base URL·모델 칸에 넣으세요.',
     disabledHow: '아래처럼 설정한 뒤 서버를 다시 시작하세요. 비밀번호는 서버에만 두고 공유하지 마세요.',
     loginTitle: '관리자 로그인',
     loginSub: '서버에 설정된 ADMIN_PASSWORD로 로그인합니다. 세션은 8시간 유지됩니다.',
@@ -136,6 +139,7 @@ const S = {
       'not-a-number': '숫자를 입력하세요',
       'not-an-integer': '정수를 입력하세요',
       'model-required': '이 제공사의 모델 ID를 입력하세요 (기본값 gpt-4o-mini는 OpenAI 전용)',
+      'base-url-required': '이 제공사의 API 주소를 입력하세요',
       'not-a-url': '올바른 주소(URL)가 아닙니다',
       'not-http-url': 'http(s) 주소만 쓸 수 있습니다',
       'not-boolean': '켜기/끄기 값이 아닙니다',
@@ -164,9 +168,12 @@ const S = {
     disabledTitle: 'The admin page is off',
     disabledNotSet: 'ADMIN_PASSWORD is not set on the server, so the admin features are disabled.',
     disabledShort: 'ADMIN_PASSWORD is too short (10+ characters required).',
+    disabledLong: 'ADMIN_PASSWORD is too long (1024 characters at most).',
     disabledSecretShort: 'ADMIN_SECRET is too short (32+ characters required). Lengthen or remove it to enable the admin.',
     simulation: 'KR-PH simulation',
     presetPickModel: "This provider needs a model ID. Look up the model name in the provider's console and enter it in the model field below.",
+    presetPickBase: "This provider needs an API address. Look it up in the provider's instructions and enter it in the base URL field below.",
+    presetPickBoth: "This provider needs an API address and a model ID. Look them up in the provider's instructions and enter them in the base URL and model fields below.",
     disabledHow: 'Set it as shown below and restart the server. Keep the password on the server only.',
     loginTitle: 'Admin sign-in',
     loginSub: 'Sign in with the server’s ADMIN_PASSWORD. Sessions last 8 hours.',
@@ -244,6 +251,7 @@ const S = {
       'not-a-number': 'Enter a number',
       'not-an-integer': 'Enter a whole number',
       'model-required': "Enter this provider's model ID (the gpt-4o-mini default only works with OpenAI)",
+      'base-url-required': "Enter this provider's API base URL",
       'not-a-url': 'Not a valid URL',
       'not-http-url': 'Only http(s) URLs are allowed',
       'not-boolean': 'Not an on/off value',
@@ -269,11 +277,18 @@ type Strings = (typeof S)['ko'];
 
 const PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
   { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-  // model '' = the provider's model must be entered by hand (save is blocked until it is)
+  // '' = must be entered by hand: the preset clears a value carried over from another preset and save is blocked
+  // until the field is filled
   { id: 'anthropic', label: 'Anthropic (Claude)', baseUrl: 'https://api.anthropic.com/v1', model: '' },
   { id: 'lab', label: '모두의 AI 실험실', baseUrl: '', model: '' },
   { id: 'ollama', label: 'Ollama', baseUrl: 'http://localhost:11434/v1', model: 'llama3.1' },
 ];
+
+/** Preset fields that may have to be entered by hand, with the error shown while they are empty. */
+const MANUAL = { AI_BASE_URL: 'base-url-required', AI_MODEL: 'model-required' } as const;
+type ManualKey = keyof typeof MANUAL;
+const presetValue = (p: (typeof PRESETS)[number], key: ManualKey) => (key === 'AI_MODEL' ? p.model : p.baseUrl);
+const isPresetValue = (key: ManualKey, v: string | null | undefined) => !!v && PRESETS.some((p) => presetValue(p, key) === v);
 
 const SECTIONS: Array<{ id: Section; icon: React.ReactNode }> = [
   { id: 'overview', icon: <LayoutDashboard className="size-4" /> },
@@ -420,7 +435,7 @@ function Disabled({ s, reason }: { s: Strings; reason?: string }) {
           <Lock className="size-5" aria-hidden />
         </span>
         <h1 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">{s.disabledTitle}</h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{reason === 'too-short' ? s.disabledShort : reason === 'secret-too-short' ? s.disabledSecretShort : s.disabledNotSet}</p>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{({ 'too-short': s.disabledShort, 'too-long': s.disabledLong, 'secret-too-short': s.disabledSecretShort } as Record<string, string>)[reason ?? ''] ?? s.disabledNotSet}</p>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{s.disabledHow}</p>
         <div className="mt-4 space-y-2.5">
           <CodeBlock>{`# .env.local (npm / systemd / docker compose)\nADMIN_PASSWORD=<10자 이상 / 10+ characters>\nADMIN_SECRET=<32자 이상 임의 문자열 / 32+ random characters>   # 선택 · optional`}</CodeBlock>
@@ -665,8 +680,8 @@ function GroupForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error' | 'info'; text: string } | null>(null);
-  // set by a preset without a fixed model: saving is blocked until a model is entered
-  const [needModel, setNeedModel] = useState(false);
+  // fields a preset left to be entered by hand: saving is blocked until they are filled
+  const [manual, setManual] = useState<ManualKey[]>([]);
   // bumped after a save or reset so rows remount (secret inputs go back to their masked view)
   const [generation, setGeneration] = useState(0);
   const dirty = Object.keys(draft).length > 0;
@@ -682,14 +697,14 @@ function GroupForm({
   const save = async () => {
     setNotice(null);
     setErrors({});
-    if (needModel && fields.AI_MODEL?.source !== 'env') {
-      const model = ('AI_MODEL' in draft ? draft.AI_MODEL : fields.AI_MODEL?.value)?.trim() ?? '';
-      if (!model || PRESETS.some((p) => p.model && p.model === model) || (fields.AI_MODEL?.source === 'default' && model === fields.AI_MODEL.value)) {
-        setErrors({ AI_MODEL: 'model-required' });
-        setNotice({ tone: 'error', text: s.saveFailed });
-        document.getElementById('f-AI_MODEL')?.focus();
-        return;
-      }
+    // only a value typed now or saved earlier counts — the built-in default belongs to OpenAI
+    const entered = (key: ManualKey) => (key in draft ? (draft[key] ?? '') : fields[key]?.source === 'admin' ? (fields[key]?.value ?? '') : '').trim();
+    const missing = manual.filter((key) => fields[key]?.source !== 'env' && !entered(key));
+    if (missing.length) {
+      setErrors(Object.fromEntries(missing.map((key) => [key, MANUAL[key]])));
+      setNotice({ tone: 'error', text: s.saveFailed });
+      document.getElementById(`f-${missing[0]}`)?.focus();
+      return;
     }
     setBusy(true);
     try {
@@ -698,7 +713,7 @@ function GroupForm({
       if (r.data?.fields) setSnap(r.data);
       if (r.data?.ok) {
         setDraft({});
-        setNeedModel(false);
+        setManual([]);
         setGeneration((g) => g + 1);
         setNotice({ tone: 'ok', text: `${s.saved} ${group === 'data' ? s.savedSync : s.savedRuntime}` });
       } else {
@@ -726,21 +741,25 @@ function GroupForm({
                 size="sm"
                 disabled={!writable || busy}
                 onClick={() => {
-                  if (p.baseUrl && fields.AI_BASE_URL?.source !== 'env') setValue('AI_BASE_URL', p.baseUrl);
-                  if (fields.AI_MODEL?.source === 'env') return;
-                  setErrors((e) => {
-                    const { AI_MODEL: _drop, ...rest } = e;
-                    return rest;
-                  });
-                  if (p.model) {
-                    setValue('AI_MODEL', p.model);
-                    setNeedModel(false);
-                    setNotice(null);
-                  } else {
-                    setNeedModel(true);
-                    setNotice({ tone: 'info', text: s.presetPickModel });
-                    document.getElementById('f-AI_MODEL')?.focus();
+                  const need: ManualKey[] = [];
+                  for (const key of ['AI_BASE_URL', 'AI_MODEL'] as const) {
+                    if (fields[key]?.source === 'env') continue; // locked
+                    const value = presetValue(p, key);
+                    if (value) {
+                      setValue(key, value);
+                      continue;
+                    }
+                    need.push(key);
+                    // drop a value another preset filled in, so the field starts empty (a saved custom value stays)
+                    const current = key in draft ? draft[key] : fields[key]?.value;
+                    const saved = fields[key]?.source === 'admin' ? fields[key]?.value : undefined;
+                    if (isPresetValue(key, current)) setValue(key, saved && !isPresetValue(key, saved) ? undefined : saved ? null : undefined);
                   }
+                  setManual(need);
+                  setErrors((e) => Object.fromEntries(Object.entries(e).filter(([k]) => !(k in MANUAL))));
+                  if (!need.length) return setNotice(null);
+                  setNotice({ tone: 'info', text: need.length === 2 ? s.presetPickBoth : need[0] === 'AI_MODEL' ? s.presetPickModel : s.presetPickBase });
+                  document.getElementById(`f-${need[0]}`)?.focus();
                 }}
               >
                 {p.label}
@@ -785,10 +804,10 @@ function GroupForm({
             </p>
           )}
           <div className="ml-auto flex gap-2">
-            <Button size="md" disabled={!(dirty || needModel) || busy} onClick={() => (setDraft({}), setErrors({}), setNotice(null), setNeedModel(false), setGeneration((g) => g + 1))}>
+            <Button size="md" disabled={!(dirty || manual.length) || busy} onClick={() => (setDraft({}), setErrors({}), setNotice(null), setManual([]), setGeneration((g) => g + 1))}>
               {s.reset}
             </Button>
-            <Button variant="primary" size="md" disabled={!dirty || !writable} loading={busy} onClick={save}>
+            <Button variant="primary" size="md" disabled={!(dirty || manual.length) || !writable} loading={busy} onClick={save}>
               {s.save}
             </Button>
           </div>
