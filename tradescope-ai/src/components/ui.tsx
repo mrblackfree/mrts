@@ -191,19 +191,25 @@ export function CopyButton({ text, label, className }: { text: string; label?: s
   const { t } = useI18n();
   const [done, setDone] = useState(false);
   return (
-    <Button
-      size="sm"
-      onClick={async () => {
-        if (await copyText(text)) {
-          setDone(true);
-          setTimeout(() => setDone(false), 1600);
-        }
-      }}
-      className={className}
-    >
-      {done ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
-      <span aria-live="polite">{done ? t('copied') : (label ?? t('copy'))}</span>
-    </Button>
+    <>
+      <Button
+        size="sm"
+        onClick={async () => {
+          if (await copyText(text)) {
+            setDone(true);
+            setTimeout(() => setDone(false), 1600);
+          }
+        }}
+        className={className}
+      >
+        {done ? <Check className="size-3.5 text-emerald-500" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+        {done ? t('copied') : (label ?? t('copy'))}
+      </Button>
+      {/* button content is presentational for assistive tech, so the confirmation is announced from a sibling */}
+      <span role="status" className="sr-only">
+        {done ? t('copied') : ''}
+      </span>
+    </>
   );
 }
 

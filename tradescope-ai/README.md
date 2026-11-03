@@ -193,7 +193,8 @@ CLI로 배포하려면: `npx vercel@latest --cwd tradescope-ai --prod` (Vercel �
 ```bash
 git clone <repo> && cd <repo>/tradescope-ai
 cp .env.example .env.local          # (선택) AI 키 입력
-echo "TRUST_PROXY=0" >> .env.local                # 프록시 없이 직접 공개 → 전달 헤더 불신 (LLM 호출 한도는 전체 방문자 공유)
+# 프록시 없이 직접 공개 → 전달 헤더 불신 (LLM 호출 한도는 전체 방문자 공유). 여러 번 실행해도 한 줄만 남습니다.
+grep -q '^TRUST_PROXY=' .env.local && sed -i 's/^TRUST_PROXY=.*/TRUST_PROXY=0/' .env.local || echo "TRUST_PROXY=0" >> .env.local
 APP_BIND=0.0.0.0 docker compose up -d --build     # http://SERVER_IP:3000 (프록시 없이 HTTP로 공개)
 docker compose logs -f tradescope   # 로그
 ```
@@ -202,6 +203,7 @@ docker compose logs -f tradescope   # 로그
 2. 방화벽/보안그룹에서 80, 443 포트 개방
 3. 실행:
 ```bash
+sed -i '/^TRUST_PROXY=0$/d' .env.local 2>/dev/null   # 앱 단독 공개 때 넣은 TRUST_PROXY=0이 있다면 제거 (프록시 기본값 1 사용)
 DOMAIN=trade.example.com docker compose --profile https up -d --build
 ```
 Caddy가 Let's Encrypt 인증서를 자동 발급·갱신합니다 (`deploy/Caddyfile`). 앱 포트 3000은 기본값 `APP_BIND=127.0.0.1`로 서버 내부에만 열리므로 HTTPS를 우회할 수 없습니다 — `--profile https`와 `APP_BIND=0.0.0.0`을 함께 쓰지 마세요. 프록시 뒤에서는 `TRUST_PROXY=1`(compose 기본값, `deploy/compose.env`)로 LLM 호출 제한이 클라이언트별로 동작하며, `.env.local`에 적은 값이 이 기본값보다 우선합니다.
@@ -274,7 +276,7 @@ tradescope-ai/
   - 잉크 색 `ink-900`: 주 버튼·텍스트용
   - 그림자: `shadow-hairline` · `soft` · `elevated` · `float` · `brand` · `ink`
 - **버튼 (`components/ui.tsx`)**
-  - 모든 버튼은 `Button` 또는 `buttonClass()`(링크용)를 씁니다.
+  - 액션 버튼(실행·열기·복사 등)은 `Button` 또는 `buttonClass()`(링크용)를 씁니다. 상태를 켜고 끄는 토글(`Segmented`, `Chip`, HS 탭, 방향 토글 등)은 `aria-pressed`를 쓰는 별도 토글 스타일이며, 새 버튼도 이 구분을 따릅니다.
   - variant 6종: `primary`(잉크) · `brand` · `ai` · `secondary` · `ghost` · `subtle`
   - size 4종: `xs` · `sm` · `md` · `lg`. `icon`은 정사각 버튼, `loading`은 스피너를 표시합니다.
   - 기본 스타일에 `display: inline-flex`가 들어 있으므로, 반응형으로 숨길 때는 래퍼 요소에 `hidden md:inline-flex`를 지정합니다.

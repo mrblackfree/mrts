@@ -12,7 +12,7 @@ export default function AnalysisProgress({ step }: { step: number }) {
   return (
     <Card className="rise-in no-print overflow-hidden p-5 sm:p-6">
       <div className="-mx-5 -mt-5 mb-5 h-0.5 bg-slate-100 sm:-mx-6 sm:-mt-6 dark:bg-white/[0.06]" aria-hidden>
-        <div className="h-full bg-gradient-to-r from-brand-400 to-brand-700 transition-[width] duration-500 ease-out" style={{ width: `${Math.min(100, ((step + 1) / PIPELINE_STEPS.length) * 100)}%` }} />
+        <div className="h-full bg-gradient-to-r from-brand-400 to-brand-700 transition-[width] duration-500 ease-out" style={{ width: `${Math.min(100, ((step + 0.5) / PIPELINE_STEPS.length) * 100)}%` }} /* finished steps + half of the active one */ />
       </div>
       <p className="sr-only" role="status" aria-live="polite">
         {t(PIPELINE_STEPS[Math.min(step, PIPELINE_STEPS.length - 1)])}

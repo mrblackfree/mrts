@@ -65,17 +65,20 @@ body {
   background: rgb(78 162 191 / 0.28);
 }
 
-h1,
-h2,
-h3 {
-  letter-spacing: -0.022em;
-}
+/* in the base layer, so utilities such as `tracking-*` or `outline-*` can still override these defaults */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.022em;
+  }
 
-/* Keyboard focus that is visible on every surface, never on mouse click */
-:where(a, button, [role='button'], summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-brand-500);
-  outline-offset: 2px;
-  /* no border-radius here: the outline follows each element's own shape (pills stay pills) */
+  /* Keyboard focus that is visible on every surface, never on mouse click */
+  :where(a, button, [role='button'], summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+    /* no border-radius here: the outline follows each element's own shape (pills stay pills) */
+  }
 }
 
 /* Decorative dot grid (hero) */

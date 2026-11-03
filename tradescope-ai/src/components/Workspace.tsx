@@ -184,10 +184,16 @@ function WorkspaceInner() {
     if (status !== 'done') return;
     const els = ['m-brief', 'm-tariff', 'm-market', 'm-partners'].map((id) => document.getElementById(id)).filter((x): x is HTMLElement => !!x);
     if (!els.length || typeof IntersectionObserver === 'undefined') return;
+    // callbacks only report sections whose visibility changed, so keep the full visible set across callbacks
+    const visible = new Set<string>();
     const io = new IntersectionObserver(
       (entries) => {
-        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) setActiveSection(visible[0].target.id);
+        for (const e of entries) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        }
+        const first = els.find((el) => visible.has(el.id)); // first in document order
+        if (first) setActiveSection(first.id);
       },
       { rootMargin: '-130px 0px -55% 0px' },
     );

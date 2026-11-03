@@ -109,7 +109,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                     )}
                   >
                     {x.key === table.key && <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />}
-                    {i === 0 && <span className="rounded bg-current/10 px-1 text-[9.5px] font-bold uppercase tracking-wide opacity-70">{t('hsPrimary')}</span>}
+                    {i === 0 && <span className="rounded bg-current/10 px-1 text-[9.5px] font-bold uppercase tracking-wide">{t('hsPrimary')}</span>}
                     {p(x.label)}
                   </button>
                 ))}

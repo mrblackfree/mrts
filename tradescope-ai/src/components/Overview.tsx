@@ -50,10 +50,10 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
             </div>
           ))}
         </div>
-        <div className="px-3 pt-3">
+        <div className="px-3 pt-3 sm:px-4">
           <GroupedColumns a={ex} b={im} labelA={t('krExports')} labelB={t('krImports')} />
         </div>
-        <div className="flex flex-wrap items-center gap-3 px-5 pb-2 text-[11px] font-semibold text-slate-500">
+        <div className="flex flex-wrap items-center gap-3 px-5 pb-2 text-[11px] font-semibold text-slate-500 sm:px-6">
           <span className="inline-flex items-center gap-1.5">
             <span className="size-2.5 rounded-sm bg-[#cd2e3a]" />
             {t('krExports')}
@@ -63,7 +63,7 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
             {t('krImports')}
           </span>
         </div>
-        <div className="px-5 pb-5">
+        <div className="px-5 pb-5 sm:px-6 sm:pb-6">
           <p className="mt-2 flex items-start gap-2 rounded-xl bg-amber-50/80 p-3 text-xs font-medium text-amber-900 ring-1 ring-inset ring-amber-200/60 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20">
             <Handshake className="mt-0.5 size-4 shrink-0" />
             {p(KR_PH_OVERVIEW.ftaInForce)}

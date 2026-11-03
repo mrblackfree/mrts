@@ -72,7 +72,8 @@ export default function Header({ health, trustScore, onOpenTrust }: { health: He
         </a>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
-          {/* data sources: full list on wide screens, status dots otherwise */}
+          {/* data sources: full list from xl, status dots from sm; on phones there is no room, so the status is
+              available through the trust-score button (Trust Center) instead */}
           <div
             role="group"
             aria-label={t('sourcesConnected')}
