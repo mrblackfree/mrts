@@ -72,6 +72,19 @@ function DirectionPicker({ direction, onDirection, compact }: { direction: Direc
 export default function HeroSearch({ query, direction, loading, activeDemo, compact, onQuery, onDirection, onSubmit, onDemo }: Props) {
   const { t, p } = useI18n();
   const box = useRef<HTMLTextAreaElement>(null);
+  // starting an analysis from the full hero swaps it for the compact bar, which unmounts the focused box or chip;
+  // keyboard focus then moves to the compact search box instead of falling back to the page
+  const refocus = useRef(false);
+  useLayoutEffect(() => {
+    if (!compact || !refocus.current) return;
+    refocus.current = false;
+    box.current?.focus({ preventScroll: true });
+  }, [compact]);
+  const submit = () => {
+    if (loading) return;
+    if (!compact) refocus.current = true;
+    onSubmit();
+  };
 
   // the box grows with the question (up to about four lines) instead of scrolling inside itself
   useLayoutEffect(() => {
@@ -86,7 +99,7 @@ export default function HeroSearch({ query, direction, loading, activeDemo, comp
       className={cx(compact ? 'min-w-0 flex-1' : 'mx-auto mt-4 w-full max-w-2xl')}
       onSubmit={(e) => {
         e.preventDefault();
-        if (!loading) onSubmit();
+        submit();
       }}
     >
       <div className="group/search flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-soft transition-[border-color,box-shadow] duration-200 focus-within:border-brand-400 focus-within:shadow-[0_0_0_4px_rgb(42_133_166/0.12)] sm:flex-row sm:items-center dark:border-white/10 dark:bg-[#080d17] dark:focus-within:border-brand-400/70">
@@ -100,7 +113,7 @@ export default function HeroSearch({ query, direction, loading, activeDemo, comp
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
-                if (!loading) onSubmit();
+                submit();
               }
             }}
             rows={1}
@@ -167,7 +180,10 @@ export default function HeroSearch({ query, direction, loading, activeDemo, comp
                 <button
                   key={d.id}
                   type="button"
-                  onClick={() => onDemo(d.id)}
+                  onClick={() => {
+                    refocus.current = true;
+                    onDemo(d.id);
+                  }}
                   disabled={loading}
                   title={label.replace(LEAD_EMOJI, '')}
                   className={cx(
