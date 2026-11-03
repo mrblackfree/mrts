@@ -1,7 +1,8 @@
 import type { Lang, PartnerType, RequirementCategory } from './types';
 
 const ko = {
-  appBadge: 'KR 🇰🇷 ↔ PH 🇵🇭 Prototype MVP',
+  appBadge: 'Global Trade AI',
+  appPilot: '프로토타입',
   projectTag: '모두의 AI 실험실 선정 과제 AI-2026-000083',
   srcUnipass: '관세청 UNI-PASS',
   srcComtrade: 'UN Comtrade',
@@ -15,8 +16,8 @@ const ko = {
   pdf: 'PDF 리포트 다운로드',
 
   heroEyebrow: 'All-in-One AI Trade Intelligence',
-  heroTitle: '한국 ↔ 필리핀 무역, 질문 하나로 끝내세요',
-  heroTitleLead: '한국 ↔ 필리핀 무역,',
+  heroTitle: '전 세계 무역, 질문 하나로 끝내세요',
+  heroTitleLead: '전 세계 무역,',
   heroTitleAccent: '질문 하나로 끝내세요',
   kbdSubmit: '분석',
   kbdNewline: '줄바꿈',
@@ -24,8 +25,16 @@ const ko = {
   searchPlaceholder: '수출입할 상품명, HS Code, 또는 자연어로 질문하세요 (예: 필리핀 세부에서 생산한 바나나칩을 한국에 수입할 때 관세와 절차는?)',
   analyze: '분석하기',
   analyzing: '분석 중…',
-  dirPhKr: '🇵🇭 필리핀 → 🇰🇷 대한민국 (수입/소싱)',
-  dirKrPh: '🇰🇷 대한민국 → 🇵🇭 필리핀 (수출/진출)',
+  dirPhKr: '필리핀 → 대한민국 (수입/소싱)',
+  dirKrPh: '대한민국 → 필리핀 (수출/진출)',
+  countryKR: '대한민국',
+  countryPH: '필리핀',
+  dirTagImport: '수입/소싱',
+  dirTagExport: '수출/진출',
+  corridorLive: '첫 번째 노선',
+  corridorPilot: '프로토타입',
+  corridorNext: '확장 예정',
+  corridorNextNote: '아세안·RCEP 국가로 노선을 넓혀 갈 예정입니다',
   demoTitle: '원클릭 즉시 시연',
 
   stepIntent: '질의 의도 분석',
@@ -35,7 +44,7 @@ const ko = {
   stepMatch: '바이어·공급사 매칭',
   stepBrief: 'AI 브리핑 생성',
 
-  overviewTitle: 'KR ↔ PH 교역 한눈에',
+  overviewTitle: '첫 번째 노선 · 한국 ↔ 필리핀 교역',
   overviewSub: '한국 신고 기준 총교역 (UN Comtrade, 2023–2025)',
   krExports: '한국 → 필리핀 수출',
   krImports: '필리핀 → 한국 수입',
@@ -107,8 +116,8 @@ const ko = {
   days: '{n}일',
   done: '완료',
   detailGuide: '세부 가이드',
-  sideKr: '🇰🇷 한국 측',
-  sidePh: '🇵🇭 필리핀 측',
+  sideKr: '한국 측',
+  sidePh: '필리핀 측',
   bestReason: '최적 FTA 추천 근거',
 
   m3Title: '한-필 시장 규모 & 물류 인텔리전스',
@@ -268,7 +277,8 @@ const ko = {
 export type DictKey = keyof typeof ko;
 
 const en: Record<DictKey, string> = {
-  appBadge: 'KR 🇰🇷 ↔ PH 🇵🇭 Prototype MVP',
+  appBadge: 'Global Trade AI',
+  appPilot: 'Prototype',
   projectTag: 'Selected project AI-2026-000083 · AI Lab for Everyone',
   srcUnipass: 'KCS UNI-PASS',
   srcComtrade: 'UN Comtrade',
@@ -282,8 +292,8 @@ const en: Record<DictKey, string> = {
   pdf: 'Download PDF report',
 
   heroEyebrow: 'All-in-One AI Trade Intelligence',
-  heroTitle: 'Korea ↔ Philippines trade, answered in one question',
-  heroTitleLead: 'Korea ↔ Philippines trade,',
+  heroTitle: 'Global trade, answered in one question',
+  heroTitleLead: 'Global trade,',
   heroTitleAccent: 'answered in one question',
   kbdSubmit: 'to analyze',
   kbdNewline: 'for a new line',
@@ -291,8 +301,16 @@ const en: Record<DictKey, string> = {
   searchPlaceholder: 'Ask with a product, HS code or plain language (e.g. What duties and procedures apply to importing Cebu banana chips into Korea?)',
   analyze: 'Analyze',
   analyzing: 'Analyzing…',
-  dirPhKr: '🇵🇭 Philippines → 🇰🇷 Korea (import / sourcing)',
-  dirKrPh: '🇰🇷 Korea → 🇵🇭 Philippines (export / entry)',
+  dirPhKr: 'Philippines → Korea (import / sourcing)',
+  dirKrPh: 'Korea → Philippines (export / entry)',
+  countryKR: 'Korea',
+  countryPH: 'Philippines',
+  dirTagImport: 'import / sourcing',
+  dirTagExport: 'export / entry',
+  corridorLive: 'First corridor',
+  corridorPilot: 'Prototype',
+  corridorNext: 'Coming next',
+  corridorNextNote: 'More ASEAN and RCEP corridors are planned',
   demoTitle: 'One-click live demos',
 
   stepIntent: 'Parsing intent',
@@ -302,7 +320,7 @@ const en: Record<DictKey, string> = {
   stepMatch: 'Matching buyers & suppliers',
   stepBrief: 'Writing AI briefing',
 
-  overviewTitle: 'KR ↔ PH trade at a glance',
+  overviewTitle: 'First corridor · Korea ↔ Philippines trade',
   overviewSub: 'Korea-reported total trade (UN Comtrade, 2023–2025)',
   krExports: 'Korea → PH exports',
   krImports: 'PH → Korea imports',
@@ -374,8 +392,8 @@ const en: Record<DictKey, string> = {
   days: '{n} days',
   done: 'done',
   detailGuide: 'Detailed guide',
-  sideKr: '🇰🇷 Korea side',
-  sidePh: '🇵🇭 Philippines side',
+  sideKr: 'Korea side',
+  sidePh: 'Philippines side',
   bestReason: 'Why this FTA',
 
   m3Title: 'KR-PH market size & logistics intelligence',

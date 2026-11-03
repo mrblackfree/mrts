@@ -9,6 +9,7 @@ import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, partnerFactors, pri
 import type { DraftOptions, EmailDraft, Lang, Partner, QueryIntent, TradeProduct } from '@/lib/types';
 import { useI18n } from './I18nProvider';
 import { Badge, Button, buttonClass, CopyButton, copyText, cx, ProgressBar, ScoreRing, Segmented } from './ui';
+import { Flag } from './Flag';
 
 interface Props {
   product: TradeProduct;
@@ -119,7 +120,10 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                   <MapPin className="size-3" />
                   {partner.city}
                 </span>
-                <span>{partner.country === 'KR' ? '🇰🇷' : '🇵🇭'} {PARTNER_TYPE_LABEL[partner.type][lang]}</span>
+                <span className="inline-flex items-center gap-1">
+                  <Flag code={partner.country} label={partner.country === 'KR' ? t('countryKR') : t('countryPH')} />
+                  {PARTNER_TYPE_LABEL[partner.type][lang]}
+                </span>
                 <a href={partner.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-0.5 font-semibold text-brand-700 hover:underline dark:text-brand-400">
                   {partner.linkType === 'official' ? t('linkOfficial') : t('linkListing')} <ExternalLink className="size-3" />
                 </a>

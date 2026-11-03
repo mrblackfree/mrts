@@ -8,6 +8,7 @@ import { rankPartners } from '@/lib/engine/simulate';
 import type { PartnerRole, PartnerType, QueryIntent, TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
 import { Badge, Button, Card, Chip, ModuleHeader, ScoreRing } from '../ui';
+import { Flag } from '../Flag';
 
 export default function PartnersModule({ product, intent, onOpen }: { product: TradeProduct; intent: QueryIntent; onOpen: (partnerId: string, tab: 'analysis' | 'email') => void }) {
   const { t, p, lang } = useI18n();
@@ -83,7 +84,7 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="grid h-5 min-w-5 place-items-center rounded-md bg-slate-100 px-1 text-[10.5px] font-bold tabular-nums text-slate-500 dark:bg-white/[0.07] dark:text-slate-400">{i + 1}</span>
-                      <span aria-hidden>{c.country === 'KR' ? '🇰🇷' : '🇵🇭'}</span>
+                      <Flag code={c.country} label={c.country === 'KR' ? t('countryKR') : t('countryPH')} />
                       <Badge tone={c.role === 'buyer' ? 'brand' : 'violet'}>{c.role === 'buyer' ? t('roleBuyer') : t('roleSeller')}</Badge>
                       {c.regionMatch && <Badge tone="amber">{t('regionMatch')}</Badge>}
                     </div>

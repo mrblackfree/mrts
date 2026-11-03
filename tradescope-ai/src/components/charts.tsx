@@ -3,6 +3,7 @@
 import { formatPct, formatUsd, trend, yoy } from '@/lib/format';
 import type { CompetitorShare, YearValue } from '@/lib/types';
 import { cx } from './ui';
+import { Flag } from './Flag';
 
 /** 3-year column chart in pure SVG with value + YoY labels. */
 export function TrendColumns({ series, ariaLabel, accent = '#2a85a6' }: { series: YearValue[]; ariaLabel: string; accent?: string }) {
@@ -98,7 +99,7 @@ export function ShareBars({ rows, label }: { rows: Array<CompetitorShare & { nam
       {rows.map((r) => (
         <li key={r.name} className="grid grid-cols-[minmax(0,8.5rem)_1fr_3.25rem] items-center gap-3 text-sm">
           <span className={cx('flex min-w-0 items-center gap-1.5', r.highlight ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300')}>
-            <span aria-hidden>{r.flag}</span>
+            <Flag code={r.flag} />
             <span className="truncate">{r.name}</span>
           </span>
           <span className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.07]">

@@ -6,8 +6,9 @@ import type { TradeProduct } from '@/lib/types';
 import { ShareBars, TrendColumns } from '../charts';
 import { useI18n } from '../I18nProvider';
 import { Card, cx, ModuleHeader, SourceTag } from '../ui';
+import { Flag } from '../Flag';
 
-const PORT_FLAG: Record<string, string> = { Busan: '🇰🇷', Incheon: '🇰🇷', Manila: '🇵🇭', Cebu: '🇵🇭', Davao: '🇵🇭' };
+const PORT_COUNTRY: Record<string, string> = { Busan: 'KR', Incheon: 'KR', Manila: 'PH', Cebu: 'PH', Davao: 'PH' };
 
 export default function MarketModule({ product }: { product: TradeProduct }) {
   const { t, p, lang } = useI18n();
@@ -99,13 +100,13 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
             <div key={`${l.from}-${l.to}-${l.mode}-${i}`} className="rounded-xl border border-slate-200 p-3.5 dark:border-white/[0.07]">
               <div className="flex items-center justify-between gap-2 text-sm font-bold text-slate-900 dark:text-white">
                 <span>
-                  {PORT_FLAG[l.from] ?? ''} {l.from}
+                  {PORT_COUNTRY[l.from] && <Flag code={PORT_COUNTRY[l.from]} />} {l.from}
                 </span>
                 <span className="relative mx-1 h-px flex-1 bg-gradient-to-r from-slate-300 to-brand-500 dark:from-slate-600">
                   <Anchor className="absolute -top-2 left-1/2 size-4 -translate-x-1/2 rounded-full bg-white p-0.5 text-brand-500 dark:bg-[#0c121d]" />
                 </span>
                 <span>
-                  {l.to} {PORT_FLAG[l.to] ?? ''}
+                  {l.to} {PORT_COUNTRY[l.to] && <Flag code={PORT_COUNTRY[l.to]} />}
                 </span>
               </div>
               <dl className="mt-3 grid grid-cols-2 gap-x-2 gap-y-1.5 text-xs">

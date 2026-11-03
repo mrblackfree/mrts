@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { OFFICIAL } from '@/data/official';
 import { useI18n } from './I18nProvider';
 import { Button, cx, Segmented } from './ui';
+import { Flag } from './Flag';
 
 export interface HealthInfo {
   ai: { enabled: boolean; model: string | null; provider: string | null };
@@ -66,8 +67,13 @@ export default function Header({ health, trustScore, onOpenTrust }: { health: He
               <span className="bg-gradient-to-r from-brand-500 to-brand-700 bg-clip-text text-transparent dark:from-brand-300 dark:to-brand-400">AI</span>
             </span>
             <span className="block whitespace-nowrap text-[10.5px] font-medium tracking-wide text-slate-500 dark:text-slate-400">
-              <span className="sm:hidden">KR ↔ PH · MVP</span>
-              <span className="hidden sm:inline">{t('appBadge')}</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="hidden sm:inline">{t('appBadge')} ·</span>
+                <Flag code="KR" label={t('countryKR')} />
+                <span aria-hidden>↔</span>
+                <Flag code="PH" label={t('countryPH')} />
+                {t('appPilot')}
+              </span>
             </span>
           </span>
         </a>

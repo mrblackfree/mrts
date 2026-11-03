@@ -3,6 +3,7 @@
 import { ArrowRight, Loader2, Search, Sparkles } from 'lucide-react';
 import { DEMO_SCENARIOS } from '@/data/kr-ph-trade-db';
 import type { Direction } from '@/lib/types';
+import { Flag } from './Flag';
 import { useI18n } from './I18nProvider';
 import { Button, cx } from './ui';
 
@@ -19,8 +20,32 @@ interface Props {
 
 const LEAD_EMOJI = /^(\p{Extended_Pictographic}\uFE0F?)\s*/u;
 
+/** Corridors after KR ↔ PH (roadmap, shown as not yet available). */
+const NEXT_CORRIDORS: Array<{ code: string; ko: string; en: string }> = [
+  { code: 'VN', ko: '베트남', en: 'Vietnam' },
+  { code: 'ID', ko: '인도네시아', en: 'Indonesia' },
+  { code: 'TH', ko: '태국', en: 'Thailand' },
+  { code: 'MY', ko: '말레이시아', en: 'Malaysia' },
+];
+
+/** "🇵🇭 필리핀 → 🇰🇷 대한민국 (수입/소싱)" with image flags. */
+function DirectionLabel({ direction }: { direction: Direction }) {
+  const { t } = useI18n();
+  const [from, to] = direction === 'PH_TO_KR' ? (['PH', 'KR'] as const) : (['KR', 'PH'] as const);
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Flag code={from} />
+      {t(`country${from}`)}
+      <span aria-hidden>→</span>
+      <Flag code={to} />
+      {t(`country${to}`)}
+      <span className="font-medium opacity-70">({direction === 'PH_TO_KR' ? t('dirTagImport') : t('dirTagExport')})</span>
+    </span>
+  );
+}
+
 export default function HeroSearch({ query, direction, loading, activeDemo, onQuery, onDirection, onSubmit, onDemo }: Props) {
-  const { t, p } = useI18n();
+  const { t, p, lang } = useI18n();
   return (
     <section className="no-print ring-gradient relative overflow-hidden rounded-[28px] bg-white/80 px-4 pb-7 pt-9 shadow-elevated backdrop-blur sm:px-10 sm:pb-10 sm:pt-12 dark:bg-[#0b111c]/80">
       {/* decorative layers: dot grid + soft flag-coloured light */}
@@ -37,11 +62,37 @@ export default function HeroSearch({ query, direction, loading, activeDemo, onQu
           </span>
           {t('heroEyebrow')}
         </p>
-        <h1 className="mt-5 text-balance text-[28px] font-bold leading-[1.18] tracking-[-0.035em] text-slate-900 sm:text-[44px] dark:text-white">
+        <h1 className="mt-5 text-balance break-keep text-[28px] font-bold leading-[1.18] tracking-[-0.035em] text-slate-900 sm:text-[44px] dark:text-white">
           {t('heroTitleLead')}{' '}
           <span className="bg-gradient-to-r from-brand-500 via-brand-700 to-ink-900 bg-clip-text text-transparent dark:from-brand-300 dark:via-brand-400 dark:to-white">{t('heroTitleAccent')}</span>
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-pretty text-[14.5px] leading-relaxed text-slate-500 sm:text-base dark:text-slate-400">{t('heroSub')}</p>
+        <p className="mx-auto mt-4 max-w-2xl text-pretty break-keep text-[14.5px] leading-relaxed text-slate-500 sm:text-base dark:text-slate-400">{t('heroSub')}</p>
+
+        {/* corridors: KR ↔ PH is the one live today; the next ones are a roadmap */}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs">
+          <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50/80 py-1 pl-1 pr-3 font-semibold text-brand-800 dark:border-brand-400/25 dark:bg-brand-400/10 dark:text-brand-200">
+            <span className="rounded-full bg-white px-2 py-0.5 text-[10.5px] font-bold text-brand-700 shadow-hairline dark:bg-white/10 dark:text-brand-200">{t('corridorLive')}</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Flag code="KR" />
+              {t('countryKR')}
+              <span aria-hidden>↔</span>
+              <Flag code="PH" />
+              {t('countryPH')}
+            </span>
+            <span className="text-[10.5px] font-bold uppercase tracking-wide text-brand-600/80 dark:text-brand-300/80">{t('corridorPilot')}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 text-slate-400 dark:text-slate-500" title={t('corridorNextNote')}>
+            {t('corridorNext')}
+            <span className="inline-flex items-center gap-1.5">
+              {NEXT_CORRIDORS.map((c) => (
+                <span key={c.code} className="inline-flex items-center opacity-60 grayscale-[35%]">
+                  <Flag code={c.code} label={lang === 'ko' ? c.ko : c.en} />
+                </span>
+              ))}
+            </span>
+            <span className="sr-only">{t('corridorNextNote')}</span>
+          </span>
+        </div>
 
         <div className="mt-7 flex justify-center">
           <div
@@ -62,7 +113,7 @@ export default function HeroSearch({ query, direction, loading, activeDemo, onQu
                     : 'text-slate-600 hover:bg-white/70 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white',
                 )}
               >
-                {d === 'PH_TO_KR' ? t('dirPhKr') : t('dirKrPh')}
+                <DirectionLabel direction={d} />
               </button>
             ))}
           </div>
@@ -138,8 +189,14 @@ export default function HeroSearch({ query, direction, loading, activeDemo, onQu
                     {m ? m[1] : '•'}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13.5px] font-semibold leading-snug text-slate-800 dark:text-slate-100">{m ? label.slice(m[0].length) : label}</span>
-                    <span className="mt-0.5 block text-[11px] font-medium text-slate-400">{d.direction === 'PH_TO_KR' ? 'PH 🇵🇭 → KR 🇰🇷' : 'KR 🇰🇷 → PH 🇵🇭'}</span>
+                    <span className="block break-keep text-[13.5px] font-semibold leading-snug text-slate-800 dark:text-slate-100">{m ? label.slice(m[0].length) : label}</span>
+                    <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                      <Flag code={d.direction === 'PH_TO_KR' ? 'PH' : 'KR'} />
+                      {d.direction === 'PH_TO_KR' ? 'PH' : 'KR'}
+                      <span aria-hidden>→</span>
+                      <Flag code={d.direction === 'PH_TO_KR' ? 'KR' : 'PH'} />
+                      {d.direction === 'PH_TO_KR' ? 'KR' : 'PH'}
+                    </span>
                   </span>
                   <span
                     aria-hidden

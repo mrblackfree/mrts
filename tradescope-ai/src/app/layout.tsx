@@ -4,14 +4,14 @@ import './fonts/pretendard/pretendardvariable-dynamic-subset.css';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'TradeScope AI — KR ↔ PH 올인원 AI 무역 인텔리전스',
+  title: 'TradeScope AI — 글로벌 올인원 AI 무역 인텔리전스',
   description:
-    '대한민국 ↔ 필리핀 특화 올인원 AI 무역 인텔리전스 플랫폼 MVP: HS Code 추천, FTA 절세 시뮬레이터, 통관·인증 체크리스트, 시장·물류 인텔리전스, 바이어·공급사 매칭, 콜드메일·PI 자동 생성.',
+    '전 세계 무역을 질문 하나로: HS Code 분류, FTA 절세 시뮬레이터, 통관·인증 체크리스트, 시장·물류 인텔리전스, 바이어·공급사 매칭, 콜드메일·PI 자동 생성. 첫 번째 노선 대한민국 ↔ 필리핀 프로토타입.',
   applicationName: 'TradeScope AI',
-  keywords: ['TradeScope AI', '무역', '필리핀', 'FTA', 'HS Code', 'RCEP', 'AKFTA', '한-필리핀 FTA', 'trade intelligence'],
+  keywords: ['TradeScope AI', '무역', '글로벌 무역', '수출입', '필리핀', 'FTA', 'HS Code', 'RCEP', 'AKFTA', '한-필리핀 FTA', 'trade intelligence'],
   openGraph: {
-    title: 'TradeScope AI — KR ↔ PH AI Trade Intelligence',
-    description: 'Korea ↔ Philippines all-in-one AI trade intelligence MVP',
+    title: 'TradeScope AI — Global AI Trade Intelligence',
+    description: 'Global trade, answered in one question. First corridor: Korea ↔ Philippines (prototype).',
     type: 'website',
   },
 };

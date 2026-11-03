@@ -239,7 +239,7 @@ function WorkspaceInner() {
             <>
               {/* Print-only report header */}
               <div className="print-only">
-                <p className="text-xl font-extrabold">TradeScope AI — KR ↔ PH Trade Intelligence Report</p>
+                <p className="text-xl font-extrabold">TradeScope AI — Trade Intelligence Report · Korea ↔ Philippines</p>
                 <p className="text-sm">
                   {DIRECTION_LABEL[product.direction][lang]} · {new Date(report.generatedAt).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US')}
                 </p>

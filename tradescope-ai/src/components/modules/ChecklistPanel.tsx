@@ -6,6 +6,7 @@ import { REQ_CATEGORY_LABEL } from '@/lib/i18n';
 import type { Country, TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
 import { Badge, cx, LevelBadge, ProgressBar, SourceTag } from '../ui';
+import { Flag } from '../Flag';
 
 export default function ChecklistPanel({ product }: { product: TradeProduct }) {
   const { t, p, lang } = useI18n();
@@ -48,7 +49,10 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
           if (!items.length) return null;
           return (
             <div key={side}>
-              <p className="mb-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">{side === 'KR' ? t('sideKr') : t('sidePh')}</p>
+              <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+                <Flag code={side} />
+                {side === 'KR' ? t('sideKr') : t('sidePh')}
+              </p>
               <ul className="space-y-1.5">
                 {items.map((r) => {
                   const isOpen = open === r.id;
