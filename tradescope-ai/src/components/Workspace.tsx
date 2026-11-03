@@ -17,6 +17,7 @@ import PartnersModule from './modules/PartnersModule';
 import TariffModule from './modules/TariffModule';
 import Overview from './Overview';
 import UnsupportedNotice from './UnsupportedNotice';
+import { oncePerSession, sendMetric } from '@/lib/metrics/client';
 import ExpertRequestDialog, { type ExpertContext } from './expert/ExpertRequestDialog';
 import TradeJourney from './journey/TradeJourney';
 import { Button, cx } from './ui';
@@ -53,6 +54,10 @@ function WorkspaceInner() {
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [trustOpen, setTrustOpen] = useState(false);
   const [expert, setExpert] = useState<ExpertContext | null>(null);
+  const openExpert = useCallback((ctx: ExpertContext) => {
+    if (ctx.source) sendMetric({ e: 'expert_open', src: ctx.source });
+    setExpert(ctx);
+  }, []);
   // a query for a product outside the knowledge base: the example report stays hidden until asked for
   const [showExample, setShowExample] = useState(false);
   // re-applies the official layer at the day boundary so expired overrides drop out of an open dashboard
@@ -62,6 +67,17 @@ function WorkspaceInner() {
   const requestId = useRef(0);
 
   const product = report ? getProduct(report.productId) : undefined;
+
+  // validation metrics (aggregate only): one visit per tab session, and each report shown (supported or not)
+  useEffect(() => {
+    if (oncePerSession('visit')) sendMetric({ e: 'visit' });
+  }, []);
+  const countedReport = useRef<string | null>(null);
+  useEffect(() => {
+    if (status !== 'done' || !report || countedReport.current === report.id) return;
+    countedReport.current = report.id;
+    sendMetric({ e: 'report', supported: report.match.supported !== false });
+  }, [status, report]);
 
   const run = useCallback(
     async (rawQuery: string, dir: Direction, demoId: string | null = null, reqLang: Lang = lang) => {
@@ -211,7 +227,7 @@ function WorkspaceInner() {
               showExample={showExample}
               onToggleExample={() => setShowExample((v) => !v)}
               onPick={onPick}
-              onExpert={(serviceIds) => setExpert({ topic: report.query, serviceIds })}
+              onExpert={(serviceIds) => openExpert({ topic: report.query, serviceIds, source: 'unsupported' })}
             />
           )}
           {status === 'done' && report && product && (report.match.supported !== false || showExample) && (
@@ -231,7 +247,7 @@ function WorkspaceInner() {
                 product={product}
                 onOpenTrust={() => setTrustOpen(true)}
                 onOpenAssistant={(partnerId, tab) => setAssistant({ partnerId, tab })}
-                onExpert={setExpert}
+                onExpert={openExpert}
                 tariffProps={{
                   initialAmount: report.intent.customsValueUsd ?? report.intent.amountUsd,
                   convertedFrom: cifSource(report),

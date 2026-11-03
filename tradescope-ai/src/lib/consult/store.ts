@@ -25,6 +25,10 @@ export interface ConsultRequest {
   serviceIds: string[];
   message: string;
   lang: 'ko' | 'en';
+  /** where the request was started on the site (checklist, card, unsupported, customs) */
+  source?: string;
+  /** acquisition channel of the visit (?utm_source= / ?ref=) */
+  channel?: string;
 }
 
 const file = () => path.join(settingsDir(), 'consult-requests.jsonl');

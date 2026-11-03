@@ -2,6 +2,7 @@
 
 import { Anchor, CheckCircle2, Circle, Container, Info, MapPin, Radar, RefreshCw, Search } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
+import { noteSavedLookup, sendMetric } from '@/lib/metrics/client';
 import { isContainerNumber, normaliseReference, type Milestone, type TrackKind, type TrackResult } from '@/lib/tracking/types';
 import type { TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
@@ -205,6 +206,9 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
       });
       const j = await res.json().catch(() => ({}));
       if (res.ok && j?.ok && j.result) {
+        // validation metrics (H7): looking the saved number up again, an hour or more later, is a re-check;
+        // the second one is reported once per trade (shipping and customs numbers together)
+        if (save && noteSavedLookup(product.id, saved?.reference !== q.reference)) sendMetric({ e: 'track_recheck2' });
         if (save) {
           try {
             localStorage.setItem(savedKey(product.id, apiMode), JSON.stringify(q));

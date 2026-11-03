@@ -31,6 +31,7 @@ import ChecklistPanel from '../modules/ChecklistPanel';
 import MarketModule, { LogisticsLanes } from '../modules/MarketModule';
 import PartnersModule from '../modules/PartnersModule';
 import TariffModule from '../modules/TariffModule';
+import { firstTime, sendMetric } from '@/lib/metrics/client';
 import TrackingPanel from '../tracking/TrackingPanel';
 import { Badge, Button, Card, cx, InStepContext } from '../ui';
 
@@ -185,6 +186,13 @@ export default function TradeJourney({
     }
   }, [product.id, progress]);
 
+  // validation metrics: the first time this browser opens each step of this product (H3 permits, H7 shipping)
+  useEffect(() => {
+    if (progress.pid !== product.id) return;
+    const step = STEPS[progress.step]?.id;
+    if (step && firstTime(`step:${product.id}:${step}`)) sendMetric({ e: 'step_first', step });
+  }, [progress.pid, progress.step, product.id]);
+
   const services = useMemo(() => servicesForProduct(product), [product]);
   const current = STEPS[progress.step];
   const doneCount = progress.done.length;
@@ -203,9 +211,9 @@ export default function TradeJourney({
 
   const expertFor = (r: Requirement) => {
     const svc = servicesForProduct(product).find((s) => s.covers(r, product));
-    onExpert({ product, topic: p(r.title), serviceIds: svc ? [svc.id] : [] });
+    onExpert({ product, topic: p(r.title), serviceIds: svc ? [svc.id] : [], source: 'checklist' });
   };
-  const expertForService = (svc: ExpertService) => onExpert({ product, topic: p(svc.title), serviceIds: [svc.id] });
+  const expertForService = (svc: ExpertService) => onExpert({ product, topic: p(svc.title), serviceIds: [svc.id], source: 'card' });
 
   const L = lang === 'ko'
     ? { guide: '거래 진행 가이드', progress: `{n}/${STEPS.length} 단계 완료`, step: '단계', of: `/ ${STEPS.length}`, todo: '이번 단계에서 할 일', owner: '담당', prev: '이전 단계', next: '이 단계 완료 · 다음 단계', finish: '거래 완료로 표시', allDone: '모든 단계를 마쳤습니다. 다음 거래도 같은 순서로 진행하세요.', market: '시장 데이터 자세히 보기', hideMarket: '시장 데이터 접기', experts: '이 품목에 맞는 현지 전문가 서비스', expertsSub: '직접 하기 어려운 서류는 TradeScope 파트너 전문가가 대신 진행합니다. 요청하면 운영팀이 진행 방법과 견적을 안내합니다.', request: '요청하기', needs: '준비할 서류와 근거', pi: '제안 메일·PI 만들기', piSub: '조건을 입력하면 국/영 제안 메일과 Proforma Invoice가 바로 만들어집니다.', handover: '통관을 맡길 관세사가 필요하면', pdf: 'PDF 리포트' }
@@ -321,7 +329,7 @@ export default function TradeJourney({
                 {s.id === 'customs' && (
                   <div className="no-print mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-3 dark:bg-white/[0.04]">
                     <p className="text-xs text-slate-600 dark:text-slate-300">{L.handover}</p>
-                    <Button size="sm" onClick={() => onExpert({ product, topic: p(s.title), serviceIds: [product.direction === 'PH_TO_KR' ? 'kr-customs-broker' : 'ph-customs-broker'] })}>
+                    <Button size="sm" onClick={() => onExpert({ product, topic: p(s.title), serviceIds: [product.direction === 'PH_TO_KR' ? 'kr-customs-broker' : 'ph-customs-broker'], source: 'customs' })}>
                       <UserRoundCheck className="size-3.5" aria-hidden />
                       {L.request}
                     </Button>

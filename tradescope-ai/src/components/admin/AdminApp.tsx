@@ -4,9 +4,13 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
+  CirclePause,
+  CircleX,
   Cpu,
   Database,
+  FlaskConical,
   Gauge,
+  Hourglass,
   Info,
   KeyRound,
   LayoutDashboard,
@@ -45,7 +49,7 @@ interface Snapshot {
 }
 type Session = { enabled: boolean; reason?: 'not-set' | 'too-short' | 'too-long' | 'secret-too-short'; authenticated: boolean; expiresAt: number | null };
 type TestResult = { ok: boolean; message: string; latencyMs: number; detail?: string };
-type Section = 'overview' | SettingGroup | 'deploy';
+type Section = 'overview' | 'validation' | SettingGroup | 'deploy';
 
 // ---------------------------------------------------------------------------
 // strings
@@ -73,9 +77,10 @@ const S = {
     wrongPassword: '비밀번호가 올바르지 않습니다.',
     tooMany: '시도가 너무 많습니다. 15분 뒤 다시 시도하세요.',
     networkError: '서버에 연결할 수 없습니다.',
-    menu: { overview: '개요', ai: 'AI 엔진', data: '공식 데이터 키', service: '전문가 서비스', tracking: '컨테이너 추적', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
+    menu: { overview: '개요', validation: '가설 검증', ai: 'AI 엔진', data: '공식 데이터 키', service: '전문가 서비스', tracking: '컨테이너 추적', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
     sectionSub: {
       overview: '현재 상태와 남은 설정을 한눈에 봅니다.',
+      validation: '사이트에서 측정하는 가설(H3·H7·H8·H9)을 비즈니스 모델 캔버스의 기준으로 판정합니다. 익명 집계만 사용합니다.',
       ai: 'OpenAI 호환 LLM을 연결합니다. 저장 즉시 다음 요청부터 적용됩니다.',
       data: '공식 데이터 동기화(npm run data:sync)에 쓰는 키입니다.',
       service: '「전문가에게 맡기기」로 들어온 요청을 확인하고 담당 전문가를 배정합니다. 알림 웹훅과 대체 연락처를 설정합니다.',
@@ -189,9 +194,10 @@ const S = {
     wrongPassword: 'Incorrect password.',
     tooMany: 'Too many attempts. Try again in 15 minutes.',
     networkError: 'Cannot reach the server.',
-    menu: { overview: 'Overview', ai: 'AI engine', data: 'Official data keys', service: 'Expert service', tracking: 'Container tracking', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
+    menu: { overview: 'Overview', validation: 'Hypothesis checks', ai: 'AI engine', data: 'Official data keys', service: 'Expert service', tracking: 'Container tracking', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
     sectionSub: {
       overview: 'Current state and what is left to configure.',
+      validation: 'The hypotheses the site measures (H3, H7, H8, H9), judged against the business model canvas thresholds. Aggregate counts only.',
       ai: 'Connect an OpenAI-compatible LLM. Takes effect from the next request.',
       data: 'Keys used by the official data sync (npm run data:sync).',
       service: 'Review requests sent through “Hand it to an expert” and assign an expert. Set the notification webhook and fallback contact.',
@@ -303,6 +309,7 @@ const isPresetValue = (key: ManualKey, v: string | null | undefined) => !!v && P
 
 const SECTIONS: Array<{ id: Section; icon: React.ReactNode }> = [
   { id: 'overview', icon: <LayoutDashboard className="size-4" /> },
+  { id: 'validation', icon: <FlaskConical className="size-4" /> },
   { id: 'ai', icon: <Cpu className="size-4" /> },
   { id: 'data', icon: <Database className="size-4" /> },
   { id: 'service', icon: <UserRoundCheck className="size-4" /> },
@@ -555,13 +562,14 @@ function Dashboard({
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{s.sectionSub[section]}</p>
         </div>
 
-        {ro && section !== 'overview' && section !== 'deploy' && (
+        {ro && section !== 'overview' && section !== 'deploy' && section !== 'validation' && (
           <Notice tone="warn" title={s.readOnly}>
             {s.readOnlyWhy[ro.reason] ?? ro.reason}
           </Notice>
         )}
 
         {section === 'overview' && <Overview s={s} lang={lang} snap={snap} fields={fields} expiresAt={expiresAt} go={setSection} />}
+        {section === 'validation' && <Validation lang={lang} onUnauthorized={onUnauthorized} />}
         {section === 'service' && <ConsultRequests lang={lang} onUnauthorized={onUnauthorized} />}
         {(section === 'ai' || section === 'data' || section === 'service' || section === 'tracking' || section === 'links' || section === 'limits') && (
           <GroupForm key={section} s={s} lang={lang} group={section} fields={fields} writable={writable} setSnap={setSnap} onUnauthorized={onUnauthorized} />
@@ -1099,7 +1107,16 @@ interface ConsultRow {
   serviceIds: string[];
   message: string;
   lang: 'ko' | 'en';
+  source?: string;
+  channel?: string;
 }
+
+const SOURCE_LABEL: Record<string, { ko: string; en: string }> = {
+  checklist: { ko: '인허가 체크리스트', en: 'Permits checklist' },
+  card: { ko: '서비스 카드', en: 'Service card' },
+  customs: { ko: '통관 단계', en: 'Clearance step' },
+  unsupported: { ko: '미지원 품목', en: 'Unsupported product' },
+};
 
 const STATUS_LABEL: Record<ConsultStatus, { ko: string; en: string; tone: 'red' | 'amber' | 'brand' | 'green' | 'slate' }> = {
   new: { ko: '새 요청', en: 'New', tone: 'red' },
@@ -1212,6 +1229,8 @@ function ConsultRequests({ lang, onUnauthorized }: { lang: Lang; onUnauthorized:
                   </>
                 )}
                 {x.lang === 'en' ? ' · EN' : ''}
+                {x.source && ` · ${ko ? '시작' : 'from'}: ${SOURCE_LABEL[x.source]?.[lang] ?? x.source}`}
+                {x.channel && ` · ${ko ? '채널' : 'channel'}: ${x.channel}`}
               </p>
               {x.serviceIds.length > 0 && (
                 <p className="mt-2 flex flex-wrap gap-1.5">
@@ -1238,6 +1257,315 @@ function ConsultRequests({ lang, onUnauthorized }: { lang: Lang; onUnauthorized:
           ))}
         </ul>
       )}
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Hypothesis checks (validation metrics)
+// ---------------------------------------------------------------------------
+
+type Bi = { ko: string; en: string };
+type Verdict = 'pass' | 'hold' | 'stop' | 'insufficient';
+interface AlsoRow {
+  label: Bi;
+  success: number;
+  base: number;
+  target: number;
+  minBase: number;
+  met: boolean | null;
+}
+interface CheckRow {
+  id: string;
+  title: Bi;
+  measure: Bi;
+  success: number;
+  base: number;
+  rate: number | null;
+  ci: { low: number; high: number } | null;
+  minBase: number;
+  pass: number;
+  stop: number;
+  verdict: Verdict;
+  note: Bi;
+  also?: AlsoRow;
+}
+interface ChannelRow {
+  channel: string;
+  visits: number;
+  permitsViews: number;
+  expertOpens: number;
+  requests: number;
+}
+interface MetricsData {
+  ok: boolean;
+  days: number;
+  from: string;
+  to: string;
+  persistent: boolean;
+  totals: Record<string, number>;
+  requests: { handled: number; responded: number } | null;
+  checks: CheckRow[];
+  channels: ChannelRow[];
+}
+
+const VERDICT: Record<Verdict, { ko: string; en: string; tone: 'green' | 'amber' | 'red' | 'slate'; Icon: typeof CheckCircle2 }> = {
+  pass: { ko: '통과', en: 'Pass', tone: 'green', Icon: CheckCircle2 },
+  hold: { ko: '보류', en: 'Hold', tone: 'amber', Icon: CirclePause },
+  stop: { ko: '중단·전환', en: 'Stop or pivot', tone: 'red', Icon: CircleX },
+  insufficient: { ko: '표본 부족', en: 'Not enough data', tone: 'slate', Icon: Hourglass },
+};
+
+const pct1 = (x: number) => `${(x * 100).toFixed(1)}%`;
+const PERIOD_OPTIONS = ['7', '28', '90', '400'] as const;
+
+function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () => void }) {
+  const ko = lang === 'ko';
+  const [days, setDays] = useState<(typeof PERIOD_OPTIONS)[number]>('28');
+  const [data, setData] = useState<MetricsData | null>(null);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      const r = await api<MetricsData>(`/api/admin/metrics?days=${days}`);
+      if (r.status === 401) return onUnauthorized();
+      if (r.status !== 200 || !Array.isArray(r.data?.checks)) throw new Error(`load-${r.status}`);
+      setData(r.data);
+      setError('');
+    } catch {
+      setError(ko ? '측정값을 불러오지 못했습니다. 잠시 후 새로고침하세요.' : 'Could not load the measurements. Refresh in a moment.');
+    }
+  }, [days, ko, onUnauthorized]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const t = data?.totals ?? {};
+  const v = (k: string) => t[k] ?? 0;
+  const nf = (x: number) => x.toLocaleString(ko ? 'ko-KR' : 'en-US');
+
+  return (
+    <div className="space-y-5">
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[15px] font-bold text-slate-900 dark:text-white">
+            {ko ? '기간' : 'Period'}
+            {data && (
+              <span className="ml-2 text-xs font-medium text-slate-500">
+                {data.from} – {data.to} (UTC)
+              </span>
+            )}
+          </p>
+          <div className="flex items-center gap-2">
+            <Segmented
+              size="sm"
+              value={days}
+              ariaLabel={ko ? '기간' : 'Period'}
+              onChange={(x) => setDays(x)}
+              options={PERIOD_OPTIONS.map((d) => ({ value: d, label: d === '400' ? (ko ? '전체' : 'All') : ko ? `${d}일` : `${d} days` }))}
+            />
+            <Button size="sm" onClick={() => void load()}>
+              {ko ? '새로고침' : 'Refresh'}
+            </Button>
+          </div>
+        </div>
+        {error && <p role="alert" className="mt-3 text-xs font-semibold text-rose-600">{error}</p>}
+        {data && !data.persistent && (
+          <div className="mt-3">
+            <Notice tone="warn" title={ko ? '측정값이 메모리에만 있습니다' : 'Counts are in memory only'}>
+              {ko
+                ? '저장소에 쓸 수 없는 환경이라 서버가 다시 시작되면 숫자가 사라집니다. 검증 기간 동안에는 쓰기 가능한 데이터 폴더(TRADESCOPE_DATA_DIR)가 있는 서버에서 운영하세요.'
+                : 'Storage is not writable here, so the numbers reset when the server restarts. Run the validation period on a server with a writable data folder (TRADESCOPE_DATA_DIR).'}
+            </Notice>
+          </div>
+        )}
+      </Card>
+
+      {data === null && !error && <p className="text-sm text-slate-500">{ko ? '불러오는 중…' : 'Loading…'}</p>}
+
+      {data && (
+        <>
+          <div className="grid gap-4 xl:grid-cols-3">
+            {data.checks.map((c) => (
+              <CheckCard key={c.id} c={c} lang={lang} />
+            ))}
+          </div>
+
+          <Card className="p-5">
+            <p className="text-[15px] font-bold text-slate-900 dark:text-white">{ko ? 'H3 깔때기 — 어디서 빠지는지' : 'H3 funnel — where people drop off'}</p>
+            <p className="mt-1 text-xs text-slate-500">{ko ? '단계 수치는 브라우저 기준 첫 방문입니다. 한 가지만 바꾸고 같은 기간 길이로 비교하세요.' : 'Step counts are first opens per browser. Change one thing at a time and compare equal-length periods.'}</p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[30rem] text-left text-[13px]">
+                <thead className="text-xs text-slate-500">
+                  <tr className="border-b border-slate-200 dark:border-white/[0.08]">
+                    <th className="py-2 pr-3 font-semibold">{ko ? '단계' : 'Step'}</th>
+                    <th className="py-2 pr-3 text-right font-semibold">{ko ? '수' : 'Count'}</th>
+                    <th className="py-2 font-semibold">{ko ? '내역' : 'Breakdown'}</th>
+                  </tr>
+                </thead>
+                <tbody className="text-slate-700 dark:text-slate-200">
+                  {[
+                    { k: ko ? '방문(탭 세션)' : 'Visits (tab sessions)', n: v('visit'), d: '' },
+                    { k: ko ? '분석 결과 표시' : 'Reports shown', n: v('report'), d: ko ? `지원 품목 ${nf(v('report:supported'))} · 미지원 ${nf(v('report:unsupported'))}` : `supported ${nf(v('report:supported'))} · unsupported ${nf(v('report:unsupported'))}` },
+                    { k: ko ? '인허가 단계 첫 진입' : 'Permits step, first open', n: v('step_first:permits'), d: ko ? `선적 단계 첫 진입 ${nf(v('step_first:shipping'))}` : `shipping step first open ${nf(v('step_first:shipping'))}` },
+                    { k: ko ? '「맡기기」 열기' : '“Hand it to an expert” opened', n: v('expert_open'), d: `${ko ? '체크리스트' : 'checklist'} ${nf(v('expert_open:checklist'))} · ${ko ? '서비스 카드' : 'cards'} ${nf(v('expert_open:card'))} · ${ko ? '통관' : 'customs'} ${nf(v('expert_open:customs'))} · ${ko ? '미지원 품목' : 'unsupported'} ${nf(v('expert_open:unsupported'))}` },
+                    { k: ko ? '요청 제출' : 'Requests sent', n: v('consult_submit'), d: `${ko ? '체크리스트' : 'checklist'} ${nf(v('consult_submit:checklist'))} · ${ko ? '서비스 카드' : 'cards'} ${nf(v('consult_submit:card'))} · ${ko ? '통관' : 'customs'} ${nf(v('consult_submit:customs'))} · ${ko ? '미지원 품목' : 'unsupported'} ${nf(v('consult_submit:unsupported'))}` },
+                  ].map((r) => (
+                    <tr key={r.k} className="border-b border-slate-100 last:border-0 dark:border-white/[0.05]">
+                      <td className="py-2 pr-3 font-semibold">{r.k}</td>
+                      <td className="py-2 pr-3 text-right font-mono tabular-nums">{nf(r.n)}</td>
+                      <td className="py-2 text-xs text-slate-500">{r.d}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {v('expert_open') > 0 && (
+              <p className="mt-2 text-xs text-slate-500">
+                {ko ? '열기 대비 제출률' : 'Sent per opened'}: <b className="font-mono text-slate-700 dark:text-slate-200">{pct1(v('consult_submit') / v('expert_open'))}</b>
+                {ko ? ' — 낮으면 양식이 길거나 가격·소요 기간이 불분명하다는 신호입니다.' : ' — low means the form is long or price and lead time are unclear.'}
+              </p>
+            )}
+          </Card>
+
+          <Card className="p-5">
+            <p className="text-[15px] font-bold text-slate-900 dark:text-white">{ko ? 'H9 유입 채널별 비교' : 'H9 by acquisition channel'}</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {ko ? '채널마다 링크에 ' : 'Give each channel its own link with '}
+              <code className="rounded bg-slate-100 px-1 font-mono dark:bg-white/[0.06]">?utm_source=kotra</code>
+              {ko ? ' 처럼 이름을 붙이면 여기서 나뉘어 집계됩니다(영문 소문자·숫자·-·_ 32자 이내). 비용은 채널별로 따로 적어 요청 1건당 비용을 비교하세요.' : ' (lower-case letters, digits, - and _, up to 32). Note each channel’s spend separately and compare the cost per request.'}
+            </p>
+            {data.channels.length === 0 ? (
+              <p className="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500 dark:bg-white/[0.04]">{ko ? '이 기간에 채널 이름이 붙은 방문이 없습니다.' : 'No visits with a channel name in this period.'}</p>
+            ) : (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[32rem] text-left text-[13px]">
+                  <thead className="text-xs text-slate-500">
+                    <tr className="border-b border-slate-200 dark:border-white/[0.08]">
+                      <th className="py-2 pr-3 font-semibold">{ko ? '채널' : 'Channel'}</th>
+                      <th className="py-2 pr-3 text-right font-semibold">{ko ? '방문' : 'Visits'}</th>
+                      <th className="py-2 pr-3 text-right font-semibold">{ko ? '인허가 진입' : 'Permits'}</th>
+                      <th className="py-2 pr-3 text-right font-semibold">{ko ? '맡기기 열기' : 'Opened'}</th>
+                      <th className="py-2 pr-3 text-right font-semibold">{ko ? '요청' : 'Requests'}</th>
+                      <th className="py-2 text-right font-semibold">{ko ? '요청/방문' : 'Req./visit'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-slate-700 dark:text-slate-200">
+                    {data.channels.map((c) => (
+                      <tr key={c.channel} className="border-b border-slate-100 last:border-0 dark:border-white/[0.05]">
+                        <td className="py-2 pr-3 font-mono text-xs font-semibold">{c.channel}</td>
+                        <td className="py-2 pr-3 text-right font-mono tabular-nums">{nf(c.visits)}</td>
+                        <td className="py-2 pr-3 text-right font-mono tabular-nums">{nf(c.permitsViews)}</td>
+                        <td className="py-2 pr-3 text-right font-mono tabular-nums">{nf(c.expertOpens)}</td>
+                        <td className="py-2 pr-3 text-right font-mono tabular-nums">{nf(c.requests)}</td>
+                        <td className="py-2 text-right font-mono tabular-nums">{c.visits ? pct1(c.requests / c.visits) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+
+          <Card className="p-5">
+            <p className="text-[15px] font-bold text-slate-900 dark:text-white">{ko ? 'H8 추적 결과 내역' : 'H8 tracking outcomes'}</p>
+            <p className="mt-2 flex flex-wrap gap-1.5">
+              {(
+                [
+                  ['live', ko ? '조회됨' : 'Found'],
+                  ['pending', ko ? '등록·대기' : 'Registered, pending'],
+                  ['not-found', ko ? '못 찾음' : 'Not found'],
+                  ['not-covered', ko ? '지원 소스 없음' : 'No source takes it'],
+                  ['failed', ko ? '소스 오류' : 'Source error'],
+                  ['demo', ko ? '예시(키 없음, 제외)' : 'Example (no keys, excluded)'],
+                ] as const
+              ).map(([k, label]) => (
+                <Badge key={k} tone="slate">
+                  {label} <span className="ml-1 font-mono">{nf(v(`track:${k}`))}</span>
+                </Badge>
+              ))}
+            </p>
+            {Object.keys(t).some((k) => k.startsWith('track_provider:')) && (
+              <p className="mt-2 text-xs text-slate-500">
+                {ko ? '조회에 성공한 소스: ' : 'Answered by: '}
+                {Object.entries(t)
+                  .filter(([k]) => k.startsWith('track_provider:'))
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([k, n]) => `${k.slice('track_provider:'.length)} ${nf(n)}`)
+                  .join(' · ')}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-slate-500">{ko ? '정확도(선사 화면과 일치 여부)와 지연은 숫자로 잡히지 않습니다 — 실제 번호 20건을 선사 홈페이지와 나란히 비교해 기록하세요.' : 'Accuracy against the carrier’s own page and latency are not counted here — compare 20 real numbers side by side with the carrier website and record them.'}</p>
+          </Card>
+
+          <Notice tone="info" title={ko ? '사이트 밖에서 검증하는 가설' : 'Hypotheses tested off the site'}>
+            {ko
+              ? 'H1·H2·H4·H5·H6·H10과 H9의 비용은 인터뷰·사전 판매·시범 운영으로 검증합니다. 결과는 docs/business-model-canvas.html의 「판정 계산기」에 넣어 같은 기준으로 판정하세요.'
+              : 'H1, H2, H4, H5, H6, H10 and H9’s costs are tested with interviews, pre-sales and pilots. Enter those results in the verdict calculator in docs/business-model-canvas.html to judge them on the same rules.'}
+          </Notice>
+          <p className="text-xs leading-relaxed text-slate-500">
+            {ko
+              ? '수집 방식: 날짜별 익명 합계만 저장합니다(쿠키·IP·기기 ID·입력 내용 없음). Do Not Track·Global Privacy Control을 켠 브라우저는 보내지 않습니다. 「첫 진입」은 브라우저 저장소로 중복을 막으므로 같은 사람이 다른 기기를 쓰면 따로 셉니다.'
+              : 'How it is collected: only anonymous daily totals are stored (no cookies, IP, device id or typed content). Browsers with Do Not Track or Global Privacy Control send nothing. “First open” is deduplicated in browser storage, so one person on two devices counts twice.'}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function CheckCard({ c, lang }: { c: CheckRow; lang: Lang }) {
+  const ko = lang === 'ko';
+  const vd = VERDICT[c.verdict];
+  const progress = Math.min(1, c.base / c.minBase);
+  return (
+    <Card className="flex flex-col p-5">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[14px] font-bold leading-snug text-slate-900 dark:text-white">{c.title[lang]}</p>
+        <Badge tone={vd.tone} className="shrink-0">
+          <vd.Icon className="mr-1 size-3.5" aria-hidden />
+          {vd[lang]}
+        </Badge>
+      </div>
+      <p className="mt-3 flex items-baseline gap-2">
+        {/* below the minimum sample the rate is shown muted: it is not a result yet */}
+        <span className={cx('font-mono text-3xl font-bold tabular-nums', c.verdict === 'insufficient' ? 'text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white')}>{c.rate === null ? '—' : pct1(c.rate)}</span>
+        <span className="font-mono text-xs text-slate-500">
+          {c.success.toLocaleString()} / {c.base.toLocaleString()}
+        </span>
+      </p>
+      <p className="mt-1 text-xs text-slate-500">
+        {c.ci ? `${ko ? '95% 신뢰구간' : '95% interval'} ${pct1(c.ci.low)} – ${pct1(c.ci.high)}` : ko ? '아직 데이터 없음' : 'No data yet'}
+      </p>
+      <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+        {ko ? `통과 ${pct1(c.pass)} 이상 · 중단 ${pct1(c.stop)} 미만 · 최소 ${c.minBase}건` : `pass ≥ ${pct1(c.pass)} · stop < ${pct1(c.stop)} · minimum ${c.minBase}`}
+      </p>
+      {c.base < c.minBase && (
+        <div className="mt-2">
+          <div
+            role="meter"
+            aria-label={ko ? '최소 표본까지' : 'Towards the minimum sample'}
+            aria-valuemin={0}
+            aria-valuemax={c.minBase}
+            aria-valuenow={c.base}
+            className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/[0.08]"
+          >
+            <div className="h-full rounded-full bg-slate-500 dark:bg-slate-300" style={{ width: `${progress * 100}%` }} />
+          </div>
+          <p className="mt-1 text-[11px] text-slate-500">{ko ? `최소 표본 ${c.base}/${c.minBase}` : `Sample ${c.base} of ${c.minBase}`}</p>
+        </div>
+      )}
+      {c.also && (
+        <p className="mt-2 rounded-lg bg-slate-50 p-2 text-xs text-slate-600 dark:bg-white/[0.04] dark:text-slate-300">
+          {c.also.label[lang]}:{' '}
+          <b className="font-mono">
+            {c.also.base ? pct1(c.also.success / c.also.base) : '—'} ({c.also.success}/{c.also.base})
+          </b>{' '}
+          · {ko ? `기준 ${pct1(c.also.target)} 이상, 최소 ${c.also.minBase}건` : `needs ${pct1(c.also.target)}+, minimum ${c.also.minBase}`}
+        </p>
+      )}
+      <p className="mt-2 text-xs font-semibold text-slate-700 dark:text-slate-200">{c.note[lang]}</p>
+      <p className="mt-auto pt-3 text-[11px] leading-relaxed text-slate-500">{c.measure[lang]}</p>
     </Card>
   );
 }

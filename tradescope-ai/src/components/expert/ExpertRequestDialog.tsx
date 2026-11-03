@@ -3,6 +3,8 @@
 import { CheckCircle2, Send, UserRoundCheck, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { EXPERT_INDEX, EXPERT_SERVICES } from '@/data/experts';
+import { currentChannel } from '@/lib/metrics/client';
+import type { ExpertSource } from '@/lib/metrics/events';
 import type { TradeProduct } from '@/lib/types';
 import { Flag } from '../Flag';
 import { useI18n } from '../I18nProvider';
@@ -14,6 +16,8 @@ export interface ExpertContext {
   /** requirement title or the free-text query the request starts from */
   topic: string;
   serviceIds: string[];
+  /** where the request was started (validation metrics, H3) */
+  source?: ExpertSource;
 }
 
 const L = {
@@ -130,7 +134,7 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
       const res = await fetch('/api/consult', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, productId: context.product?.id, topic: context.topic, serviceIds: [...picked], lang }),
+        body: JSON.stringify({ ...form, productId: context.product?.id, topic: context.topic, serviceIds: [...picked], lang, source: context.source, ch: currentChannel() }),
       });
       const j = await res.json().catch(() => ({}));
       if (res.ok && j?.ok) return setState({ kind: 'done', id: j.id });

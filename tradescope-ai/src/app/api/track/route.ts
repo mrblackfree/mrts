@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getProduct } from '@/data/kr-ph-trade-db';
 import { readJsonLimited } from '@/lib/http';
+import { eventKeys } from '@/lib/metrics/events';
+import { countMetrics } from '@/lib/metrics/store';
 import { clientKey, windowLimiter } from '@/lib/rate-limit';
 import { trackShipment, type TrackMode } from '@/lib/tracking';
 import { isContainerNumber, normaliseReference, type TrackKind } from '@/lib/tracking/types';
@@ -25,6 +27,9 @@ export async function POST(req: Request) {
   if (!allow(clientKey(req))) return NextResponse.json({ ok: false, error: 'rate-limited' }, { status: 429 });
   const product = typeof body.productId === 'string' ? getProduct(body.productId) : undefined;
   const out = await trackShipment({ reference, kind, carrier }, { mode, product });
+  // validation metrics (H8): how live lookups end, without the number itself
+  const outcome = out.result ? (out.result.demo ? 'demo' : out.result.pending ? 'pending' : 'live') : (out.error ?? 'not-found');
+  countMetrics(eventKeys({ e: 'track', kind: outcome, provider: out.result && !out.result.demo ? out.result.provider : undefined }));
   if (out.result) return NextResponse.json({ ok: true, result: out.result, tried: out.tried }, { headers: { 'Cache-Control': 'no-store' } });
   const status = out.error === 'failed' ? 502 : out.error === 'not-covered' ? 422 : 404;
   return NextResponse.json({ ok: false, error: out.error ?? 'not-found', tried: out.tried }, { status, headers: { 'Cache-Control': 'no-store' } });
