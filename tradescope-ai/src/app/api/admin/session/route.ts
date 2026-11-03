@@ -56,7 +56,8 @@ export async function POST(req: Request) {
   // cheap early exit: a blocked client never gets its body read
   if (loginBlocked(client)) return adminJson({ ok: false, error: 'too-many-attempts' }, { status: 429 });
 
-  const raw = await readBodyLimited(req, MAX_BODY_BYTES);
+  // a body that cannot be read (e.g. the client aborted mid-upload) counts as an empty, failed sign-in, as before
+  const raw = await readBodyLimited(req, MAX_BODY_BYTES).catch(() => '');
   if (raw === null) return adminJson({ ok: false, error: 'too-large' }, { status: 413 });
   let password = '';
   try {
