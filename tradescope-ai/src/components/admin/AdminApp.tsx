@@ -26,7 +26,7 @@ import {
   Trash2,
   UserRoundCheck,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EXPERT_INDEX } from '@/data/experts';
 import { SETTINGS, type SettingDef, type SettingGroup } from '@/lib/settings/schema';
 import type { Lang } from '@/lib/types';
@@ -1324,15 +1324,20 @@ function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () =
   const [days, setDays] = useState<(typeof PERIOD_OPTIONS)[number]>('28');
   const [data, setData] = useState<MetricsData | null>(null);
   const [error, setError] = useState('');
+  // only the latest request may update the screen (period changes can overtake each other)
+  const latest = useRef(0);
 
   const load = useCallback(async () => {
+    const id = ++latest.current;
     try {
       const r = await api<MetricsData>(`/api/admin/metrics?days=${days}`);
+      if (id !== latest.current) return;
       if (r.status === 401) return onUnauthorized();
       if (r.status !== 200 || !Array.isArray(r.data?.checks)) throw new Error(`load-${r.status}`);
       setData(r.data);
       setError('');
     } catch {
+      if (id !== latest.current) return;
       setError(ko ? '측정값을 불러오지 못했습니다. 잠시 후 새로고침하세요.' : 'Could not load the measurements. Refresh in a moment.');
     }
   }, [days, ko, onUnauthorized]);
@@ -1393,7 +1398,7 @@ function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () =
 
           <Card className="p-5">
             <p className="text-[15px] font-bold text-slate-900 dark:text-white">{ko ? 'H3 깔때기 — 어디서 빠지는지' : 'H3 funnel — where people drop off'}</p>
-            <p className="mt-1 text-xs text-slate-500">{ko ? '단계 수치는 브라우저 기준 첫 방문입니다. 한 가지만 바꾸고 같은 기간 길이로 비교하세요.' : 'Step counts are first opens per browser. Change one thing at a time and compare equal-length periods.'}</p>
+            <p className="mt-1 text-xs text-slate-500">{ko ? '단계 수치는 브라우저·품목별 첫 진입입니다. 한 가지만 바꾸고 같은 기간 길이로 비교하세요.' : 'Step counts are first opens per browser and product. Change one thing at a time and compare equal-length periods.'}</p>
             <div className="mt-3 overflow-x-auto">
               <table className="w-full min-w-[30rem] text-left text-[13px]">
                 <thead className="text-xs text-slate-500">
@@ -1409,7 +1414,7 @@ function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () =
                     { k: ko ? '분석 결과 표시' : 'Reports shown', n: v('report'), d: ko ? `지원 품목 ${nf(v('report:supported'))} · 미지원 ${nf(v('report:unsupported'))}` : `supported ${nf(v('report:supported'))} · unsupported ${nf(v('report:unsupported'))}` },
                     { k: ko ? '인허가 단계 첫 진입' : 'Permits step, first open', n: v('step_first:permits'), d: ko ? `선적 단계 첫 진입 ${nf(v('step_first:shipping'))}` : `shipping step first open ${nf(v('step_first:shipping'))}` },
                     { k: ko ? '「맡기기」 열기' : '“Hand it to an expert” opened', n: v('expert_open'), d: `${ko ? '체크리스트' : 'checklist'} ${nf(v('expert_open:checklist'))} · ${ko ? '서비스 카드' : 'cards'} ${nf(v('expert_open:card'))} · ${ko ? '통관' : 'customs'} ${nf(v('expert_open:customs'))} · ${ko ? '미지원 품목' : 'unsupported'} ${nf(v('expert_open:unsupported'))}` },
-                    { k: ko ? '요청 제출' : 'Requests sent', n: v('consult_submit'), d: `${ko ? '체크리스트' : 'checklist'} ${nf(v('consult_submit:checklist'))} · ${ko ? '서비스 카드' : 'cards'} ${nf(v('consult_submit:card'))} · ${ko ? '통관' : 'customs'} ${nf(v('consult_submit:customs'))} · ${ko ? '미지원 품목' : 'unsupported'} ${nf(v('consult_submit:unsupported'))}` },
+                    { k: ko ? '요청 제출' : 'Requests sent', n: v('consult_submit'), d: `${ko ? '인허가 단계에서 처음 보낸 브라우저·품목' : 'first from the permits step (browser·product)'} ${nf(v('consult_first:checklist') + v('consult_first:card'))} · ${ko ? '체크리스트' : 'checklist'} ${nf(v('consult_submit:checklist'))} · ${ko ? '서비스 카드' : 'cards'} ${nf(v('consult_submit:card'))} · ${ko ? '통관' : 'customs'} ${nf(v('consult_submit:customs'))} · ${ko ? '미지원 품목' : 'unsupported'} ${nf(v('consult_submit:unsupported'))}` },
                   ].map((r) => (
                     <tr key={r.k} className="border-b border-slate-100 last:border-0 dark:border-white/[0.05]">
                       <td className="py-2 pr-3 font-semibold">{r.k}</td>
@@ -1487,7 +1492,7 @@ function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () =
             </p>
             {Object.keys(t).some((k) => k.startsWith('track_provider:')) && (
               <p className="mt-2 text-xs text-slate-500">
-                {ko ? '조회에 성공한 소스: ' : 'Answered by: '}
+                {ko ? '응답한 소스(조회됨·등록 대기): ' : 'Answered by (found or pending): '}
                 {Object.entries(t)
                   .filter(([k]) => k.startsWith('track_provider:'))
                   .sort((a, b) => b[1] - a[1])
@@ -1505,8 +1510,8 @@ function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () =
           </Notice>
           <p className="text-xs leading-relaxed text-slate-500">
             {ko
-              ? '수집 방식: 날짜별 익명 합계만 저장합니다(쿠키·IP·기기 ID·입력 내용 없음). Do Not Track·Global Privacy Control을 켠 브라우저는 보내지 않습니다. 「첫 진입」은 브라우저 저장소로 중복을 막으므로 같은 사람이 다른 기기를 쓰면 따로 셉니다.'
-              : 'How it is collected: only anonymous daily totals are stored (no cookies, IP, device id or typed content). Browsers with Do Not Track or Global Privacy Control send nothing. “First open” is deduplicated in browser storage, so one person on two devices counts twice.'}
+              ? '수집 방식: 날짜별 익명 합계만 저장합니다(쿠키·IP·기기 ID·입력 내용 없음). 신뢰 프록시가 있으면 남용 방지 한도를 위해 접속 IP를 1시간 동안 서버 메모리에서만 씁니다. Do Not Track·Global Privacy Control을 켠 브라우저는 보내지 않고, 서버도 그 신호가 있는 요청 제출·추적 조회는 세지 않습니다. 「첫 진입」은 브라우저 저장소에서 품목별로 중복을 막으므로 브라우저·품목 단위이고, 같은 사람이 다른 기기를 쓰면 따로 셉니다.'
+              : 'How it is collected: only anonymous daily totals are stored (no cookies, IP, device id or typed content). Behind a trusted proxy the client IP is used in server memory for one hour, for the abuse limit only. Browsers with Do Not Track or Global Privacy Control send nothing, and the server does not count requests or lookups that carry those signals. “First open” is deduplicated per product in browser storage, so counts are browser·product pairs and one person on two devices counts twice.'}
           </p>
         </>
       )}

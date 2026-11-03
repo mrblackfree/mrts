@@ -8,10 +8,11 @@ export const dynamic = 'force-dynamic';
 
 const PERIODS = [7, 28, 90, 400];
 
-/** Requests created in the period, by what happened after the team got in touch (H3's second condition). */
+/** Permits-step requests (checklist, service cards) created in the period, by what happened after the team got in
+ * touch — the same population as H3's request rate. */
 function tally(from: string): RequestTally | undefined {
   try {
-    const rows = listRequests().filter((r) => r.createdAt.slice(0, 10) >= from);
+    const rows = listRequests().filter((r) => r.createdAt.slice(0, 10) >= from && (r.source === 'checklist' || r.source === 'card'));
     return {
       handled: rows.filter((r) => r.status !== 'new').length,
       responded: rows.filter((r) => r.status === 'in-progress' || r.status === 'done').length,

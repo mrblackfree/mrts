@@ -3,7 +3,7 @@
 import { CheckCircle2, Send, UserRoundCheck, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { EXPERT_INDEX, EXPERT_SERVICES } from '@/data/experts';
-import { currentChannel } from '@/lib/metrics/client';
+import { currentChannel, mark, measurementOff, seen } from '@/lib/metrics/client';
 import type { ExpertSource } from '@/lib/metrics/events';
 import type { TradeProduct } from '@/lib/types';
 import { Flag } from '../Flag';
@@ -130,14 +130,20 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
     setErrors(errs);
     if (Object.keys(errs).length) return focusFirst(errs);
     setState({ kind: 'sending' });
+    // H3 counts browser·product pairs: flag the first request from the permits step for this product
+    const permitsKey = context.product && (context.source === 'checklist' || context.source === 'card') ? `submit-permits:${context.product.id}` : null;
+    const first = permitsKey !== null && !measurementOff() && seen(permitsKey) === false;
     try {
       const res = await fetch('/api/consult', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, productId: context.product?.id, topic: context.topic, serviceIds: [...picked], lang, source: context.source, ch: currentChannel() }),
+        body: JSON.stringify({ ...form, productId: context.product?.id, topic: context.topic, serviceIds: [...picked], lang, source: context.source, ch: currentChannel(), ...(first ? { first: true } : {}) }),
       });
       const j = await res.json().catch(() => ({}));
-      if (res.ok && j?.ok) return setState({ kind: 'done', id: j.id });
+      if (res.ok && j?.ok) {
+        if (permitsKey) mark(permitsKey);
+        return setState({ kind: 'done', id: j.id });
+      }
       if (j?.error === 'not-accepting') return setState({ kind: 'error', message: s.notAccepting, contact: j.contact });
       if (res.status === 429) return setState({ kind: 'error', message: s.rateLimited });
       if (j?.errors) {

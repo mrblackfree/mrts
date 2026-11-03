@@ -16,8 +16,10 @@ function optedOut(): boolean {
 
 /** The acquisition channel of this visit: `?utm_source=` or `?ref=` on landing, kept for the tab session. */
 export function currentChannel(): string | undefined {
+  if (optedOut()) return undefined;
   try {
-    const fromUrl = parseChannel(new URLSearchParams(window.location.search).get('utm_source') ?? new URLSearchParams(window.location.search).get('ref'));
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = parseChannel(params.get('utm_source') ?? params.get('ref'));
     if (fromUrl) {
       sessionStorage.setItem(CH_KEY, fromUrl);
       return fromUrl;
@@ -67,6 +69,26 @@ export function firstTime(key: string): boolean {
     return false;
   }
 }
+
+/** Whether `key` was marked in this browser (by `firstTime` or `mark`); null when storage is unavailable. */
+export function seen(key: string): boolean | null {
+  try {
+    return localStorage.getItem(`ts-m:${key}`) !== null;
+  } catch {
+    return null;
+  }
+}
+
+export function mark(key: string): void {
+  try {
+    localStorage.setItem(`ts-m:${key}`, '1');
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+/** Opted out of measurement (Do Not Track / Global Privacy Control). */
+export const measurementOff = () => typeof navigator === 'undefined' || optedOut();
 
 /** True once per tab session for `key`. */
 export function oncePerSession(key: string): boolean {

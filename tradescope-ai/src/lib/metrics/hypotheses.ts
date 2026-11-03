@@ -9,7 +9,7 @@ export type Verdict = 'pass' | 'hold' | 'stop' | 'insufficient';
 /** 95% Wilson score interval for k successes out of n (as fractions). */
 export function wilson(k: number, n: number, z = 1.96): { low: number; high: number } {
   if (n <= 0) return { low: 0, high: 1 };
-  const p = k / n;
+  const p = Math.min(Math.max(k, 0), n) / n;
   const z2 = z * z;
   const denom = 1 + z2 / n;
   const centre = (p + z2 / (2 * n)) / denom;
@@ -106,14 +106,15 @@ const n = (t: Record<string, number>, k: string) => t[k] ?? 0;
 
 /** H3, H7 and H8 from the counter totals (same rules as the canvas). */
 export function hypothesisChecks(t: Record<string, number>, requests?: RequestTally): RateCheck[] {
-  const journeySubmits = n(t, 'consult_submit:checklist') + n(t, 'consult_submit:card');
+  // browser·product pairs that sent a request from the permits step (first request only), like the base
+  const journeySubmits = n(t, 'consult_first:checklist') + n(t, 'consult_first:card');
   const liveOk = n(t, 'track:live') + n(t, 'track:pending');
   // not-covered (sources set up, none takes this number) is a coverage miss too; example data is left out
   const liveTried = liveOk + n(t, 'track:not-found') + n(t, 'track:failed') + n(t, 'track:not-covered');
   const h3 = judgeRate({
     id: 'H3',
     title: b('H3 인허가 단계에서 「맡기기」 요청을 남긴다', 'H3 Traders at the permits step send an expert request'),
-    measure: b('인허가 단계를 처음 연 브라우저 대비 그 단계(체크리스트·서비스 카드)에서 보낸 요청', 'Requests sent from the permits step (checklist, service cards) per browser that first opened it'),
+    measure: b('인허가 단계를 연 브라우저·품목 가운데 그 단계(체크리스트·서비스 카드)에서 요청을 보낸 비율', 'Share of browser·product pairs that opened the permits step and sent a request from it (checklist, service cards)'),
     success: journeySubmits,
     base: n(t, 'step_first:permits'),
     minBase: 200,
@@ -131,7 +132,7 @@ export function hypothesisChecks(t: Record<string, number>, requests?: RequestTa
     judgeRate({
       id: 'H7',
       title: b('H7 선적 후에도 돌아와 다시 조회한다', 'H7 Traders come back after shipping to track again'),
-      measure: b('선적 단계를 처음 연 브라우저 대비 저장한 번호를 두 번 이상(1시간 이상 간격) 다시 조회한 브라우저', 'Browsers that re-checked their saved number twice (an hour or more apart), per browser that first opened the shipping step'),
+      measure: b('선적 단계를 연 브라우저·품목 가운데 실제 소스로 저장한 번호를 두 번 이상(1시간 이상 간격) 다시 조회한 비율', 'Share of browser·product pairs that opened the shipping step and re-checked their saved number on a live source twice (an hour or more apart)'),
       success: n(t, 'track_recheck2'),
       base: n(t, 'step_first:shipping'),
       minBase: 20,

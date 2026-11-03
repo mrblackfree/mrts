@@ -2,6 +2,7 @@
  * Expert-service requests ("전문가에게 맡기기"), stored next to the admin settings as JSON lines (mode 0600) and
  * read only through the admin page. Server-side only.
  */
+import type { ExpertSource } from '@/lib/metrics/events';
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -26,7 +27,7 @@ export interface ConsultRequest {
   message: string;
   lang: 'ko' | 'en';
   /** where the request was started on the site (checklist, card, unsupported, customs) */
-  source?: string;
+  source?: ExpertSource;
   /** acquisition channel of the visit (?utm_source= / ?ref=) */
   channel?: string;
 }

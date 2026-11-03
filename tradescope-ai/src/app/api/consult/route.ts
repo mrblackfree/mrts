@@ -4,7 +4,7 @@ import { getProduct } from '@/data/kr-ph-trade-db';
 import { notify, webhookUrl } from '@/lib/consult/notify';
 import { appendRequest, newRequestId, type ConsultRequest } from '@/lib/consult/store';
 import { readJsonLimited } from '@/lib/http';
-import { EXPERT_SOURCES, eventKeys, parseChannel, type ExpertSource } from '@/lib/metrics/events';
+import { EXPERT_SOURCES, eventKeys, optedOutHeaders, parseChannel, type ExpertSource } from '@/lib/metrics/events';
 import { countMetrics } from '@/lib/metrics/store';
 import { clientKey, windowLimiter } from '@/lib/rate-limit';
 import { getSetting, storageState } from '@/lib/settings';
@@ -48,8 +48,10 @@ export async function POST(req: Request) {
 
   if (!allow(clientKey(req))) return NextResponse.json({ ok: false, error: 'rate-limited' }, { status: 429 });
 
-  const source = (EXPERT_SOURCES as readonly string[]).includes(String(body.source)) ? (body.source as ExpertSource) : undefined;
-  const channel = parseChannel(body.ch);
+  const source = typeof body.source === 'string' && (EXPERT_SOURCES as readonly string[]).includes(body.source) ? (body.source as ExpertSource) : undefined;
+  // a browser that asks not to be tracked is not counted, and its channel is not kept on the request
+  const optedOut = optedOutHeaders(req.headers);
+  const channel = optedOut ? undefined : parseChannel(body.ch);
   const productId = typeof body.productId === 'string' && getProduct(body.productId)?.id === body.productId ? body.productId : undefined;
   const input: Omit<ConsultRequest, 'id' | 'createdAt' | 'status'> = {
     name,
@@ -82,7 +84,7 @@ export async function POST(req: Request) {
     // without storage the webhook is the only copy: tell the trader so they can retry or use the email
     if (!delivered && !canStore) return NextResponse.json({ ok: false, error: 'delivery-failed', contact }, { status: 502 });
   }
-  countMetrics(eventKeys({ e: 'consult_submit', src: source }, channel));
+  if (!optedOut) countMetrics(eventKeys({ e: 'consult_submit', src: source, first: body.first === true }, channel));
   return NextResponse.json({ ok: true, id: record.id });
 }
 

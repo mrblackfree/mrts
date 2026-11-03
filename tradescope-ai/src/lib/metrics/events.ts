@@ -3,7 +3,7 @@
  * H7 return visits after shipping, H8 tracking coverage, H9 channels). Shared by the browser and the server.
  *
  * Only aggregate counters are kept: no cookies, no user or device id, no IP, no free text. "First" events are
- * deduplicated in the browser (localStorage), so counts approximate browsers, not people.
+ * deduplicated in the browser (localStorage) per product, so counts are browser·product pairs, not people.
  */
 
 export const STEP_IDS = ['product', 'tariff', 'permits', 'partners', 'contract', 'shipping', 'customs'] as const;
@@ -23,6 +23,11 @@ export type ClientEvent =
   | { e: 'step_first'; step: MetricStep }
   | { e: 'expert_open'; src: ExpertSource }
   | { e: 'track_recheck2' };
+
+/** True when the request carries Do Not Track or Global Privacy Control: nothing is counted for it. */
+export function optedOutHeaders(h: Headers): boolean {
+  return h.get('sec-gpc') === '1' || h.get('dnt') === '1';
+}
 
 /** Events that are also counted per acquisition channel (H9). */
 const CHANNEL_EVENTS = new Set(['visit', 'step_first:permits', 'expert_open', 'consult_submit']);
@@ -57,7 +62,7 @@ export function parseClientEvent(raw: unknown): ClientEvent | null {
 
 /** Counter keys one event increments: the event, its dimension and, for funnel events, the channel. */
 export function eventKeys(
-  ev: ClientEvent | { e: 'consult_submit'; src?: ExpertSource } | { e: 'track'; kind: TrackKindMetric; provider?: string },
+  ev: ClientEvent | { e: 'consult_submit'; src?: ExpertSource; first?: boolean } | { e: 'track'; kind: TrackKindMetric; provider?: string },
   channel?: string,
 ): string[] {
   const keys: string[] = [];
@@ -79,11 +84,13 @@ export function eventKeys(
       base = 'consult_submit';
       keys.push(base);
       if (ev.src) keys.push(`consult_submit:${ev.src}`);
+      // the first request this browser sent for this product from the permits step (H3 counts pairs, not requests)
+      if (ev.first && (ev.src === 'checklist' || ev.src === 'card')) keys.push(`consult_first:${ev.src}`);
       break;
     case 'track':
       base = `track:${ev.kind}`;
       keys.push(base);
-      if (ev.kind === 'live' && ev.provider && /^[A-Za-z0-9 -]{1,24}$/.test(ev.provider)) keys.push(`track_provider:${ev.provider}`);
+      if ((ev.kind === 'live' || ev.kind === 'pending') && ev.provider && /^[A-Za-z0-9 -]{1,24}$/.test(ev.provider)) keys.push(`track_provider:${ev.provider}`);
       break;
     default:
       base = ev.e;
