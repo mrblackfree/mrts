@@ -24,6 +24,15 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
         ],
       },
+      // admin page and API: never cached, never indexed, never framed
+      ...['/admin', '/admin/:path*', '/api/admin/:path*'].map((source) => ({
+        source,
+        headers: [
+          { key: 'Cache-Control', value: 'no-store' },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+        ],
+      })),
     ];
   },
 };

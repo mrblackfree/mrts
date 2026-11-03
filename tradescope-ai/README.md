@@ -36,7 +36,7 @@ npm start              # 또는: npm run start:standalone (아래 참고)
 
 ## 2. AI API 어댑터 & 폴백(Fallback)
 
-`.env.local`에 아래 값을 넣으면 OpenAI 호환 `POST {AI_BASE_URL}/chat/completions` 엔드포인트와 통신합니다.
+`.env.local`(또는 [관리자 페이지 `/admin`](#2-1-관리자-페이지-admin))에 아래 값을 넣으면 OpenAI 호환 `POST {AI_BASE_URL}/chat/completions` 엔드포인트와 통신합니다.
 
 ```bash
 cp .env.example .env.local
@@ -66,6 +66,48 @@ cp .env.example .env.local
 - `AI_*` 값은 요청 시점에 읽으므로 **키 교체 시 재빌드는 불필요**합니다. 단 Docker는 `env_file`을 컨테이너 생성 시에만 읽으므로 `docker compose up -d`로 재생성해야 합니다(`restart`만으로는 반영되지 않음).
 - **LLM 비용 보호:** LLM 호출은 POST 요청에서만 일어나며(GET `/api/analyze`는 항상 시뮬레이션), 클라이언트별 시간당 `AI_MAX_CALLS_PER_IP_PER_HOUR`(기본 30회), 인스턴스별 하루 `AI_DAILY_BUDGET`(기본 500회)로 제한됩니다. 한도를 넘으면 시뮬레이션 결과로 응답합니다. 제한은 서버 인스턴스 단위이므로, 엄격한 전역 한도가 필요하면 Upstash·Vercel KV 같은 공유 저장소를 붙이세요.
 - LLM이 다듬은 메일은 단가·인코텀즈·HS·MOQ가 원본 초안과 그대로 일치할 때만 채택합니다(PI와 불일치 방지).
+
+### 2-1. 관리자 페이지 (`/admin`)
+
+API 키와 운영 설정을 브라우저에서 넣고 바로 적용하는 설정 화면입니다.
+
+**켜는 방법**
+
+1. 서버 환경변수에 `ADMIN_PASSWORD`(10자 이상)를 설정합니다. 설정하지 않으면 페이지가 비활성화됩니다.
+2. 선택으로 `ADMIN_SECRET`(`openssl rand -base64 32`)을 함께 둡니다. 이렇게 하면 비밀번호를 바꿔도 저장된 키가 유지됩니다.
+3. 서버를 재시작한 뒤 `https://<도메인>/admin`에서 로그인합니다.
+
+```bash
+# .env.local
+ADMIN_PASSWORD=<10자 이상>
+ADMIN_SECRET=<openssl rand -base64 32 결과>
+```
+
+**설정 메뉴**
+
+| 메뉴 | 항목 | 적용 시점 |
+|------|------|-----------|
+| 개요 | AI 엔진·공식 데이터·검증값·저장소 상태, 남은 설정 체크리스트 | — |
+| AI 엔진 | `AI_API_KEY`·`AI_BASE_URL`·`AI_MODEL`·타임아웃·Temperature·최대 토큰·JSON 모드·일시 중지<br>빠른 설정(OpenAI·Anthropic·모두의 AI 실험실·Ollama), **연결 테스트** | 저장 즉시(다음 요청부터) |
+| 공식 데이터 키 | `DATA_GO_KR_SERVICE_KEY`·`COMTRADE_API_KEY`, **키 테스트** | 다음 `npm run data:sync`부터 |
+| 신뢰도 센터 링크 | `DATA_FEEDBACK_URL`(데이터 오류 제보)·`OVERRIDES_EDIT_URL`(검증값 편집) | 저장 즉시(재빌드 불필요) |
+| 호출 한도·보안 | `AI_MAX_CALLS_PER_IP_PER_HOUR`·`AI_DAILY_BUDGET`·`TRUST_PROXY` | 저장 즉시 |
+| 배포·환경 | 감지된 실행 환경, 저장 파일 위치, 항목별 출처, 환경변수 예시 | — |
+
+**우선순위와 저장 방식**
+
+- 값은 **환경변수 → 관리자 저장값 → 기본값** 순으로 적용됩니다.
+- 환경변수로 설정된 항목은 관리자 화면에서 "환경변수 (잠김)"으로 표시되며 바꿀 수 없습니다.
+- 관리자 저장값은 `.data/settings.json`(Docker는 `/app/.data` 볼륨)에 파일 권한 0600으로 저장됩니다. 키는 `ADMIN_SECRET`(없으면 `ADMIN_PASSWORD`)에서 파생한 키로 **AES-256-GCM 암호화**됩니다.
+- 브라우저에는 마스킹된 값(`••••abcd`)만 전달되고, 키 원문은 어떤 응답에도 포함되지 않습니다.
+- Vercel·Netlify 서버리스는 파일이 유지되지 않으므로 화면이 **읽기 전용**으로 열립니다. 이 경우 같은 이름의 환경변수를 플랫폼 설정에 넣으세요.
+
+**보안**
+
+- 세션은 HttpOnly·SameSite=Strict 쿠키(HTTPS에서는 Secure)로 8시간 유지되며, 비밀번호나 `ADMIN_SECRET`을 바꾸면 모든 세션이 만료됩니다.
+- 로그인 실패는 클라이언트별 15분 8회, 전체 15분 100회로 제한합니다.
+- 저장·테스트 요청은 같은 출처(Origin)에서 온 것만 받습니다.
+- `/admin`과 `/api/admin/*`에는 `no-store`·`noindex`·`X-Frame-Options: DENY` 헤더를 붙입니다.
 
 ---
 
@@ -157,7 +199,10 @@ npm run data:validate    # verified-overrides.json 검증: 필수 필드·날짜
 | `POST` | `/api/analyze` | `{ "query": string, "direction": "PH_TO_KR" \| "KR_TO_PH", "lang": "ko" \| "en" }` → `{ ok, report }` |
 | `GET` | `/api/analyze?q=...&dir=KR_TO_PH&lang=en` | 위와 동일 (테스트·공유용) |
 | `POST` | `/api/draft` | `{ productId, partnerId, lang, options?, polish? }` → 국/영 이메일 + Proforma Invoice (`polish: true`면 LLM 문장 다듬기) |
-| `GET` | `/api/health` | 상태·AI 엔진 연결 여부(키 미노출)·데이터 기준일 — Docker HEALTHCHECK에 사용 |
+| `GET` | `/api/health` | 상태·AI 엔진 연결 여부(키 미노출)·데이터 기준일·신뢰도 센터 링크 — Docker HEALTHCHECK에 사용 |
+| `GET` `POST` `DELETE` | `/api/admin/session` | 관리자 로그인 상태 / 로그인(`{ password }`) / 로그아웃 |
+| `GET` `PUT` | `/api/admin/settings` | 설정 조회(비밀값은 마스킹) / 저장(`{ values: { KEY: "값" \| null } }`) — 로그인 필요 |
+| `POST` | `/api/admin/test` | `{ target: "ai" \| "dataGoKr" \| "comtrade" }` 저장된 키로 연결 테스트 — 로그인 필요 |
 
 ```bash
 curl -s -X POST http://localhost:3000/api/analyze \
@@ -256,7 +301,8 @@ tradescope-ai/
    │  ├─ page.tsx             Zero-Login 워크스페이스 (/)
    │  ├─ layout.tsx · globals.css (디자인 토큰 · 다크/라이트 · 인쇄 스타일)
    │  ├─ fonts/pretendard/    Pretendard 가변 폰트 dynamic subset (SIL OFL 1.1, 자체 호스팅)
-   │  └─ api/ analyze · draft · health
+   │  ├─ admin/page.tsx       관리자 설정 페이지 (/admin)
+   │  └─ api/ analyze · draft · health · admin/(session · settings · test)
    ├─ components/             Header · HeroSearch · Overview · AssistantPanel · charts · ui(Button·Card·Segmented·Chip 등)
    │  └─ modules/             Briefing · Tariff(+Checklist) · Market · Partners
    ├─ data/kr-ph-trade-db.ts  한-필 RAG 시드 데이터베이스 (공식 레이어 병합 후 export)
@@ -267,6 +313,8 @@ tradescope-ai/
       ├─ engine/search.ts     로컬 검색·의도 파싱 (서버/브라우저 공용)
       ├─ engine/simulate.ts   관세 계산·브리핑·이메일·PI 시뮬레이션 엔진
       ├─ engine/llm.ts        RAG 프롬프트 (숫자는 컨텍스트만 사용하도록 제약)
+      ├─ settings/            설정 스키마·암호화 저장소 (환경변수 → 관리자 저장값 → 기본값)
+      ├─ admin/               관리자 인증(세션 쿠키·로그인 제한·Origin 검사)
       ├─ i18n.ts · format.ts · types.ts
 ```
 

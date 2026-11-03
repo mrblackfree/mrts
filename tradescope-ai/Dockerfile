@@ -40,6 +40,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# settings saved on /admin (AES-GCM encrypted, mode 0600) — mount a volume so they survive container rebuilds
+RUN mkdir -p /app/.data && chown nextjs:nodejs /app/.data && chmod 700 /app/.data
+VOLUME ["/app/.data"]
+
 USER nextjs
 EXPOSE 3000
 

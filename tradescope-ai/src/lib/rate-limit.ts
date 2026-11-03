@@ -7,6 +7,8 @@
  * Limits are per process / serverless instance. For strict global limits put a shared store
  * (e.g. Upstash Redis / Vercel KV) behind the same interface.
  */
+import { getSetting } from '@/lib/settings';
+
 const WINDOW_MS = 60 * 60 * 1000;
 const hits = new Map<string, number[]>();
 let budgetDay = '';
@@ -31,7 +33,7 @@ export function clientKey(req: Request): string {
     const ip = req.headers.get('x-real-ip')?.trim();
     if (ip) return ip.slice(0, 64);
   }
-  const hops = Number(process.env.TRUST_PROXY);
+  const hops = Number(getSetting('TRUST_PROXY'));
   if (Number.isInteger(hops) && hops > 0) {
     const chain = (req.headers.get('x-forwarded-for') ?? '')
       .split(',')
@@ -46,8 +48,8 @@ export function clientKey(req: Request): string {
 export type LlmGate = { ok: true } | { ok: false; reason: 'rate-limited' | 'daily-budget' };
 
 export function allowLlmCall(key: string): LlmGate {
-  const perHour = positive(process.env.AI_MAX_CALLS_PER_IP_PER_HOUR, 30);
-  const daily = positive(process.env.AI_DAILY_BUDGET, 500);
+  const perHour = positive(getSetting('AI_MAX_CALLS_PER_IP_PER_HOUR'), 30);
+  const daily = positive(getSetting('AI_DAILY_BUDGET'), 500);
   const today = new Date().toISOString().slice(0, 10);
   if (today !== budgetDay) {
     budgetDay = today;

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { DATA_AS_OF, PRODUCTS, refreshOfficialLayer } from '@/data/kr-ph-trade-db';
 import { OFFICIAL } from '@/data/official';
 import { publicAiStatus } from '@/lib/ai-adapter';
+import { getSetting } from '@/lib/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,8 @@ export function GET() {
     version: process.env.npm_package_version ?? '0.1.0',
     time: new Date().toISOString(),
     ai: { ...publicAiStatus(), fallback: 'kr-ph-simulation-engine' },
+    // public links configured on /admin (or via env) — read at runtime, no rebuild needed
+    links: { feedbackUrl: getSetting('DATA_FEEDBACK_URL') ?? null, overridesEditUrl: getSetting('OVERRIDES_EDIT_URL') ?? null },
     data: {
       asOf: DATA_AS_OF,
       products: PRODUCTS.length,

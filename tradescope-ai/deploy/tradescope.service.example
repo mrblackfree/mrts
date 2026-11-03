@@ -17,7 +17,9 @@ Environment=HOSTNAME=127.0.0.1
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=3
-# hardening — the app writes no files at runtime
+# hardening — the only runtime writes are the /admin settings in .data
+#   sudo mkdir -p /opt/tradescope-ai/.data && sudo chown www-data: /opt/tradescope-ai/.data && sudo chmod 700 /opt/tradescope-ai/.data
+ReadWritePaths=/opt/tradescope-ai/.data
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true

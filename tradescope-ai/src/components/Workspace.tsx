@@ -288,7 +288,7 @@ function WorkspaceInner() {
         </div>
       </footer>
 
-      {trustOpen && <DataTrustCenter focusProductId={product?.id} onClose={() => setTrustOpen(false)} />}
+      {trustOpen && <DataTrustCenter focusProductId={product?.id} links={health?.links} onClose={() => setTrustOpen(false)} />}
 
       {assistant && product && report && assistantPartner && (
         <AssistantPanel

@@ -10,6 +10,7 @@
  *   node scripts/sync-official-data.mjs --only=wits      # one source: comtrade | wits | links | kcs
  *   DATA_GO_KR_SERVICE_KEY=... node scripts/sync-official-data.mjs   # + Korea Customs monthly trade & FX
  *   COMTRADE_API_KEY=...                                  # uses the full Comtrade API (higher limits)
+ *   (both keys can also be saved on the /admin page; environment variables win)
  *
  * Sources
  *  - UN Comtrade public API        https://comtradeapi.un.org   (annual bilateral & market statistics)
@@ -22,6 +23,23 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSettings } from '../src/lib/settings/core.mjs';
+
+// Keys come from the environment first, then from values saved on the /admin page (same server, decrypted with
+// ADMIN_SECRET / ADMIN_PASSWORD). .env.local is loaded so a local run sees the same configuration as the app.
+try {
+  process.loadEnvFile?.('.env.local');
+} catch {
+  /* no .env.local */
+}
+const SAVED = (() => {
+  try {
+    return readSettings().values;
+  } catch {
+    return {};
+  }
+})();
+const configured = (name) => process.env[name]?.trim() || SAVED[name]?.trim() || undefined;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DB_FILE = path.join(ROOT, 'src/data/kr-ph-trade-db.ts');
@@ -102,7 +120,7 @@ async function getText(url, { headers = {}, timeoutMs = 25_000, retries = 2 } = 
 // ---------------------------------------------------------------------------
 // UN Comtrade
 // ---------------------------------------------------------------------------
-const COMTRADE_KEY = process.env.COMTRADE_API_KEY?.trim();
+const COMTRADE_KEY = configured('COMTRADE_API_KEY');
 let lastComtradeCall = 0;
 
 async function comtrade(params, freq = 'A') {
@@ -400,7 +418,7 @@ async function syncWits(snapshot) {
 // ---------------------------------------------------------------------------
 // 관세청 (Korea Customs Service) via data.go.kr — requires DATA_GO_KR_SERVICE_KEY
 // ---------------------------------------------------------------------------
-const DGK = process.env.DATA_GO_KR_SERVICE_KEY?.trim();
+const DGK = configured('DATA_GO_KR_SERVICE_KEY');
 const dgkKey = () => (DGK.includes('%') ? DGK : encodeURIComponent(DGK));
 const xmlItems = (xml) =>
   [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].map((m) => Object.fromEntries([...m[1].matchAll(/<(\w+)>([^<]*)<\/\1>/g)].map((f) => [f[1], f[2].trim()])));

@@ -1,0 +1,981 @@
+'use client';
+
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  Cpu,
+  Database,
+  Gauge,
+  Info,
+  KeyRound,
+  LayoutDashboard,
+  Link2,
+  Loader2,
+  Lock,
+  LogOut,
+  PlugZap,
+  ScanSearch,
+  Server,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SETTINGS, type SettingDef, type SettingGroup } from '@/lib/settings/schema';
+import type { Lang } from '@/lib/types';
+import { I18nProvider, useI18n } from '../I18nProvider';
+import { Badge, Button, buttonClass, Card, cx, Segmented } from '../ui';
+
+// ---------------------------------------------------------------------------
+// types shared with /api/admin/*
+// ---------------------------------------------------------------------------
+type Field = { key: string; source: 'env' | 'admin' | 'default' | 'unset'; envName?: string; value?: string; masked?: string; unreadable?: boolean };
+type Storage = { writable: true; path: string } | { writable: false; path: string; reason: string; detail?: string };
+interface Snapshot {
+  fields: Field[];
+  storage: Storage;
+  updatedAt: string | null;
+  platform: 'vercel' | 'netlify' | 'docker-or-node';
+  adminSecretSet: boolean;
+  ai: { enabled: boolean; model: string | null; provider: string | null };
+  officialData: { generatedAt: string | null; sources: Record<string, string | null>; activeOverrides: number };
+}
+type Session = { enabled: boolean; reason?: 'not-set' | 'too-short'; authenticated: boolean; expiresAt: number | null };
+type TestResult = { ok: boolean; message: string; latencyMs: number; detail?: string };
+type Section = 'overview' | SettingGroup | 'deploy';
+
+// ---------------------------------------------------------------------------
+// strings
+// ---------------------------------------------------------------------------
+const S = {
+  ko: {
+    admin: '관리자',
+    back: '서비스로',
+    logout: '로그아웃',
+    loading: '불러오는 중…',
+    disabledTitle: '관리자 페이지가 꺼져 있습니다',
+    disabledNotSet: '서버 환경변수 ADMIN_PASSWORD가 없어 관리자 기능이 비활성화되어 있습니다.',
+    disabledShort: 'ADMIN_PASSWORD가 너무 짧습니다(10자 이상 필요).',
+    disabledHow: '아래처럼 설정한 뒤 서버를 다시 시작하세요. 비밀번호는 서버에만 두고 공유하지 마세요.',
+    loginTitle: '관리자 로그인',
+    loginSub: '서버에 설정된 ADMIN_PASSWORD로 로그인합니다. 세션은 8시간 유지됩니다.',
+    password: '비밀번호',
+    signIn: '로그인',
+    wrongPassword: '비밀번호가 올바르지 않습니다.',
+    tooMany: '시도가 너무 많습니다. 15분 뒤 다시 시도하세요.',
+    networkError: '서버에 연결할 수 없습니다.',
+    menu: { overview: '개요', ai: 'AI 엔진', data: '공식 데이터 키', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
+    sectionSub: {
+      overview: '현재 상태와 남은 설정을 한눈에 봅니다.',
+      ai: 'OpenAI 호환 LLM을 연결합니다. 저장 즉시 다음 요청부터 적용됩니다.',
+      data: '공식 데이터 동기화(npm run data:sync)에 쓰는 키입니다.',
+      links: '신뢰도 센터의 제보·편집 버튼 주소입니다. 저장 즉시 적용됩니다.',
+      limits: 'LLM 비용 상한과 접속자 식별 방식입니다. 저장 즉시 적용됩니다.',
+      deploy: '배포 환경, 저장 위치, 환경변수 설정 방법입니다.',
+    } as Record<Section, string>,
+    src: { env: '환경변수 (잠김)', admin: '관리자 저장값', default: '기본값', unset: '미설정' },
+    envLocked: '서버 환경변수가 우선합니다. 바꾸려면 서버의 환경변수를 수정하세요.',
+    unreadable: '저장된 값을 읽을 수 없습니다(ADMIN_SECRET 또는 ADMIN_PASSWORD가 바뀜). 다시 입력하세요.',
+    enterNew: '새 값 입력',
+    change: '변경',
+    remove: '삭제',
+    willRemove: '저장하면 삭제됩니다',
+    on: '사용',
+    off: '사용 안 함',
+    save: '변경사항 저장',
+    reset: '되돌리기',
+    saved: '저장했습니다.',
+    savedRuntime: '다음 요청부터 바로 적용됩니다.',
+    savedSync: '다음 데이터 동기화부터 사용됩니다.',
+    saveFailed: '저장하지 못했습니다.',
+    readOnly: '이 환경에서는 저장할 수 없습니다',
+    readOnlyWhy: {
+      vercel: 'Vercel 서버리스는 파일이 유지되지 않습니다. Vercel → Project → Settings → Environment Variables에 같은 이름으로 넣고 Redeploy 하세요.',
+      netlify: 'Netlify 함수는 파일이 유지되지 않습니다. Site settings → Environment variables에 같은 이름으로 넣으세요.',
+      'readonly-env': 'SETTINGS_READONLY가 켜져 있습니다.',
+      'no-secret': 'ADMIN_PASSWORD가 없어 값을 암호화할 수 없습니다.',
+      'fs-error': '저장 폴더에 쓸 수 없습니다. 폴더 권한(또는 Docker 볼륨)을 확인하세요.',
+    } as Record<string, string>,
+    test: '연결 테스트',
+    testing: '테스트 중…',
+    testSaveFirst: '저장된 값으로 테스트합니다.',
+    presets: '빠른 설정',
+    presetNote: '주소와 모델명을 채웁니다. 키는 직접 입력하세요.',
+    dataNote:
+      '동기화 스크립트는 환경변수가 없을 때 이 저장값을 씁니다(같은 서버·같은 ADMIN_PASSWORD 필요). GitHub Actions 주간 동기화는 저장소 Settings → Secrets에 같은 이름으로 등록하세요. 동기화된 공식 데이터는 빌드에 포함되므로 반영하려면 다시 빌드·배포합니다.',
+    statusAi: 'AI 엔진',
+    llmOn: 'LLM 연결됨',
+    llmOff: '시뮬레이션 엔진',
+    statusData: '공식 데이터 스냅샷',
+    statusOverrides: '유효한 전문가 검증값',
+    statusStorage: '설정 저장소',
+    writable: '저장 가능',
+    notWritable: '읽기 전용',
+    session: '세션 만료',
+    todo: '남은 설정',
+    allDone: '필수 설정이 모두 끝났습니다.',
+    go: '설정하기',
+    todoAi: 'AI API 키를 넣으면 브리핑·메일 다듬기에 LLM을 씁니다(선택).',
+    todoKcs: '공공데이터포털 키를 넣으면 관세청 월별 실적·과세환율을 동기화합니다.',
+    todoFeedback: '데이터 오류 제보 링크를 넣으면 신뢰도 센터에 제보 버튼이 보입니다.',
+    todoProxy: 'Caddy/Nginx 뒤에서 운영한다면 TRUST_PROXY를 1로 설정하세요.',
+    todoSecret: 'ADMIN_SECRET(32자 이상 임의 문자열)을 따로 두면 비밀번호를 바꿔도 저장된 키가 유지됩니다.',
+    platform: '감지된 실행 환경',
+    platformName: { vercel: 'Vercel', netlify: 'Netlify', 'docker-or-node': 'Docker / Node 서버' } as Record<string, string>,
+    storagePath: '저장 파일',
+    envTable: '설정값과 출처',
+    howEnv: '환경변수로 설정하는 방법',
+    updatedAt: '마지막 저장',
+    err: {
+      'locked-by-env': '환경변수로 잠겨 있습니다',
+      'not-a-number': '숫자를 입력하세요',
+      'not-a-url': '올바른 주소(URL)가 아닙니다',
+      'not-http-url': 'http(s) 주소만 쓸 수 있습니다',
+      'not-boolean': '켜기/끄기 값이 아닙니다',
+      whitespace: '공백을 포함할 수 없습니다',
+      'too-long': '너무 깁니다',
+    } as Record<string, string>,
+    testMsg: {
+      ok: '정상 연결',
+      'no-api-key': 'AI API 키가 없습니다',
+      'no-key': '저장된 키가 없습니다',
+      timeout: '응답 시간 초과',
+      'network-error': '네트워크 오류',
+      'invalid-key': '키가 유효하지 않습니다',
+      'http-401': '인증 실패(401) — 키를 확인하세요',
+      'http-404': '주소를 찾을 수 없음(404) — Base URL/모델을 확인하세요',
+      'invalid-json': '응답 형식 오류',
+      SERVICE_KEY_IS_NOT_REGISTERED_ERROR: '등록되지 않은 키 — 활용신청 승인 후 반영까지 1~2시간 걸릴 수 있습니다',
+      SERVICE_ACCESS_DENIED_ERROR: '이 API에 대한 활용신청이 필요합니다',
+    } as Record<string, string>,
+  },
+  en: {
+    admin: 'Admin',
+    back: 'Back to app',
+    logout: 'Sign out',
+    loading: 'Loading…',
+    disabledTitle: 'The admin page is off',
+    disabledNotSet: 'ADMIN_PASSWORD is not set on the server, so the admin features are disabled.',
+    disabledShort: 'ADMIN_PASSWORD is too short (10+ characters required).',
+    disabledHow: 'Set it as shown below and restart the server. Keep the password on the server only.',
+    loginTitle: 'Admin sign-in',
+    loginSub: 'Sign in with the server’s ADMIN_PASSWORD. Sessions last 8 hours.',
+    password: 'Password',
+    signIn: 'Sign in',
+    wrongPassword: 'Incorrect password.',
+    tooMany: 'Too many attempts. Try again in 15 minutes.',
+    networkError: 'Cannot reach the server.',
+    menu: { overview: 'Overview', ai: 'AI engine', data: 'Official data keys', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
+    sectionSub: {
+      overview: 'Current state and what is left to configure.',
+      ai: 'Connect an OpenAI-compatible LLM. Takes effect from the next request.',
+      data: 'Keys used by the official data sync (npm run data:sync).',
+      links: 'Targets of the Trust Center feedback and edit buttons. Takes effect immediately.',
+      limits: 'LLM cost caps and how clients are identified. Takes effect immediately.',
+      deploy: 'Runtime environment, storage location and how to set environment variables.',
+    } as Record<Section, string>,
+    src: { env: 'Environment (locked)', admin: 'Saved here', default: 'Default', unset: 'Not set' },
+    envLocked: 'The server environment variable wins. Change it on the server to edit this value.',
+    unreadable: 'The saved value cannot be read (ADMIN_SECRET or ADMIN_PASSWORD changed). Enter it again.',
+    enterNew: 'Enter a new value',
+    change: 'Change',
+    remove: 'Remove',
+    willRemove: 'Removed on save',
+    on: 'On',
+    off: 'Off',
+    save: 'Save changes',
+    reset: 'Reset',
+    saved: 'Saved.',
+    savedRuntime: 'Applies from the next request.',
+    savedSync: 'Used from the next data sync.',
+    saveFailed: 'Could not save.',
+    readOnly: 'Saving is not available here',
+    readOnlyWhy: {
+      vercel: 'Vercel functions have no persistent files. Add the same names under Project → Settings → Environment Variables and redeploy.',
+      netlify: 'Netlify functions have no persistent files. Add the same names under Site settings → Environment variables.',
+      'readonly-env': 'SETTINGS_READONLY is on.',
+      'no-secret': 'ADMIN_PASSWORD is missing, so values cannot be encrypted.',
+      'fs-error': 'The settings folder is not writable. Check its permissions (or the Docker volume).',
+    } as Record<string, string>,
+    test: 'Test connection',
+    testing: 'Testing…',
+    testSaveFirst: 'Tests the saved value.',
+    presets: 'Presets',
+    presetNote: 'Fills the address and model. Enter the key yourself.',
+    dataNote:
+      'The sync script uses these saved values when the environment variable is missing (same server, same ADMIN_PASSWORD). For the weekly GitHub Actions sync add repository secrets with the same names. Synced data is part of the build, so rebuild and redeploy to publish it.',
+    statusAi: 'AI engine',
+    llmOn: 'LLM connected',
+    llmOff: 'Simulation engine',
+    statusData: 'Official data snapshot',
+    statusOverrides: 'Active expert overrides',
+    statusStorage: 'Settings storage',
+    writable: 'Writable',
+    notWritable: 'Read-only',
+    session: 'Session expires',
+    todo: 'Remaining setup',
+    allDone: 'All essential settings are done.',
+    go: 'Configure',
+    todoAi: 'Add an AI API key to use an LLM for briefings and email polishing (optional).',
+    todoKcs: 'Add a data.go.kr key to sync KCS monthly trade and customs FX.',
+    todoFeedback: 'Add a data feedback link to show the feedback button in the Trust Center.',
+    todoProxy: 'Behind Caddy/Nginx? Set TRUST_PROXY to 1.',
+    todoSecret: 'Set ADMIN_SECRET (32+ random characters) so saved keys survive a password change.',
+    platform: 'Detected runtime',
+    platformName: { vercel: 'Vercel', netlify: 'Netlify', 'docker-or-node': 'Docker / Node server' } as Record<string, string>,
+    storagePath: 'Settings file',
+    envTable: 'Settings and their source',
+    howEnv: 'Setting environment variables',
+    updatedAt: 'Last saved',
+    err: {
+      'locked-by-env': 'Locked by an environment variable',
+      'not-a-number': 'Enter a number',
+      'not-a-url': 'Not a valid URL',
+      'not-http-url': 'Only http(s) URLs are allowed',
+      'not-boolean': 'Not an on/off value',
+      whitespace: 'Must not contain spaces',
+      'too-long': 'Too long',
+    } as Record<string, string>,
+    testMsg: {
+      ok: 'Connected',
+      'no-api-key': 'No AI API key',
+      'no-key': 'No saved key',
+      timeout: 'Timed out',
+      'network-error': 'Network error',
+      'invalid-key': 'Invalid key',
+      'http-401': 'Unauthorized (401) — check the key',
+      'http-404': 'Not found (404) — check the base URL / model',
+      'invalid-json': 'Unexpected response',
+      SERVICE_KEY_IS_NOT_REGISTERED_ERROR: 'Key not registered — approval can take 1–2 hours to propagate',
+      SERVICE_ACCESS_DENIED_ERROR: 'Apply for access to this API first',
+    } as Record<string, string>,
+  },
+};
+type Strings = (typeof S)['ko'];
+
+const PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
+  { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  { id: 'anthropic', label: 'Anthropic (Claude)', baseUrl: 'https://api.anthropic.com/v1', model: '' },
+  { id: 'lab', label: '모두의 AI 실험실', baseUrl: '', model: '' },
+  { id: 'ollama', label: 'Ollama', baseUrl: 'http://localhost:11434/v1', model: 'llama3.1' },
+];
+
+const SECTIONS: Array<{ id: Section; icon: React.ReactNode }> = [
+  { id: 'overview', icon: <LayoutDashboard className="size-4" /> },
+  { id: 'ai', icon: <Cpu className="size-4" /> },
+  { id: 'data', icon: <Database className="size-4" /> },
+  { id: 'links', icon: <Link2 className="size-4" /> },
+  { id: 'limits', icon: <Gauge className="size-4" /> },
+  { id: 'deploy', icon: <Server className="size-4" /> },
+];
+
+async function api<T>(path: string, method = 'GET', body?: unknown): Promise<{ status: number; data: T }> {
+  const res = await fetch(path, {
+    method,
+    credentials: 'same-origin',
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+    cache: 'no-store',
+  });
+  let data: unknown = null;
+  try {
+    data = await res.json();
+  } catch {
+    /* non-JSON */
+  }
+  return { status: res.status, data: data as T };
+}
+
+const inputCls =
+  'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-hairline outline-none transition-[border-color,box-shadow] placeholder:text-slate-400 focus:border-brand-400 focus:shadow-[0_0_0_4px_rgb(42_133_166/0.12)] disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-white dark:disabled:bg-white/[0.02]';
+
+export default function AdminApp() {
+  return (
+    <I18nProvider>
+      <AdminInner />
+    </I18nProvider>
+  );
+}
+
+function AdminInner() {
+  const { lang, setLang } = useI18n();
+  const s = S[lang];
+  const [session, setSession] = useState<Session | null>(null);
+  const [snap, setSnap] = useState<Snapshot | null>(null);
+  const [netError, setNetError] = useState(false);
+
+  const loadSession = useCallback(async () => {
+    try {
+      const r = await api<Session>('/api/admin/session');
+      setSession(r.data);
+      setNetError(false);
+      if (r.data?.authenticated) {
+        const st = await api<Snapshot & { ok: boolean }>('/api/admin/settings');
+        if (st.status === 401) setSession({ ...r.data, authenticated: false });
+        else setSnap(st.data);
+      }
+    } catch {
+      setNetError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadSession();
+  }, [loadSession]);
+
+  const logout = async () => {
+    await api('/api/admin/session', 'DELETE').catch(() => null);
+    setSnap(null);
+    setSession((x) => (x ? { ...x, authenticated: false, expiresAt: null } : x));
+  };
+
+  return (
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/75 backdrop-blur-xl backdrop-saturate-150 dark:border-white/[0.06] dark:bg-[#060a12]/75">
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-3.5 sm:gap-3 sm:px-6">
+          <a href="/" className="flex items-center gap-2.5 rounded-xl" aria-label="TradeScope AI home">
+            <span className="grid size-9 place-items-center rounded-[11px] bg-gradient-to-br from-brand-500 via-brand-700 to-brand-950 text-white shadow-brand ring-1 ring-inset ring-white/15">
+              <ScanSearch className="size-[18px]" strokeWidth={2.25} />
+            </span>
+            <span className="hidden text-[16px] font-bold tracking-[-0.025em] text-slate-900 sm:inline dark:text-white">
+              TradeScope <span className="text-brand-600 dark:text-brand-300">AI</span>
+            </span>
+          </a>
+          <Badge tone="violet" className="!py-1">
+            <ShieldCheck className="size-3.5" aria-hidden />
+            {s.admin}
+          </Badge>
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+            <a href="/" className={buttonClass({ variant: 'ghost', size: 'sm' })}>
+              <ArrowLeft className="size-3.5" aria-hidden />
+              <span className="hidden sm:inline">{s.back}</span>
+            </a>
+            <Segmented size="sm" value={lang} onChange={(v: Lang) => setLang(v)} ariaLabel={lang === 'ko' ? '언어' : 'Language'} options={[{ value: 'ko', label: 'KO' }, { value: 'en', label: 'EN' }]} />
+            {session?.authenticated && (
+              <Button variant="secondary" size="sm" onClick={logout}>
+                <LogOut className="size-3.5" aria-hidden />
+                <span className="hidden sm:inline">{s.logout}</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        {netError ? (
+          <Centered>
+            <p className="text-sm text-rose-600">{s.networkError}</p>
+          </Centered>
+        ) : !session ? (
+          <Centered>
+            <p className="inline-flex items-center gap-2 text-sm text-slate-500">
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              {s.loading}
+            </p>
+          </Centered>
+        ) : !session.enabled ? (
+          <Disabled s={s} reason={session.reason} />
+        ) : !session.authenticated ? (
+          <Login s={s} onDone={loadSession} />
+        ) : snap ? (
+          <Dashboard s={s} lang={lang} snap={snap} setSnap={setSnap} expiresAt={session.expiresAt} onUnauthorized={loadSession} />
+        ) : (
+          <Centered>
+            <Loader2 className="size-5 animate-spin text-slate-400" aria-label={s.loading} />
+          </Centered>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function Centered({ children }: { children: React.ReactNode }) {
+  return <div className="grid min-h-[50vh] place-items-center">{children}</div>;
+}
+
+function CodeBlock({ children }: { children: string }) {
+  return <pre className="thin-scroll overflow-x-auto rounded-xl bg-ink-900 p-3.5 font-mono text-[12px] leading-relaxed text-emerald-200">{children}</pre>;
+}
+
+function Disabled({ s, reason }: { s: Strings; reason?: string }) {
+  return (
+    <Centered>
+      <Card className="w-full max-w-xl p-6 sm:p-8">
+        <span className="grid size-11 place-items-center rounded-2xl bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-200/70 dark:bg-amber-400/10 dark:text-amber-300 dark:ring-amber-400/20">
+          <Lock className="size-5" aria-hidden />
+        </span>
+        <h1 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">{s.disabledTitle}</h1>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{reason === 'too-short' ? s.disabledShort : s.disabledNotSet}</p>
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{s.disabledHow}</p>
+        <div className="mt-4 space-y-2.5">
+          <CodeBlock>{`# .env.local (npm / systemd / docker compose)\nADMIN_PASSWORD=<10자 이상 / 10+ characters>\nADMIN_SECRET=<32자 이상 임의 문자열 / 32+ random characters>   # 선택 · optional`}</CodeBlock>
+          <CodeBlock>{`# 임의 문자열 만들기 / generate a random value\nopenssl rand -base64 32`}</CodeBlock>
+        </div>
+      </Card>
+    </Centered>
+  );
+}
+
+function Login({ s, onDone }: { s: Strings; onDone: () => void }) {
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api<{ ok: boolean; error?: string }>('/api/admin/session', 'POST', { password: pw });
+      if (r.data?.ok) {
+        setPw('');
+        onDone();
+      } else setError(r.status === 429 ? s.tooMany : s.wrongPassword);
+    } catch {
+      setError(s.networkError);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Centered>
+      <Card className="w-full max-w-md p-6 sm:p-8">
+        <span className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-brand-50 to-white text-brand-700 ring-1 ring-inset ring-brand-100 dark:from-brand-400/15 dark:to-brand-400/5 dark:text-brand-300 dark:ring-brand-400/20">
+          <KeyRound className="size-5" aria-hidden />
+        </span>
+        <h1 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">{s.loginTitle}</h1>
+        <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400">{s.loginSub}</p>
+        <form onSubmit={submit} className="mt-5 space-y-3">
+          <label className="block">
+            <span className="mb-1.5 block text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-400">{s.password}</span>
+            <input type="password" autoComplete="current-password" required value={pw} onChange={(e) => setPw(e.target.value)} className={inputCls} autoFocus />
+          </label>
+          {error && (
+            <p role="alert" className="text-sm font-medium text-rose-600 dark:text-rose-400">
+              {error}
+            </p>
+          )}
+          <Button type="submit" variant="brand" size="md" block loading={busy} disabled={!pw}>
+            {s.signIn}
+          </Button>
+        </form>
+      </Card>
+    </Centered>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// dashboard
+// ---------------------------------------------------------------------------
+function Dashboard({
+  s,
+  lang,
+  snap,
+  setSnap,
+  expiresAt,
+  onUnauthorized,
+}: {
+  s: Strings;
+  lang: Lang;
+  snap: Snapshot;
+  setSnap: (x: Snapshot) => void;
+  expiresAt: number | null;
+  onUnauthorized: () => void;
+}) {
+  const [section, setSection] = useState<Section>('overview');
+  const fields = useMemo(() => Object.fromEntries(snap.fields.map((f) => [f.key, f])), [snap]);
+  const writable = snap.storage.writable;
+  const ro = !snap.storage.writable ? snap.storage : null;
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[13.5rem_1fr]">
+      <nav aria-label="settings" className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto px-4 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:self-start lg:overflow-visible lg:px-0">
+        {SECTIONS.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            aria-current={section === x.id ? 'page' : undefined}
+            onClick={() => setSection(x.id)}
+            className={cx(
+              'inline-flex h-9 shrink-0 items-center gap-2 rounded-xl px-3 text-left text-[13px] font-semibold transition-[background-color,color] duration-150',
+              section === x.id ? 'bg-ink-900 text-white dark:bg-white dark:text-ink-900' : 'text-slate-600 hover:bg-slate-900/[0.05] hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/[0.07] dark:hover:text-white',
+            )}
+          >
+            {x.icon}
+            {s.menu[x.id]}
+          </button>
+        ))}
+      </nav>
+
+      <div className="min-w-0 space-y-5">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{s.menu[section]}</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{s.sectionSub[section]}</p>
+        </div>
+
+        {ro && section !== 'overview' && section !== 'deploy' && (
+          <Notice tone="warn" title={s.readOnly}>
+            {s.readOnlyWhy[ro.reason] ?? ro.reason}
+          </Notice>
+        )}
+
+        {section === 'overview' && <Overview s={s} lang={lang} snap={snap} fields={fields} expiresAt={expiresAt} go={setSection} />}
+        {(section === 'ai' || section === 'data' || section === 'links' || section === 'limits') && (
+          <GroupForm key={section} s={s} lang={lang} group={section} fields={fields} writable={writable} setSnap={setSnap} onUnauthorized={onUnauthorized} />
+        )}
+        {section === 'deploy' && <Deploy s={s} lang={lang} snap={snap} />}
+      </div>
+    </div>
+  );
+}
+
+function Notice({ tone, title, children }: { tone: 'ok' | 'warn' | 'info' | 'error'; title?: string; children?: React.ReactNode }) {
+  const cls = {
+    ok: 'border-emerald-200 bg-emerald-50/70 text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200',
+    warn: 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200',
+    info: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
+    error: 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-200',
+  }[tone];
+  const Icon = tone === 'ok' ? CheckCircle2 : tone === 'info' ? Info : AlertTriangle;
+  return (
+    <div role={tone === 'error' ? 'alert' : 'status'} className={cx('flex items-start gap-2.5 rounded-xl border p-3 text-[13px] leading-relaxed', cls)}>
+      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <div className="min-w-0">
+        {title && <p className="font-semibold">{title}</p>}
+        {children && <div className={title ? 'mt-0.5' : undefined}>{children}</div>}
+      </div>
+    </div>
+  );
+}
+
+function Overview({ s, lang, snap, fields, expiresAt, go }: { s: Strings; lang: Lang; snap: Snapshot; fields: Record<string, Field>; expiresAt: number | null; go: (x: Section) => void }) {
+  const set = (k: string) => fields[k] && fields[k].source !== 'unset' && fields[k].source !== 'default';
+  const todos: Array<{ text: string; to: Section }> = [];
+  if (!set('AI_API_KEY')) todos.push({ text: s.todoAi, to: 'ai' });
+  if (!set('DATA_GO_KR_SERVICE_KEY')) todos.push({ text: s.todoKcs, to: 'data' });
+  if (!set('DATA_FEEDBACK_URL')) todos.push({ text: s.todoFeedback, to: 'links' });
+  if (snap.platform === 'docker-or-node' && !set('TRUST_PROXY')) todos.push({ text: s.todoProxy, to: 'limits' });
+  if (!snap.adminSecretSet && snap.platform === 'docker-or-node') todos.push({ text: s.todoSecret, to: 'deploy' });
+  const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US') : '—');
+  const srcEntries = Object.entries(snap.officialData.sources).filter(([k]) => k !== 'overrides');
+
+  const tiles = [
+    {
+      icon: <Cpu className="size-4" />,
+      label: s.statusAi,
+      value: snap.ai.enabled ? s.llmOn : s.llmOff,
+      sub: snap.ai.enabled ? `${snap.ai.model} · ${snap.ai.provider}` : 'KR-PH simulation',
+      tone: snap.ai.enabled ? 'green' : 'slate',
+    },
+    {
+      icon: <Database className="size-4" />,
+      label: s.statusData,
+      value: fmt(snap.officialData.generatedAt),
+      sub: srcEntries.map(([k, v]) => `${k} ${v ?? '—'}`).join(' · '),
+      tone: 'brand',
+    },
+    { icon: <ShieldCheck className="size-4" />, label: s.statusOverrides, value: String(snap.officialData.activeOverrides), sub: 'verified-overrides.json', tone: 'violet' },
+    {
+      icon: <Server className="size-4" />,
+      label: s.statusStorage,
+      value: snap.storage.writable ? s.writable : s.notWritable,
+      sub: snap.storage.writable ? snap.storage.path : (s.readOnlyWhy[snap.storage.reason] ?? snap.storage.reason),
+      tone: snap.storage.writable ? 'green' : 'amber',
+    },
+  ] as const;
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {tiles.map((t) => (
+          <Card key={t.label} className="p-4">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              {t.icon}
+              {t.label}
+            </p>
+            <p className="mt-2 text-lg font-bold text-slate-900 dark:text-white">{t.value}</p>
+            <p className="mt-0.5 break-all text-xs text-slate-500 dark:text-slate-400">{t.sub}</p>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="p-5">
+        <h2 className="text-[15px] font-bold text-slate-900 dark:text-white">{s.todo}</h2>
+        {todos.length === 0 ? (
+          <div className="mt-3">
+            <Notice tone="ok">{s.allDone}</Notice>
+          </div>
+        ) : (
+          <ul className="mt-3 divide-y divide-slate-100 dark:divide-white/[0.06]">
+            {todos.map((x) => (
+              <li key={x.text} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="text-[13px] text-slate-700 dark:text-slate-200">{x.text}</span>
+                <Button size="sm" onClick={() => go(x.to)} className="shrink-0">
+                  {s.go}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <p className="text-xs text-slate-400">
+        {s.session}: {expiresAt ? new Date(expiresAt * 1000).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US') : '—'} · {s.updatedAt}: {fmt(snap.updatedAt)}
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// settings form for one group
+// ---------------------------------------------------------------------------
+function GroupForm({
+  s,
+  lang,
+  group,
+  fields,
+  writable,
+  setSnap,
+  onUnauthorized,
+}: {
+  s: Strings;
+  lang: Lang;
+  group: SettingGroup;
+  fields: Record<string, Field>;
+  writable: boolean;
+  setSnap: (x: Snapshot) => void;
+  onUnauthorized: () => void;
+}) {
+  const defs = SETTINGS.filter((d) => d.group === group);
+  const [draft, setDraft] = useState<Record<string, string | null>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const dirty = Object.keys(draft).length > 0;
+
+  const setValue = (key: string, v: string | null | undefined) =>
+    setDraft((d) => {
+      const n = { ...d };
+      if (v === undefined) delete n[key];
+      else n[key] = v;
+      return n;
+    });
+
+  const save = async () => {
+    setBusy(true);
+    setNotice(null);
+    setErrors({});
+    try {
+      const r = await api<Snapshot & { ok: boolean; errors?: Record<string, string> }>('/api/admin/settings', 'PUT', { values: draft });
+      if (r.status === 401) return onUnauthorized();
+      if (r.data?.fields) setSnap(r.data);
+      if (r.data?.ok) {
+        setDraft({});
+        setNotice({ tone: 'ok', text: `${s.saved} ${group === 'data' ? s.savedSync : s.savedRuntime}` });
+      } else {
+        setErrors(r.data?.errors ?? {});
+        const storageErr = r.data?.errors?._storage;
+        setNotice({ tone: 'error', text: storageErr ? (s.readOnlyWhy[storageErr] ?? storageErr) : s.saveFailed });
+      }
+    } catch {
+      setNotice({ tone: 'error', text: s.networkError });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      {group === 'ai' && (
+        <Card className="p-5">
+          <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100">{s.presets}</p>
+          <p className="mt-0.5 text-xs text-slate-500">{s.presetNote}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {PRESETS.map((p) => (
+              <Button
+                key={p.id}
+                size="sm"
+                disabled={!writable}
+                onClick={() => {
+                  if (p.baseUrl && fields.AI_BASE_URL?.source !== 'env') setValue('AI_BASE_URL', p.baseUrl);
+                  if (p.model && fields.AI_MODEL?.source !== 'env') setValue('AI_MODEL', p.model);
+                }}
+              >
+                {p.label}
+              </Button>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {group === 'data' && <Notice tone="info">{s.dataNote}</Notice>}
+
+      <Card className="divide-y divide-slate-100 dark:divide-white/[0.06]">
+        {defs.map((def) => (
+          <FieldRow
+            key={def.key}
+            s={s}
+            lang={lang}
+            def={def}
+            field={fields[def.key]}
+            draft={draft[def.key]}
+            hasDraft={def.key in draft}
+            error={errors[def.key]}
+            writable={writable}
+            onChange={(v) => setValue(def.key, v)}
+            test={def.key === 'AI_API_KEY' ? 'ai' : def.key === 'DATA_GO_KR_SERVICE_KEY' ? 'dataGoKr' : def.key === 'COMTRADE_API_KEY' ? 'comtrade' : undefined}
+            onUnauthorized={onUnauthorized}
+          />
+        ))}
+        <div className="flex flex-wrap items-center gap-2 px-5 py-4">
+          {notice && (
+            <p role={notice.tone === 'error' ? 'alert' : 'status'} className={cx('mr-auto text-[13px] font-medium', notice.tone === 'ok' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+              {notice.text}
+            </p>
+          )}
+          <div className="ml-auto flex gap-2">
+            <Button size="md" disabled={!dirty || busy} onClick={() => (setDraft({}), setErrors({}), setNotice(null))}>
+              {s.reset}
+            </Button>
+            <Button variant="primary" size="md" disabled={!dirty || !writable} loading={busy} onClick={save}>
+              {s.save}
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function SourceBadge({ s, field }: { s: Strings; field?: Field }) {
+  if (!field) return null;
+  const tone = { env: 'amber', admin: 'brand', default: 'slate', unset: 'slate' }[field.source] as 'amber' | 'brand' | 'slate';
+  return (
+    <Badge tone={tone} title={field.envName}>
+      {field.source === 'env' && <Lock className="size-3" aria-hidden />}
+      {s.src[field.source]}
+      {field.envName && field.source === 'env' ? ` · ${field.envName}` : ''}
+    </Badge>
+  );
+}
+
+function FieldRow({
+  s,
+  lang,
+  def,
+  field,
+  draft,
+  hasDraft,
+  error,
+  writable,
+  onChange,
+  test,
+  onUnauthorized,
+}: {
+  s: Strings;
+  lang: Lang;
+  def: SettingDef;
+  field?: Field;
+  draft: string | null | undefined;
+  hasDraft: boolean;
+  error?: string;
+  writable: boolean;
+  onChange: (v: string | null | undefined) => void;
+  test?: 'ai' | 'dataGoKr' | 'comtrade';
+  onUnauthorized: () => void;
+}) {
+  const locked = field?.source === 'env';
+  const disabled = locked || !writable;
+  const id = `f-${def.key}`;
+  const [editing, setEditing] = useState(false);
+  const [testState, setTestState] = useState<{ busy: boolean; result?: TestResult }>({ busy: false });
+
+  const runTest = async () => {
+    setTestState({ busy: true });
+    try {
+      const r = await api<{ ok: boolean; result?: TestResult }>('/api/admin/test', 'POST', { target: test });
+      if (r.status === 401) return onUnauthorized();
+      setTestState({ busy: false, result: r.data?.result });
+    } catch {
+      setTestState({ busy: false, result: { ok: false, message: 'network-error', latencyMs: 0 } });
+    }
+  };
+
+  const savedValue = field?.source === 'admin' || field?.source === 'env' ? field.value : undefined;
+  const errText = error ? (error.startsWith('min:') ? `≥ ${error.slice(4)}` : error.startsWith('max:') ? `≤ ${error.slice(4)}` : (s.err[error] ?? error)) : null;
+
+  let control: React.ReactNode;
+  if (def.type === 'boolean') {
+    const current = (hasDraft ? draft : (field?.value ?? def.default)) === 'true' ? 'true' : 'false';
+    control = disabled ? (
+      <Badge>{current === 'true' ? s.on : s.off}</Badge>
+    ) : (
+      <Segmented
+        size="sm"
+        value={current}
+        ariaLabel={def.label[lang]}
+        onChange={(v) => onChange(v === (field?.source === 'admin' ? field.value : def.default) ? undefined : v)}
+        options={[
+          { value: 'true', label: s.on },
+          { value: 'false', label: s.off },
+        ]}
+      />
+    );
+  } else if (def.type === 'secret') {
+    const hasValue = !!field?.masked;
+    const removing = hasDraft && draft === null;
+    control = (
+      <div className="space-y-2">
+        {hasValue && !editing && !hasDraft ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="rounded-lg bg-slate-100 px-2.5 py-1.5 font-mono text-[13px] text-slate-700 dark:bg-white/[0.06] dark:text-slate-200">{field?.masked}</code>
+            {!disabled && (
+              <>
+                <Button size="sm" onClick={() => setEditing(true)}>
+                  {s.change}
+                </Button>
+                {field?.source === 'admin' && (
+                  <Button size="sm" variant="ghost" onClick={() => onChange(null)}>
+                    <Trash2 className="size-3.5" aria-hidden />
+                    {s.remove}
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        ) : removing ? (
+          <div className="flex items-center gap-2">
+            <Badge tone="red">{s.willRemove}</Badge>
+            <Button size="xs" variant="ghost" onClick={() => onChange(undefined)}>
+              {s.reset}
+            </Button>
+          </div>
+        ) : (
+          <input
+            id={id}
+            type="password"
+            autoComplete="new-password"
+            spellCheck={false}
+            disabled={disabled}
+            placeholder={locked ? '••••' : (def.placeholder ?? s.enterNew)}
+            value={typeof draft === 'string' ? draft : ''}
+            onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)}
+            className={inputCls}
+          />
+        )}
+      </div>
+    );
+  } else {
+    const shown = hasDraft ? (draft ?? '') : (savedValue ?? '');
+    control = (
+      <input
+        id={id}
+        type={def.type === 'number' ? 'number' : def.type === 'url' ? 'url' : 'text'}
+        inputMode={def.type === 'number' ? 'decimal' : undefined}
+        min={def.min}
+        max={def.max}
+        spellCheck={false}
+        disabled={disabled}
+        placeholder={def.default ?? def.placeholder}
+        value={shown}
+        onChange={(e) => {
+          const v = e.target.value;
+          const original = savedValue ?? '';
+          onChange(v === original ? undefined : v === '' ? null : v);
+        }}
+        className={inputCls}
+      />
+    );
+  }
+
+  return (
+    <div className="grid gap-3 px-5 py-4 md:grid-cols-[minmax(0,15rem)_1fr] md:gap-6">
+      <div className="min-w-0">
+        <label htmlFor={def.type === 'boolean' ? undefined : id} className="text-[13.5px] font-semibold text-slate-900 dark:text-white">
+          {def.label[lang]}
+        </label>
+        <p className="mt-1 font-mono text-[10.5px] text-slate-400">{def.key}</p>
+        <div className="mt-1.5">
+          <SourceBadge s={s} field={field} />
+        </div>
+      </div>
+      <div className="min-w-0 space-y-2">
+        {control}
+        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">{def.help[lang]}</p>
+        {locked && <p className="text-xs text-amber-700 dark:text-amber-300">{s.envLocked}</p>}
+        {field?.unreadable && !locked && <p className="text-xs font-medium text-rose-600 dark:text-rose-400">{s.unreadable}</p>}
+        {errText && (
+          <p role="alert" className="text-xs font-semibold text-rose-600 dark:text-rose-400">
+            {errText}
+          </p>
+        )}
+        {test && (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <Button size="sm" variant="subtle" onClick={runTest} loading={testState.busy} disabled={!field?.masked}>
+              {!testState.busy && <PlugZap className="size-3.5" aria-hidden />}
+              {testState.busy ? s.testing : s.test}
+            </Button>
+            <span className="text-[11px] text-slate-400">{s.testSaveFirst}</span>
+            {testState.result && (
+              <span role="status" className={cx('inline-flex items-center gap-1 text-xs font-semibold', testState.result.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+                {testState.result.ok ? <CheckCircle2 className="size-3.5" aria-hidden /> : <AlertTriangle className="size-3.5" aria-hidden />}
+                {s.testMsg[testState.result.message] ?? testState.result.message}
+                {testState.result.detail ? ` · ${testState.result.detail}` : ''} · {testState.result.latencyMs} ms
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Deploy({ s, lang, snap }: { s: Strings; lang: Lang; snap: Snapshot }) {
+  const envLines = SETTINGS.map((d) => `${d.env[0]}=${d.type === 'secret' ? '…' : (d.default ?? '')}`).join('\n');
+  return (
+    <div className="space-y-5">
+      <Card className="grid gap-4 p-5 sm:grid-cols-2">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">{s.platform}</p>
+          <p className="mt-1.5 text-base font-bold text-slate-900 dark:text-white">{s.platformName[snap.platform]}</p>
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">{s.storagePath}</p>
+          <p className="mt-1.5 break-all font-mono text-[12.5px] text-slate-700 dark:text-slate-200">{snap.storage.path}</p>
+          <p className="mt-1 text-xs text-slate-500">{snap.storage.writable ? s.writable : (s.readOnlyWhy[snap.storage.reason] ?? snap.storage.reason)}</p>
+        </div>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <h2 className="border-b border-slate-100 px-5 py-3.5 text-[15px] font-bold text-slate-900 dark:border-white/[0.06] dark:text-white">{s.envTable}</h2>
+        <div className="thin-scroll overflow-x-auto">
+          <table className="w-full min-w-[560px] text-left text-[13px]">
+            <tbody>
+              {snap.fields.map((f) => {
+                const def = SETTINGS.find((d) => d.key === f.key)!;
+                return (
+                  <tr key={f.key} className="border-b border-slate-100 last:border-0 dark:border-white/[0.06]">
+                    <td className="px-5 py-2.5 font-mono text-[12px] text-slate-700 dark:text-slate-200">{def.env.join(' / ')}</td>
+                    <td className="px-3 py-2.5 text-slate-600 dark:text-slate-300">{def.label[lang]}</td>
+                    <td className="px-5 py-2.5 text-right">
+                      <SourceBadge s={s} field={f} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Card className="space-y-3 p-5">
+        <h2 className="text-[15px] font-bold text-slate-900 dark:text-white">{s.howEnv}</h2>
+        <p className="text-[13px] text-slate-600 dark:text-slate-300">
+          {lang === 'ko'
+            ? '환경변수는 이 페이지의 저장값보다 우선합니다. Vercel·Netlify는 플랫폼 설정 화면에, Docker·서버는 .env.local에 넣고 재시작하세요. 이 페이지의 저장값은 Docker 볼륨(/app/.data)이나 프로젝트의 .data 폴더에 암호화되어 저장됩니다.'
+            : 'Environment variables win over values saved here. On Vercel/Netlify use the platform’s settings; on Docker/servers put them in .env.local and restart. Values saved here are encrypted in the Docker volume (/app/.data) or the project’s .data folder.'}
+        </p>
+        <CodeBlock>{`# .env.local\nADMIN_PASSWORD=…\nADMIN_SECRET=…\n${envLines}`}</CodeBlock>
+      </Card>
+    </div>
+  );
+}

@@ -8,6 +8,7 @@ import { Button, cx, Segmented } from './ui';
 
 export interface HealthInfo {
   ai: { enabled: boolean; model: string | null; provider: string | null };
+  links?: { feedbackUrl: string | null; overridesEditUrl: string | null };
 }
 
 export default function Header({ health, trustScore, onOpenTrust }: { health: HealthInfo | null; trustScore: number; onOpenTrust: () => void }) {

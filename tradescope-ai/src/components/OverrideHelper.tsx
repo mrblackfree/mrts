@@ -25,7 +25,7 @@ const PLACEHOLDER = /(O{3}|_{3,}|0000호|\bTEST\b)/;
 const PRODUCT_SCOPED = ['partnerId', 'reqId', 'lane', 'code', 'hs'];
 
 /** Builds a valid verified-overrides.json entry so reviewers never hand-write JSON. */
-export default function OverrideHelper({ defaultProductId }: { defaultProductId?: string }) {
+export default function OverrideHelper({ defaultProductId, editUrl: editUrlProp }: { defaultProductId?: string; editUrl?: string }) {
   const { p, lang } = useI18n();
   const [productId, setProductId] = useState(defaultProductId && PRODUCTS.some((x) => x.id === defaultProductId) ? defaultProductId : PRODUCTS[0].id);
   const [type, setType] = useState<TargetType>('tariff');
@@ -38,7 +38,7 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
   };
   const hsTables = Object.entries(product.tariffsByHs ?? {});
   const tariffTable = f.hs && product.tariffsByHs?.[f.hs] ? product.tariffsByHs[f.hs].tariffs : product.tariffs;
-  const editUrl = process.env.NEXT_PUBLIC_OVERRIDES_EDIT_URL;
+  const editUrl = editUrlProp ?? process.env.NEXT_PUBLIC_OVERRIDES_EDIT_URL;
   // expiry checks follow the calendar, also in a page left open past midnight
   const today = useBusinessDay();
 

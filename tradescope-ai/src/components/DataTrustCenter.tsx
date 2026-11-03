@@ -43,12 +43,21 @@ const CATEGORY_ROADMAP: Record<string, string> = {
 };
 const LEVEL_BAR: Record<VerificationLevel, string> = { official: 'bg-emerald-500', verified: 'bg-violet-500', crosscheck: 'bg-brand-400', seed: 'bg-amber-300 dark:bg-amber-500/60' };
 
-export default function DataTrustCenter({ focusProductId, onClose }: { focusProductId?: string; onClose: () => void }) {
+export default function DataTrustCenter({
+  focusProductId,
+  links,
+  onClose,
+}: {
+  focusProductId?: string;
+  /** configured on /admin or via env, delivered by /api/health */
+  links?: { feedbackUrl: string | null; overridesEditUrl: string | null };
+  onClose: () => void;
+}) {
   const { t, p, lang } = useI18n();
   const [open, setOpen] = useState<string | null>(focusProductId ?? null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const overall = useMemo(overallTrustScore, []);
-  const feedbackUrl = process.env.NEXT_PUBLIC_DATA_FEEDBACK_URL;
+  const feedbackUrl = links?.feedbackUrl ?? process.env.NEXT_PUBLIC_DATA_FEEDBACK_URL;
 
   const dialogRef = useModalDialog<HTMLDivElement>(onClose, closeRef);
 
@@ -312,7 +321,7 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                 ? '공식 문서로 확인한 값을 입력하면 verified-overrides.json 형식의 항목이 생성됩니다. 커밋 후 배포되면 해당 항목이 "전문가 검증"으로 승격됩니다.'
                 : 'Enter a value confirmed on an official document to generate a verified-overrides.json entry. Once committed and deployed, the datum is promoted to “expert-verified”.'}
             </p>
-            <OverrideHelper defaultProductId={focusProductId} />
+            <OverrideHelper defaultProductId={focusProductId} editUrl={links?.overridesEditUrl ?? undefined} />
           </section>
 
           {feedbackUrl && (

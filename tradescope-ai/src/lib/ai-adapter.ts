@@ -7,6 +7,8 @@
  * to the simulation engine instead of surfacing an error to the user.
  */
 
+import { getSetting } from '@/lib/settings';
+
 export interface AiConfig {
   enabled: boolean;
   apiKey?: string;
@@ -33,19 +35,21 @@ const numberEnv = (v: string | undefined): number | undefined => {
   return Number.isFinite(n) ? n : undefined;
 };
 
+/** Read on every call: environment variable → value saved on /admin → default (see lib/settings). */
 export function getAiConfig(): AiConfig {
-  const apiKey = process.env.AI_API_KEY?.trim() || undefined;
-  const baseUrl = (process.env.AI_BASE_URL?.trim() || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const apiKey = getSetting('AI_API_KEY') || undefined;
+  const baseUrl = (getSetting('AI_BASE_URL') || 'https://api.openai.com/v1').replace(/\/+$/, '');
+  const timeout = numberEnv(getSetting('AI_TIMEOUT_MS'));
   return {
-    enabled: !!apiKey && process.env.AI_DISABLED !== 'true',
+    enabled: !!apiKey && getSetting('AI_DISABLED') !== 'true',
     apiKey,
     baseUrl,
-    model: process.env.AI_MODEL?.trim() || 'gpt-4o-mini',
+    model: getSetting('AI_MODEL') || 'gpt-4o-mini',
     // non-positive values would make every call time out immediately
-    timeoutMs: (numberEnv(process.env.AI_TIMEOUT_MS) ?? 0) > 0 ? numberEnv(process.env.AI_TIMEOUT_MS)! : 15_000,
-    temperature: numberEnv(process.env.AI_TEMPERATURE),
-    maxTokens: numberEnv(process.env.AI_MAX_TOKENS),
-    jsonMode: process.env.AI_JSON_MODE === 'true',
+    timeoutMs: timeout !== undefined && timeout > 0 ? timeout : 15_000,
+    temperature: numberEnv(getSetting('AI_TEMPERATURE')),
+    maxTokens: numberEnv(getSetting('AI_MAX_TOKENS')),
+    jsonMode: getSetting('AI_JSON_MODE') === 'true',
   };
 }
 
