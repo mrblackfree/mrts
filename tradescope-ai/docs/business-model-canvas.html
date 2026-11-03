@@ -872,17 +872,17 @@
       { id: 'H1a', h: 'H1', name: '직접 찾아봤고 어려웠다고 답한 기업', type: 'rate', a1: '그렇다고 답한 기업', a2: '인터뷰한 기업', pass: 0.6, stop: 1 / 3, stopText: '5곳 미만(15곳 기준)', min: 15, rung: 1,
         next: { pass: 'H1b(이미 돈을 쓴 대안)도 확인한 뒤 H4·H5 준비로 진행', hold: '세그먼트를 좁혀(예: 펫푸드만) 5곳을 더 인터뷰하고 다시 판단', stop: '1차 타깃을 「필리핀 → 한국 수입」이나 다른 품목군으로 바꿔 다시 인터뷰' } },
       { id: 'H1b', h: 'H1', name: '그중 이미 돈을 쓴 대안이 있는 기업', type: 'rate', a1: '돈을 쓴 대안이 있는 기업', a2: '어려웠다고 답한 기업', pass: 0.5, stop: null, min: 9, rung: 1,
-        next: { pass: 'H1 통과 — 관문 1 통과 조건 충족', hold: '대안의 금액·기간을 구체적으로 다시 확인 — 금액이 안 나오면 문제가 절실하지 않다는 신호' } },
+        next: { pass: 'H1b 통과 — H1a(직접 찾아봤고 어려웠다 60% 이상)도 통과해야 H1·관문 1 통과', hold: '대안의 금액·기간을 구체적으로 다시 확인 — 금액이 안 나오면 문제가 절실하지 않다는 신호' } },
       { id: 'H2a', h: 'H2', name: '과제 완료율', type: 'rate', a1: '완료한 참가자', a2: '참가자', pass: 0.8, stop: 0.6, min: 6, rung: 2,
         next: { pass: 'SUS·누락 건수도 확인', hold: '가장 많이 막힌 단계 하나만 고쳐 같은 과제로 재시험', stop: '막힌 단계의 문구·순서를 고치고 재시험(같은 지점에서 3명 이상 막혔다면 결과와 관계없이 수정)' } },
       { id: 'H2b', h: 'H2', name: 'SUS 평균 점수', type: 'mean', a1: 'SUS 평균 (0~100)', a2: '응답자', lo: 0, hi: 100, pass: 70, stop: 50, min: 6, rung: 1,
         next: { pass: '완료율·누락 건수와 함께 판단', hold: '가장 낮은 문항과 관련된 화면 하나만 고쳐 재시험', stop: '전체 흐름을 다시 설계한 뒤 재시험' } },
-      { id: 'H2c', h: 'H2', name: '빠뜨린 필수 단계', type: 'zero', a1: '빠뜨린 필수 단계 (합계)', a2: '참가자', min: 6, rung: 2,
+      { id: 'H2c', h: 'H2', name: '빠뜨린 필수 단계', type: 'zero', a1: '빠뜨린 필수 단계 (합계)', a2: '참가자', zeroRule: '누락 0건이면 통과', minUnit: '명', min: 6, rung: 2,
         next: { pass: '필수 단계 누락 없음', hold: '빠뜨린 단계의 안내·순서를 고치고 같은 과제로 재시험' } },
       { id: 'H3a', h: 'H3', name: '인허가 단계 요청 제출률', type: 'rate', a1: '인허가 단계에서 보낸 요청', a2: '인허가 단계 첫 진입', pass: 0.05, stop: 0.01, min: 200, rung: 2, hint: '/admin → 가설 검증의 H3 카드 숫자를 그대로 넣으세요.',
         next: { pass: 'H3b 응답률도 확인한 뒤 H4 사전 판매로', hold: '방문 200회를 더 모으거나 버튼 문구·위치 하나만 바꿔 다시 측정', stop: '양식 단순화·가격 표시 실험 후 재측정, 그래도 낮으면 셀프서비스 중심으로 전환' } },
       { id: 'H3b', h: 'H3', name: '연락했을 때 응답한 요청자', type: 'rate', a1: '응답한 요청자', a2: '연락한 요청', pass: 0.7, stop: null, min: 10, rung: 3,
-        next: { pass: 'H3 통과', hold: '요청의 질 확인 — 연락처 정확도, 요청 의도(정보 탐색인지 실제 진행인지)' } },
+        next: { pass: '응답률 기준 통과 — H3a 요청 제출률(5% 이상)도 통과해야 H3 통과', hold: '요청의 질 확인 — 연락처 정확도, 요청 의도(정보 탐색인지 실제 진행인지)' } },
       { id: 'H4', h: 'H4', name: '견적 대비 착수금 결제율', type: 'rate', a1: '착수금을 낸 기업', a2: '견적을 받은 기업', pass: 0.3, stop: 0.1, min: 10, rung: 4,
         next: { pass: '다음 견적 10건으로 재확인하며 H5·H6 파일럿 진행', hold: '거절 사유 상위 하나(가격·기간·신뢰)를 고친 견적으로 5건 더 제시', stop: '신뢰 문제인지 인터뷰로 확인(전문가 소개·사례 공개), 이후에도 낮으면 리퍼럴 수수료 모델로 전환' } },
       { id: 'H5a', h: 'H5', name: '48시간 안 첫 응답', type: 'rate', a1: '48시간 안에 응답한 건', a2: '배정한 건', pass: 0.9, stop: null, min: 3, rung: 3,
@@ -899,8 +899,10 @@
         next: { pass: '추적 프리미엄 수익원 검토 유지', hold: '알림(수동 발송)을 붙인 그룹과 비교해 한 번 더 측정', stop: '추적은 무료 부가 기능으로 두고 추적 프리미엄 수익원은 제외' } },
       { id: 'H8', h: 'H8', name: '실제 소스 추적 성공률', type: 'rate', a1: '결과를 받은 번호', a2: '조회한 번호', pass: 0.9, stop: 0.75, min: 20, rung: null, hint: '이정표 불일치 0건·지연 중앙값 12시간 이하도 함께 확인하세요.',
         next: { pass: '이정표 일치·지연 기준도 확인', hold: '실패한 선사만 다른 번호 5건으로 재시험', stop: '반복 실패하는 선사의 공식 API 어댑터를 우선 추가하거나 다른 집계 API와 비교' } },
-      { id: 'H10', h: 'H10', name: '검증 배지 노출 효과 (A/B)', type: 'ab', a1: '비노출군 요청', a2: '비노출군 분모(인허가 진입)', b1: '노출군 요청', b2: '노출군 분모(인허가 진입)', min: 30, rung: 2,
-        next: { pass: '검증 배지를 마케팅 메시지에 사용', hold: '어느 한 군이라도 요청 30건 미만 — 2주 더 같은 조건으로 측정', stop: '검증은 품질 기준으로만 유지하고 마케팅 메시지에서 제외' } }
+      { id: 'H10a', h: 'H10', name: '남은 시드 FTA 세율', type: 'zero', a1: '시드값으로 남은 FTA 세율 (건)', a2: '확인한 품목 수', zeroRule: '시드 세율 0건이면 통과', minUnit: '개 품목', min: 7, rung: null, evidence: '관세사 확인', hint: '신뢰도 센터에서 7개 품목의 협정세율 등급을 확인하세요. 이 조건이 먼저 통과해야 H10b의 배지 효과를 쓸 수 있습니다.',
+        next: { pass: '모든 협정세율이 검증값 — H10b 배지 효과 측정으로', hold: '남은 시드 세율을 관세사가 확인해 검증값으로 입력한 뒤 다시 확인' } },
+      { id: 'H10b', h: 'H10', name: '검증 배지 노출 효과 (A/B)', type: 'ab', a1: '비노출군 요청', a2: '비노출군 분모(인허가 진입)', b1: '노출군 요청', b2: '노출군 분모(인허가 진입)', min: 30, rung: 2,
+        next: { pass: '노출군 전환이 높음 — H10a(시드 세율 0건)도 통과했을 때만 검증 배지를 마케팅 메시지에 사용', hold: '어느 한 군이라도 요청 30건 미만 — 2주 더 같은 조건으로 측정', stop: '검증은 품질 기준으로만 유지하고 마케팅 메시지에서 제외' } }
     ];
     var VERDICT = { pass: ['✓', '통과'], hold: ['Ⅱ', '보류'], stop: ['✕', '중단·전환'], insufficient: ['…', '표본 부족'] };
     var RUNG = { 1: '1단 · 말', 2: '2단 · 행동', 3: '3단 · 약속·이행', 4: '4단 · 돈' };
@@ -978,10 +980,10 @@
         big = num(a1) + m.unit; sub = a2 + '건';
         summary = num(a1) + m.unit + ' (' + a2 + '건)';
       } else {
-        rule = '누락 0건이면 통과 · 최소 ' + m.min + '명';
+        rule = m.zeroRule + ' · 최소 ' + m.min + m.minUnit;
         verdict = short ? 'insufficient' : a1 === 0 ? 'pass' : 'hold';
-        big = a1 + '건'; sub = '참가자 ' + a2;
-        summary = '누락 ' + a1 + '건 (참가자 ' + a2 + ')';
+        big = a1 + '건'; sub = m.a2 + ' ' + a2;
+        summary = m.a1 + ' ' + a1 + '건 (' + m.a2 + ' ' + a2 + ')';
       }
       if (short) lines.unshift('최소 표본까지 ' + (m.min - a2) + ' 남았습니다 — 그 전에는 판정하지 않습니다.');
       lines.unshift('기준: ' + rule);
@@ -1006,7 +1008,7 @@
       if (isAb) { f('calc-b1-l').textContent = m.b1; f('calc-b2-l').textContent = m.b2; }
       f('calc-a1').step = m.type === 'mean' || m.type === 'value' ? 'any' : '1';
       f('calc-a1').min = m.type === 'mean' || m.type === 'value' ? String(m.lo) : '0';
-      f('calc-hint').textContent = (m.rung ? '증거: ' + RUNG[m.rung] + '. ' : '증거: 기술 실측. ') + (m.hint || '');
+      f('calc-hint').textContent = (m.rung ? '증거: ' + RUNG[m.rung] + '. ' : '증거: ' + (m.evidence || '기술 실측') + '. ') + (m.hint || '');
       ['calc-a1', 'calc-a2', 'calc-b1', 'calc-b2'].forEach(function (id) { f(id).value = ''; });
       render();
     }
