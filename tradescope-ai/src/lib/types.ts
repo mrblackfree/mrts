@@ -103,6 +103,8 @@ export interface MarketStats {
   latestMonthly?: { from: string; to: string; value: number; source: string };
   /** official customs unit value for the HS basis (USD/kg) */
   unitValue?: { year: number; usdPerKg: number; netWgtKg: number; basis: 'CIF' | 'FOB' };
+  /** Korea-reported exports vs PH-reported imports from Korea for the same year (KR→PH products) */
+  mirror?: { year: number; krReported: number; phReported: number; ratio: number };
 }
 
 // ---------- verification layer ----------
@@ -142,6 +144,35 @@ export interface MfnCheck {
   url: string;
 }
 
+/**
+ * Preferential rate the importer actually applied to the counterpart's goods (WITS TARIFFTYPE=PREF).
+ * scheme 'AKFTA' — observation from before June 2023, when AKFTA was the only KR-PH agreement in force,
+ *                  so it is the official AKFTA rate.
+ * scheme 'BEST'  — later observation: the best of AKFTA / RCEP / KR-PH FTA, so it does NOT verify any single
+ *                  agreement and is shown for information only.
+ */
+export interface PrefCheck {
+  hs6: string;
+  year: number;
+  min: number;
+  max: number;
+  lines: number;
+  scheme: 'AKFTA' | 'BEST';
+  seedRate?: number;
+  status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range' | 'info';
+  url: string;
+}
+
+/** Separate tariff table for an HS candidate whose duty differs from the primary code (e.g. flooring vs locks). */
+export interface HsTariffTable {
+  label: Bilingual;
+  tariffs: TariffRate[];
+  bestFta: { scheme: FtaScheme; reason: Bilingual };
+  /** attached by the official-data layer */
+  mfnCheck?: MfnCheck;
+  prefCheck?: PrefCheck;
+}
+
 export interface LinkCheck {
   state: 'ok' | 'protected' | 'unavailable' | 'unreachable' | 'broken';
   status: number;
@@ -154,7 +185,7 @@ export interface ProductVerification {
   counts: Record<VerificationLevel, number>;
   mfnCheck?: MfnCheck;
   /** official preferential rate applied by the importer to the counterpart (WITS TARIFFTYPE=PREF) */
-  prefCheck?: { hs6: string; year: number; min: number; max: number; lines: number; scheme: 'AKFTA' | 'BEST'; seedRate?: number; status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range'; url: string };
+  prefCheck?: PrefCheck;
   /** seed price vs official customs unit value */
   priceCheck?: { year: number; usdPerKg: number; basis: 'CIF' | 'FOB'; seedPerKg: number; ratio: number; status: 'consistent' | 'outlier' | 'not-comparable' };
   /** official MFN summaries for the alternative HS candidates, keyed by HS6 */
@@ -241,6 +272,8 @@ export interface TradeProduct {
   partners: Partner[];
   pricing: PricingSeed;
   keyRisks: Bilingual[];
+  /** HS-specific tariff tables for alternative HS candidates, keyed by the 10-digit code */
+  tariffsByHs?: Record<string, HsTariffTable>;
   /** attached by the official-data layer (src/data/official) */
   verification?: ProductVerification;
 }

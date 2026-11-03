@@ -11,6 +11,7 @@
  *    public exhibitor / directory listing). Scores and comments are simulated matching output, not endorsements.
  */
 import type { Bilingual, Requirement, SourceMeta, TariffRate, TradeProduct } from '@/lib/types';
+import { todayIso } from '@/lib/format';
 import { applyOfficialLayer, OFFICIAL } from './official';
 
 const b = (ko: string, en: string): Bilingual => ({ ko, en });
@@ -1826,7 +1827,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
       },
     ],
     tariffs: [
-      { scheme: 'MFN', rate: 1, roo: '-', certificate: CERT.none, note: b('도어락(8301.40) 기준 — 바닥재(3918.10)는 MFN 15%', 'Door locks (8301.40) only — flooring (3918.10) is 15% MFN') },
+      { scheme: 'MFN', rate: 1, roo: '-', certificate: CERT.none, note: b('도어락(8301.40) — 바닥재는 HS 3918.10 탭', 'Door locks (8301.40) — flooring has its own HS 3918.10 tab') },
       { scheme: 'AKFTA', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('일반품목 철폐 완료', 'Normal-track elimination complete') },
       { scheme: 'RCEP', rate: 1, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('MFN 이하로 상한 — 양허세율 확인 필요', 'Capped at MFN — confirm the scheduled rate') },
       { scheme: 'KRPH', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
@@ -1835,9 +1836,27 @@ const SEED_PRODUCTS: TradeProduct[] = [
     bestFta: {
       scheme: 'AKFTA',
       reason: b(
-        '도어락(8301.40)은 필리핀 MFN이 1%로 FTA 절감 효과가 미미 — 원산지 서류 비용 대비 실익을 따져볼 것. 반면 패키지로 수출하는 PVC 바닥재(3918.10)는 MFN 15%라 FTA 0% 적용 가치가 큼. AKFTA 0%는 WITS 공식 특혜세율로 확인됨 — 중국산 부품 비중이 높으면 BOM 기준 RVC 40% 판정 필수.',
-        'Door locks (8301.40) carry only 1% PH MFN, so FTA savings are marginal — weigh them against CO paperwork. PVC flooring (3918.10) shipped in the same package carries 15% MFN, so FTA 0% matters there. AKFTA 0% is confirmed by WITS; with many Chinese parts a BOM-based RVC 40% check is essential.',
+        '도어락(8301.40)은 필리핀 MFN이 1%로 FTA 절감 효과가 미미 — 원산지 서류 비용 대비 실익을 따져볼 것. AKFTA 0%는 WITS 공식 특혜세율로 확인됨. 중국산 부품 비중이 높으면 BOM 기준 RVC 40% 판정 필수. 함께 수출하는 바닥재(3918.10)는 세율 구조가 전혀 달라 별도 탭에서 계산.',
+        'Door locks (8301.40) carry only 1% PH MFN, so FTA savings are marginal — weigh them against CO paperwork. AKFTA 0% is confirmed by WITS; with many Chinese parts a BOM-based RVC 40% check is essential. Flooring (3918.10) shipped alongside has a completely different duty profile — see its own tab.',
       ),
+    },
+    tariffsByHs: {
+      '3918.10.1000': {
+        label: b('PVC·SPC 바닥재 (HS 3918.10)', 'PVC / SPC flooring (HS 3918.10)'),
+        tariffs: [
+          { scheme: 'MFN', rate: 15, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
+          { scheme: 'AKFTA', rate: 12, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('필리핀 민감품목 — WITS 공식 특혜세율과 일치', 'PH sensitive item — matches the WITS official preferential rate') },
+          { scheme: 'RCEP', rate: 12, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('시드 — 양허표 확인 필요', 'Seed — confirm in the schedule') },
+          { scheme: 'KRPH', rate: 12, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('시드(미검증) — AKFTA와 동일 가정, 양허표 확인 필요', 'Seed (unverified) — assumed equal to AKFTA, confirm in the schedule') },
+        ],
+        bestFta: {
+          scheme: 'AKFTA',
+          reason: b(
+            '바닥재는 필리핀 민감품목이라 AKFTA도 12%(MFN 15% 대비 3%p 절감)로 공식 확인됨. 한-필 FTA·RCEP 양허세율이 더 낮을 수 있으므로 Tariff Finder(PH-KR FTA)에서 AHTN 3918.10 연차 세율을 반드시 확인 — 절세 여지가 가장 큰 항목.',
+            'Flooring is a PH sensitive item, so even AKFTA is officially 12% (3 pp below MFN 15%). The KR-PH FTA or RCEP schedule may be lower — check AHTN 3918.10 year-by-year rates in the Tariff Finder (PH-KR FTA); this is where the savings potential is largest.',
+          ),
+        },
+      },
     },
     requirements: [
       {
@@ -2050,7 +2069,24 @@ export const PRODUCTS: TradeProduct[] = SEED_PRODUCTS.map(applyOfficialLayer);
 
 export const PRODUCT_INDEX: Record<string, TradeProduct> = Object.fromEntries(PRODUCTS.map((p) => [p.id, p]));
 
+let layerBuiltOn = todayIso();
+
+/**
+ * Re-applies the official layer when the calendar day changes, so `validUntil` expiry also takes effect in
+ * long-running servers (browsers rebuild on every page load). Arrays are updated in place for importers.
+ */
+export function refreshOfficialLayer(): void {
+  const day = todayIso();
+  if (day === layerBuiltOn) return;
+  layerBuiltOn = day;
+  const fresh = SEED_PRODUCTS.map(applyOfficialLayer);
+  PRODUCTS.splice(0, PRODUCTS.length, ...fresh);
+  for (const k of Object.keys(PRODUCT_INDEX)) delete PRODUCT_INDEX[k];
+  for (const p of fresh) PRODUCT_INDEX[p.id] = p;
+}
+
 export function getProduct(id: string): TradeProduct | undefined {
+  refreshOfficialLayer();
   return PRODUCT_INDEX[id];
 }
 

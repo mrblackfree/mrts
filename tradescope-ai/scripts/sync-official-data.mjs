@@ -45,7 +45,7 @@ const MANIFEST = [
   { id: 'seasoned-laver', direction: 'KR_TO_PH', basis: '200899', hs6: ['200899', '121221', '190590'] },
   { id: 'k-beauty', direction: 'KR_TO_PH', basis: '330499', hs6: ['330499', '340130'] },
   { id: 'instant-ramen', direction: 'KR_TO_PH', basis: '190230', hs6: ['190230', '190219'] },
-  { id: 'smart-building', direction: 'KR_TO_PH', basis: '830140', hs6: ['830140', '391810', '854370'] },
+  { id: 'smart-building', direction: 'KR_TO_PH', basis: '830140', hs6: ['830140', '391810', '854370'], prefHs: ['391810'] },
 ];
 
 // Comtrade partner codes (M49-based) → ISO2 + names. 490 = "Other Asia, nes" (Taiwan) in Comtrade.
@@ -183,7 +183,9 @@ async function syncComtrade(snapshot) {
     const prevP = prev.products?.[m.id];
     const fresh = years.map((y) => ({ year: y, value: bilateral[`${flow}:${m.basis}:${y}`]?.value })).filter((s) => typeof s.value === 'number');
     // Keep the last good series when this run returned fewer years (partial outage).
+    const nowIso = new Date().toISOString();
     const series = fresh.length >= (prevP?.series?.length ?? 0) ? fresh : prevP.series;
+    const seriesFetchedAt = series === fresh ? nowIso : (prevP?.fetchedAt ?? prev.fetchedAt ?? snapshot.sources?.comtrade?.fetchedAt);
     if (fresh.length < years.length) out.errors.push(`series ${m.id}: ${fresh.length}/${years.length} years${series !== fresh ? ' (kept previous)' : ''}`);
     const importer = m.direction === 'PH_TO_KR' ? KR : PH;
     const counterpart = m.direction === 'PH_TO_KR' ? PH : KR;
@@ -193,6 +195,7 @@ async function syncComtrade(snapshot) {
     out.products[m.id] = {
       hsBasis: m.basis,
       series,
+      fetchedAt: seriesFetchedAt,
       // Official customs unit value (USD per kg): imports CIF, exports FOB.
       unitValue:
         latest && latest.netWgt > 0
@@ -207,8 +210,11 @@ async function syncComtrade(snapshot) {
             competitors: market.partners.slice(0, 5),
             counterpart: counterpartRow ?? { ...partnerInfo(counterpart), value: 0, share: 0 },
             source: `UN Comtrade · reporter ${importer} · partner World · flow M · HS ${m.basis} · ${market.year}`,
+            fetchedAt: nowIso,
           }
-        : (prevP?.market ?? null),
+        : prevP?.market
+          ? { ...prevP.market, fetchedAt: prevP.market.fetchedAt ?? prevP.fetchedAt ?? snapshot.sources?.comtrade?.fetchedAt }
+          : null,
     };
     if (!market) out.errors.push(`market ${m.id}: no data${prevP?.market ? ' (kept previous)' : ''}`);
   }
@@ -233,16 +239,24 @@ async function syncComtrade(snapshot) {
   const allCodes = [...new Set(MANIFEST.map((m) => m.basis))];
   const ytd = {};
   const months = [];
+  const empty = [];
   const thisMonth = new Date().getUTCMonth() + 1;
   for (let mo = 1; mo < thisMonth; mo++) {
     const period = `${nowYear}${String(mo).padStart(2, '0')}`;
     const r = await comtrade({ reporterCode: KR, partnerCode: PH, period, cmdCode: allCodes.join(','), flowCode: 'M,X' }, 'M');
-    if (!r.data || !r.data.length) break;
+    if (!r.data) out.errors.push(`monthly ${period}: ${r.error ?? r.status}`);
+    if (!r.data || !r.data.length) {
+      empty.push(period);
+      continue; // keep going: a failed month must not hide later months
+    }
     months.push(period);
     for (const row of r.data) ytd[`${row.flowCode}:${row.cmdCode}`] = (ytd[`${row.flowCode}:${row.cmdCode}`] ?? 0) + row.primaryValue;
     log(`  comtrade monthly ${period}: ${r.data.length} rows`);
   }
-  if (months.length) {
+  // A year-to-date total is only valid for a contiguous run from January.
+  const gaps = months.length ? empty.filter((p) => p < months[months.length - 1]) : [];
+  if (gaps.length) out.errors.push(`monthly gap ${gaps.join(',')} — YTD not published`);
+  if (months.length && !gaps.length && months[0].endsWith('01')) {
     for (const m of MANIFEST) {
       const flow = m.direction === 'PH_TO_KR' ? 'M' : 'X';
       const value = ytd[`${flow}:${m.basis}`];
@@ -316,8 +330,16 @@ async function syncWits(snapshot) {
   const prevPref = snapshot.witsPref ?? {};
   const out = {};
   const pref = {};
+  const prefByHs = {};
+  const prevPrefByHs = snapshot.witsPrefByHs ?? {};
   const errors = [];
+  const missing = [];
   let fetched = 0;
+  const keepPref = (label, prevValue) => {
+    if (prevValue) errors.push(`${label}: lookup failed (kept previous)`);
+    else missing.push(`${label}: not published in TRAINS`);
+    return prevValue;
+  };
   for (const m of MANIFEST) {
     const reporter = m.direction === 'PH_TO_KR' ? KR : PH;
     out[m.id] = {};
@@ -336,15 +358,31 @@ async function syncWits(snapshot) {
     const partner = m.direction === 'PH_TO_KR' ? PH : KR;
     const pr = await witsPref(reporter, partner, m.hs6[0]);
     if (pr) pref[m.id] = { reporter, partner, hs6: m.hs6[0], ...pr };
-    else if (prevPref[m.id]) pref[m.id] = prevPref[m.id];
+    else {
+      const kept = keepPref(`pref ${m.id} ${reporter}←${partner}/${m.hs6[0]}`, prevPref[m.id]);
+      if (kept) pref[m.id] = kept;
+    }
     log(`  wits pref ${m.id} ${reporter}←${partner}/${m.hs6[0]}: ${pr ? `${pr.year} ${pr.min === pr.max ? pr.min : `${pr.min}–${pr.max}`}% (${pr.prefLines}/${pr.lines} pref lines)` : 'no record'}`);
+    // HS-specific tariff tables (e.g. flooring next to door locks)
+    for (const hs6 of m.prefHs ?? []) {
+      const alt = await witsPref(reporter, partner, hs6);
+      prefByHs[m.id] ??= {};
+      if (alt) prefByHs[m.id][hs6] = { reporter, partner, hs6, ...alt };
+      else {
+        const kept = keepPref(`pref ${m.id} ${reporter}←${partner}/${hs6}`, prevPrefByHs[m.id]?.[hs6]);
+        if (kept) prefByHs[m.id][hs6] = kept;
+      }
+      log(`  wits pref ${m.id} ${reporter}←${partner}/${hs6}: ${alt ? `${alt.year} ${alt.min === alt.max ? alt.min : `${alt.min}–${alt.max}`}%` : 'no record'}`);
+    }
   }
   snapshot.witsPref = pref;
+  snapshot.witsPrefByHs = prefByHs;
   snapshot.sources.wits = {
     status: fetched === 0 ? 'error' : errors.length ? 'partial' : 'ok',
     fetchedAt: new Date().toISOString(),
     endpoint: 'wits.worldbank.org/API/V1/SDMX (TRAINS, MFN + PREF, HS6)',
     errors,
+    missing,
   };
   snapshot.wits = out;
 }
@@ -448,10 +486,13 @@ async function validateOverrides(snapshot) {
   const db = await readFile(DB_FILE, 'utf8');
   const knownIds = new Set([...db.matchAll(/\bid: '([a-z0-9-]+)'/g)].map((m) => m[1]));
   const knownHs = new Set([...db.matchAll(/\bcode: '(\d{4}\.\d{2}\.\d{4})'/g)].map((m) => m[1]));
-  const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+  // keys of `tariffsByHs` blocks (HS-specific tariff tables)
+  const knownTables = new Set([...db.matchAll(/^\s+'(\d{4}\.\d{2}\.\d{4})': \{$/gm)].map((m) => m[1]));
+  // round-trip so impossible dates such as 2025-02-31 are rejected
+  const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v;
   const isNum = (v, lo, hi) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
   const isRange = (v, hi) => Array.isArray(v) && v.length === 2 && isNum(v[0], 0, hi) && isNum(v[1], 0, hi) && v[0] <= v[1];
-  const placeholder = (v) => typeof v === 'string' && /(O{3}|_{3,}|0000호|TEST)/.test(v);
+  const placeholder = (v) => typeof v === 'string' && /(O{3}|_{3,}|0000호|\bTEST\b)/.test(v);
   (doc.entries ?? []).forEach((e, i) => {
     const at = `entries[${i}]`;
     for (const k of required) if (!e[k]) errors.push(`${at} missing ${k}`);
@@ -465,6 +506,7 @@ async function validateOverrides(snapshot) {
         if (!['MFN', 'AKFTA', 'RCEP', 'KRPH'].includes(t.scheme)) errors.push(`${at} target.scheme must be MFN|AKFTA|RCEP|KRPH`);
         if (!isNum(t.rate, 0, 100)) errors.push(`${at} target.rate must be 0–100`);
         if (t.roo !== undefined && (typeof t.roo !== 'string' || !t.roo.trim())) errors.push(`${at} target.roo must be a non-empty string`);
+        if (t.hs !== undefined && !knownTables.has(t.hs)) errors.push(`${at} target.hs ${t.hs} is not an HS tariff table of the product`);
         break;
       case 'hs':
         if (!knownHs.has(t.code)) errors.push(`${at} target.code ${t.code} is not an HS candidate of the product`);

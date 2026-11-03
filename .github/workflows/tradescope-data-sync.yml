@@ -43,11 +43,18 @@ jobs:
 
       - name: Refuse to propose a degraded snapshot
         run: |
-          for src in comtrade wits; do
-            st=$(jq -r ".sources.${src}.status // \"missing\"" src/data/official/snapshot.json)
+          # Only a fully successful sync may be proposed: "partial" means some values are carried over from the
+          # previous snapshot, which would mix fresh and stale data in one PR.
+          snap=src/data/official/snapshot.json
+          srcs="comtrade wits"
+          kcs=$(jq -r '.sources.kcs.status // "not-configured"' "$snap")
+          [ "$kcs" != "not-configured" ] && srcs="$srcs kcs"
+          for src in $srcs; do
+            st=$(jq -r ".sources.${src}.status // \"missing\"" "$snap")
             echo "${src}: ${st}"
-            if [ "$st" = "error" ] || [ "$st" = "missing" ]; then
-              echo "::error::${src} sync failed — not opening a data PR (previous values were kept in the snapshot)."
+            if [ "$st" != "ok" ]; then
+              jq -r ".sources.${src}.errors[]? // empty" "$snap" | sed 's/^/  - /'
+              echo "::error::${src} sync is ${st} — not opening a data PR (previous values were kept in the snapshot)."
               exit 1
             fi
           done
@@ -78,7 +85,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           DAY=$(date -u +%Y-%m-%d)
-          BR="data-sync/${DAY}-${GITHUB_RUN_ID}"
+          BR="data-sync/${DAY}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BR"

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getProduct } from '@/data/kr-ph-trade-db';
 import { getAiConfig } from '@/lib/ai-adapter';
 import { llmPolishEmail } from '@/lib/engine/llm';
-import { buildDraftLocal, defaultDraftOptions, priceForIncoterm } from '@/lib/engine/simulate';
+import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, priceForIncoterm } from '@/lib/engine/simulate';
 import { allowLlmCall, clientKey } from '@/lib/rate-limit';
 import type { DraftOptions, DraftResult, Lang, TradeProduct } from '@/lib/types';
 
@@ -11,15 +11,18 @@ export const dynamic = 'force-dynamic';
 
 const PAYMENTS: DraftOptions['payment'][] = ['TT_30_70', 'TT_100', 'LC_SIGHT'];
 const SAMPLES: DraftOptions['sample'][] = ['free', 'paid-credit', 'none'];
-const LIMITS = { unitPrice: 1_000_000, moq: 10_000_000, quantity: 10_000_000 } as const;
+const LIMITS = DRAFT_LIMITS;
 
 type Parsed = { ok: true; options: DraftOptions } | { ok: false; field: string };
 
 function sanitizeOptions(product: TradeProduct, raw: Partial<DraftOptions> | undefined, fallback: DraftOptions): Parsed {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<DraftOptions>;
   const str = (v: unknown, d: string) => (typeof v === 'string' ? v.slice(0, 80) : d);
-  // Only incoterms offered for this product are accepted (they drive the price uplift and the PI).
-  const incoterm = typeof r.incoterm === 'string' && product.pricing.incoterms.includes(r.incoterm) ? r.incoterm : fallback.incoterm;
+  // Only incoterms offered for this product are accepted (they drive the price uplift and the PI). Like the
+  // numbers below, an unknown value is rejected rather than replaced, so a client price is never paired with
+  // an incoterm the client did not choose.
+  if (r.incoterm !== undefined && (typeof r.incoterm !== 'string' || !product.pricing.incoterms.includes(r.incoterm))) return { ok: false, field: 'incoterm' };
+  const incoterm = r.incoterm ?? fallback.incoterm;
   const numbers: Partial<Record<keyof typeof LIMITS, number>> = {};
   for (const key of Object.keys(LIMITS) as Array<keyof typeof LIMITS>) {
     const v = r[key];

@@ -2,11 +2,11 @@
 
 import { ArrowRight, Globe2, Handshake, Scale } from 'lucide-react';
 import { KR_PH_OVERVIEW, PRODUCTS } from '@/data/kr-ph-trade-db';
-import { formatPct, formatUsd, yoy } from '@/lib/format';
+import { formatPct, formatUsd, trend, yoy } from '@/lib/format';
 import { bestTariff, DIRECTION_LABEL, mfnTariff } from '@/lib/engine/simulate';
 import { GroupedColumns } from './charts';
 import { useI18n } from './I18nProvider';
-import { Badge, Card, SourceTag } from './ui';
+import { Badge, Card, cx, SourceTag } from './ui';
 
 export default function Overview({ onPick }: { onPick: (productId: string) => void }) {
   const { t, p, lang } = useI18n();
@@ -38,7 +38,7 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
               </p>
               <p className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">{k.value}</p>
               {k.delta !== null && (
-                <p className={k.delta >= 0 ? 'text-xs font-bold text-emerald-600 dark:text-emerald-400' : 'text-xs font-bold text-rose-600 dark:text-rose-400'}>
+                <p className={cx('text-xs font-bold', { up: 'text-emerald-600 dark:text-emerald-400', down: 'text-rose-600 dark:text-rose-400', flat: 'text-slate-500' }[trend(k.delta)])}>
                   {t('yoyLabel')} {formatPct(k.delta, 1, true)}
                 </p>
               )}
@@ -74,7 +74,7 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
             <p className="text-xs text-slate-500 dark:text-slate-400">{t('catalogSub')}</p>
           </div>
           <Badge tone="brand">
-            {PRODUCTS.length} {t('itemsUnit')} · {PRODUCTS.reduce((n, x) => n + x.partners.length, 0)} {t('partnersUnit')}
+            {t('itemsUnit').replace('{n}', String(PRODUCTS.length))} · {t('partnersUnit').replace('{n}', String(PRODUCTS.reduce((n, x) => n + x.partners.length, 0)))}
           </Badge>
         </div>
         <ul className="grid gap-2.5 p-5 sm:grid-cols-2">
@@ -105,7 +105,7 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
                     <Badge tone="green">
                       {mfn.rate}% → {best.rate}%
                     </Badge>
-                    <Badge tone={g >= 0 ? 'brand' : 'red'}>
+                    <Badge tone={{ up: 'brand', down: 'red', flat: 'slate' }[trend(g)] as 'brand' | 'red' | 'slate'}>
                       {t('yoyLabel')} {formatPct(g, 0, true)}
                     </Badge>
                   </div>

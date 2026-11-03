@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -12,7 +12,10 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), selec
 export function useModalDialog<T extends HTMLElement>(onClose: () => void, initialFocus?: React.RefObject<HTMLElement | null>) {
   const containerRef = useRef<T>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  // keep the latest callback without writing refs during render
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
@@ -21,7 +24,8 @@ export function useModalDialog<T extends HTMLElement>(onClose: () => void, initi
     document.body.style.overflow = 'hidden';
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      // Escape during IME composition (Korean input) only cancels the composition
+      if (e.key === 'Escape' && !e.isComposing && e.keyCode !== 229) {
         e.preventDefault();
         onCloseRef.current();
         return;

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { DATA_AS_OF, PRODUCTS } from '@/data/kr-ph-trade-db';
+import { DATA_AS_OF, PRODUCTS, refreshOfficialLayer } from '@/data/kr-ph-trade-db';
 import { OFFICIAL } from '@/data/official';
 import { publicAiStatus } from '@/lib/ai-adapter';
 
@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 
 /** Liveness + capability probe (used by the header status bar and the Docker HEALTHCHECK). */
 export function GET() {
+  refreshOfficialLayer(); // report the same expiry state the analysis uses
   return NextResponse.json({
     status: 'ok',
     service: 'tradescope-ai',

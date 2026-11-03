@@ -2,6 +2,7 @@
 
 import { Cpu, Database, FileDown, Moon, ScanSearch, ShieldCheck, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { OFFICIAL } from '@/data/official';
 import { useI18n } from './I18nProvider';
 import { cx, Segmented } from './ui';
 
@@ -29,13 +30,21 @@ export default function Header({ health, canPrint, trustScore, onOpenTrust }: { 
   };
 
   const aiOn = !!health?.ai.enabled;
-  // live = synced from an official API into the snapshot; reference = official site linked, not synced
-  const sources: Array<{ label: string; live: boolean }> = [
-    { label: t('srcComtrade'), live: true },
-    { label: 'World Bank WITS', live: true },
-    { label: t('srcUnipass'), live: false },
-    { label: t('srcPhFda'), live: false },
+  // live = the last sync from the official API succeeded; degraded = API source whose last sync failed or was
+  // partial (previous snapshot values are shown); reference = official site linked, not synced
+  type SrcState = 'live' | 'degraded' | 'reference';
+  const apiState = (k: 'comtrade' | 'wits' | 'kcs'): SrcState => {
+    const st = OFFICIAL.sources[k]?.status;
+    return st === 'ok' ? 'live' : st === 'not-configured' || st === undefined ? (k === 'kcs' ? 'reference' : 'degraded') : 'degraded';
+  };
+  const sources: Array<{ label: string; state: SrcState }> = [
+    { label: t('srcComtrade'), state: apiState('comtrade') },
+    { label: 'World Bank WITS', state: apiState('wits') },
+    { label: t('srcUnipass'), state: apiState('kcs') },
+    { label: t('srcPhFda'), state: 'reference' },
   ];
+  const SRC_TITLE: Record<SrcState, string> = { live: t('srcLiveTitle'), degraded: t('srcDegradedTitle'), reference: t('srcRefTitle') };
+  const SRC_DOT: Record<SrcState, string> = { live: 'bg-emerald-500', degraded: 'bg-amber-400', reference: 'bg-slate-300 dark:bg-slate-600' };
 
   return (
     <header className="no-print sticky top-0 z-40 border-b border-slate-200/80 bg-white/85 backdrop-blur-md dark:border-slate-800 dark:bg-slate-950/80">
@@ -56,12 +65,12 @@ export default function Header({ health, canPrint, trustScore, onOpenTrust }: { 
             {sources.map((s) => (
               <span
                 key={s.label}
-                title={s.live ? t('srcLiveTitle') : t('srcRefTitle')}
+                title={SRC_TITLE[s.state]}
                 className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
               >
-                <span className={cx('size-1.5 rounded-full', s.live ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600')} />
+                <span className={cx('size-1.5 rounded-full', SRC_DOT[s.state])} />
                 {s.label}
-                {!s.live && <span className="font-medium text-slate-400">· {t('srcRef')}</span>}
+                {s.state === 'reference' && <span className="font-medium text-slate-400">· {t('srcRef')}</span>}
               </span>
             ))}
           </div>

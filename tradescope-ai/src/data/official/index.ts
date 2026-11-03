@@ -18,11 +18,15 @@
  */
 import overridesJson from '../verified-overrides.json';
 import snapshotJson from './snapshot.json';
+import { todayIso } from '@/lib/format';
 import type {
   Bilingual,
   CompetitorShare,
   LinkCheck,
+  MfnCheck,
+  PrefCheck,
   ProductVerification,
+  TariffRate,
   TradeProduct,
   VerificationCategory,
   VerificationItem,
@@ -50,9 +54,11 @@ interface SnapProduct {
   hsBasis: string;
   series: YearValue[];
   seriesSource: string;
+  /** when the series was last fetched successfully (kept when a later run had to retain it) */
+  fetchedAt?: string;
   unitValue?: { year: number; usdPerKg: number; netWgtKg: number; basis: 'CIF' | 'FOB' } | null;
   ytd?: { from: string; to: string; value: number; source: string };
-  market: null | { year: number; reporter: number; world: number; competitors: SnapPartner[]; counterpart: SnapPartner; source: string };
+  market: null | { year: number; reporter: number; world: number; competitors: SnapPartner[]; counterpart: SnapPartner; source: string; fetchedAt?: string };
 }
 
 interface WitsEntry {
@@ -80,13 +86,17 @@ interface Snapshot {
   sources?: Partial<Record<'comtrade' | 'wits' | 'kcs' | 'links' | 'overrides', SourceStatus>>;
   comtrade?: { products?: Record<string, SnapProduct>; overview?: { krExportsToPh: YearValue[]; krImportsFromPh: YearValue[] } };
   wits?: Record<string, Record<string, WitsEntry>>;
-  witsPref?: Record<string, WitsEntry & { partner: number; hs6: string; prefLines: number }>;
+  witsPref?: Record<string, PrefEntry>;
+  /** preferential rates for alternative HS tables, keyed by product then HS6 */
+  witsPrefByHs?: Record<string, Record<string, PrefEntry>>;
   kcs?: { ytd?: Record<string, { from: string; to: string; expUsd: number; impUsd: number; source: string }>; fx?: { usdKrw: number; appliedFrom: string; source: string } | null };
   links?: Record<string, LinkCheck>;
 }
 
+type PrefEntry = WitsEntry & { partner: number; hs6: string; prefLines: number };
+
 type OverrideTarget =
-  | { type: 'tariff'; scheme: string; rate: number; roo?: string }
+  | { type: 'tariff'; scheme: string; rate: number; roo?: string; hs?: string }
   | { type: 'hs'; code: string; ruling: string }
   | { type: 'partner'; id: string; license: string; licenseValidUntil?: string }
   | { type: 'requirement'; id: string }
@@ -113,13 +123,103 @@ export const OFFICIAL = {
   fx: SNAP.kcs?.fx ?? null,
   links: SNAP.links ?? {},
   overrideCount: OVERRIDES.length,
-  /** overrides whose validUntil has not passed */
-  activeOverrideCount: () => OVERRIDES.filter((e) => !e.validUntil || e.validUntil >= new Date().toISOString().slice(0, 10)).length,
+  /** overrides that are currently applied (entry not expired; partner licence not expired) */
+  activeOverrideCount: () => OVERRIDES.filter((e) => isActive(e) && licenceActive(e)).length,
 };
 
 const ymd = (iso?: string) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : undefined);
-const today = () => new Date().toISOString().slice(0, 10);
-const isActive = (e: OverrideEntry) => !e.validUntil || e.validUntil >= today();
+const today = () => todayIso();
+function isActive(e: OverrideEntry) {
+  return !e.validUntil || e.validUntil >= today();
+}
+function licenceActive(e: OverrideEntry) {
+  return e.target.type !== 'partner' || !e.target.licenseValidUntil || e.target.licenseValidUntil >= today();
+}
+
+interface TableCheck {
+  mfnLevel: VerificationLevel;
+  mfnConflict?: Bilingual;
+  akftaConflict?: Bilingual;
+  mfnCheck?: MfnCheck;
+  prefCheck?: PrefCheck;
+}
+
+/**
+ * Official checks for one tariff table: MFN vs WITS TRAINS (HS6) and AKFTA vs the preferential rate the
+ * importer applied to the counterpart. Mutates rates / levels in place and returns what it found.
+ */
+function checkTariffTable(tariffs: TariffRate[], hs6: string, w?: WitsEntry, pref?: PrefEntry): TableCheck {
+  const out: TableCheck = { mfnLevel: 'seed' };
+  const mfn = tariffs.find((t) => t.scheme === 'MFN');
+  if (w && mfn) {
+    const seedRate = mfn.rate;
+    let status: MfnCheck['status'];
+    if (w.min === w.max) {
+      if (seedRate === w.min) status = 'exact-match';
+      else {
+        status = 'corrected';
+        mfn.rate = w.min;
+        out.mfnConflict = b(`시드 ${seedRate}% → WITS ${w.year} 공식 ${w.min}%로 자동 보정`, `Seed ${seedRate}% auto-corrected to official ${w.min}% (WITS ${w.year})`);
+      }
+      out.mfnLevel = 'official';
+    } else if (seedRate >= w.min && seedRate <= w.max) {
+      status = 'within-range';
+      out.mfnLevel = 'crosscheck';
+    } else {
+      status = 'out-of-range';
+      out.mfnConflict = b(`시드 ${seedRate}%가 공식 HS6 범위(${w.min}~${w.max}%) 밖 — 확인 필요`, `Seed ${seedRate}% is outside the official HS6 range (${w.min}–${w.max}%) — review`);
+    }
+    out.mfnCheck = { hs6, year: w.year, avg: w.avg, min: w.min, max: w.max, lines: w.lines, seedRate, appliedRate: mfn.rate, status, url: w.url };
+    mfn.level = out.mfnLevel;
+  }
+
+  const akfta = tariffs.find((t) => t.scheme === 'AKFTA');
+  if (pref && akfta) {
+    // Before June 2023 AKFTA was the only KR-PH agreement in force (RCEP PH: 2023-06, KR-PH FTA: 2024-12).
+    const onlyAkfta = pref.year < 2023;
+    const seedRate = akfta.rate;
+    let status: PrefCheck['status'];
+    if (!onlyAkfta) {
+      // best-of-agreements observation: informative only, never verifies AKFTA
+      status = 'info';
+    } else if (pref.min === pref.max) {
+      if (seedRate === pref.min) status = 'exact-match';
+      else {
+        status = 'corrected';
+        akfta.rate = pref.min;
+        out.akftaConflict = b(`시드 ${seedRate}% → WITS ${pref.year} 공식 특혜세율 ${pref.min}%로 자동 보정`, `Seed ${seedRate}% auto-corrected to the official preferential ${pref.min}% (WITS ${pref.year})`);
+      }
+      akfta.level = 'official';
+      akfta.verifiedNote = `World Bank WITS TRAINS · PREF ${pref.year} · HS ${pref.hs6}`;
+    } else if (seedRate >= pref.min && seedRate <= pref.max) {
+      status = 'within-range';
+      akfta.level = 'crosscheck';
+      akfta.verifiedNote = `World Bank WITS TRAINS · PREF ${pref.year} · HS ${pref.hs6} (${pref.min}–${pref.max}%)`;
+    } else {
+      status = 'out-of-range';
+      out.akftaConflict = b(`시드 ${seedRate}%가 공식 특혜세율 범위(${pref.min}~${pref.max}%) 밖 — 확인 필요`, `Seed ${seedRate}% is outside the official preferential range (${pref.min}–${pref.max}%) — review`);
+    }
+    out.prefCheck = { hs6: pref.hs6, year: pref.year, min: pref.min, max: pref.max, lines: pref.lines, scheme: onlyAkfta ? 'AKFTA' : 'BEST', seedRate, status, url: pref.url };
+  }
+  return out;
+}
+
+/** Preferential rates can never exceed MFN. Returns conflicts for verified values that had to be capped. */
+function capAtMfn(tariffs: TariffRate[]): Bilingual[] {
+  const conflicts: Bilingual[] = [];
+  const mfn = tariffs.find((t) => t.scheme === 'MFN');
+  if (!mfn) return conflicts;
+  for (const t of tariffs) {
+    if (t.scheme === 'MFN' || t.rate <= mfn.rate) continue;
+    if (t.level === 'verified') {
+      conflicts.push(b(`${t.scheme} 검증값 ${t.rate}%가 MFN ${mfn.rate}%보다 높아 상한 적용 — 검증값 재확인 필요`, `Verified ${t.scheme} ${t.rate}% exceeded MFN ${mfn.rate}% and was capped — re-check the verified value`));
+      t.level = 'seed';
+    }
+    t.rate = mfn.rate;
+    t.verifiedNote = 'capped-at-mfn';
+  }
+  return conflicts;
+}
 const dotted = (hs6: string) => `${hs6.slice(0, 4)}.${hs6.slice(4, 6)}`;
 
 export const LEVEL_VALUE: Record<VerificationLevel, number> = { official: 1, verified: 1, crosscheck: 0.5, seed: 0 };
@@ -160,7 +260,7 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     // Without a snapshot the embedded series is a copy of earlier Comtrade values, not a live sync.
     level: statsApplied ? 'official' : 'seed',
     source: statsApplied ? snapP.seriesSource : undefined,
-    checkedAt: statsApplied ? syncAt : undefined,
+    checkedAt: statsApplied ? (snapP.fetchedAt ?? syncAt) : undefined,
   });
 
   if (snapP?.market) {
@@ -182,6 +282,11 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       note: p.market.meta.note,
     };
     verification.insightStale = p.market.insightYear !== undefined && p.market.insightYear !== m.year;
+    // Mirror statistics: what Korea reports exporting vs what the Philippines reports importing from Korea.
+    if (p.direction === 'KR_TO_PH') {
+      const kr = p.market.series.find((x) => x.year === m.year)?.value;
+      if (kr && m.counterpart.value > 0) p.market.mirror = { year: m.year, krReported: kr, phReported: m.counterpart.value, ratio: Math.round((kr / m.counterpart.value) * 10) / 10 };
+    }
   }
   items.push({
     key: 'market',
@@ -189,7 +294,7 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     label: b('수입시장 규모·경쟁국 점유율', 'Import market size & competitor shares'),
     level: snapP?.market ? 'official' : 'seed',
     source: snapP?.market?.source,
-    checkedAt: snapP?.market ? syncAt : undefined,
+    checkedAt: snapP?.market ? (snapP.market.fetchedAt ?? syncAt) : undefined,
   });
 
   const ytd = SNAP.kcs?.ytd?.[p.id];
@@ -197,62 +302,25 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
   else if (snapP?.ytd) p.market.latestMonthly = snapP.ytd;
   if (snapP?.unitValue) p.market.unitValue = snapP.unitValue;
 
-  // 2) MFN cross-check (WITS) --------------------------------------------------
-  const mfn = p.tariffs.find((t) => t.scheme === 'MFN');
+  // 2) official tariff checks (WITS MFN + PREF) for the primary and every HS-specific table ---------
   const primary6 = p.hs[0].code.replace(/\./g, '').slice(0, 6);
   const wits = SNAP.wits?.[p.id] ?? {};
-  const w = wits[primary6];
-  let mfnLevel: VerificationLevel = 'seed';
-  let mfnConflict: Bilingual | undefined;
-  if (w && mfn) {
-    const seedRate = mfn.rate;
-    let status: NonNullable<ProductVerification['mfnCheck']>['status'];
-    if (w.min === w.max) {
-      if (seedRate === w.min) status = 'exact-match';
-      else {
-        status = 'corrected';
-        mfn.rate = w.min;
-        mfnConflict = b(`시드 ${seedRate}% → WITS ${w.year} 공식 ${w.min}%로 자동 보정`, `Seed ${seedRate}% auto-corrected to official ${w.min}% (WITS ${w.year})`);
-      }
-      mfnLevel = 'official';
-    } else if (seedRate >= w.min && seedRate <= w.max) {
-      status = 'within-range';
-      mfnLevel = 'crosscheck';
-    } else {
-      status = 'out-of-range';
-      mfnConflict = b(`시드 ${seedRate}%가 공식 HS6 범위(${w.min}~${w.max}%) 밖 — 확인 필요`, `Seed ${seedRate}% is outside the official HS6 range (${w.min}–${w.max}%) — review`);
-    }
-    verification.mfnCheck = { hs6: primary6, year: w.year, avg: w.avg, min: w.min, max: w.max, lines: w.lines, seedRate, appliedRate: mfn.rate, status, url: w.url };
-    mfn.level = mfnLevel;
-  }
+  const chk = checkTariffTable(p.tariffs, primary6, wits[primary6], SNAP.witsPref?.[p.id]);
+  let mfnLevel = chk.mfnLevel;
+  const mfnConflict = chk.mfnConflict;
+  const akftaConflict = chk.akftaConflict;
+  verification.mfnCheck = chk.mfnCheck;
+  verification.prefCheck = chk.prefCheck;
   verification.altMfn = Object.fromEntries(
     Object.entries(wits)
       .filter(([hs6]) => hs6 !== primary6)
       .map(([hs6, v]) => [hs6, { year: v.year, min: v.min, max: v.max, lines: v.lines }]),
   );
-
-  // AKFTA cross-check against the preferential rate actually applied (WITS PREF)
-  const pref = SNAP.witsPref?.[p.id];
-  const akfta = p.tariffs.find((t) => t.scheme === 'AKFTA');
-  let akftaConflict: Bilingual | undefined;
-  if (pref && akfta) {
-    const onlyAkfta = pref.year < 2023; // RCEP (PH: 2023-06) and the KR-PH FTA (2024-12) were not yet in force
-    const seedRate = akfta.rate;
-    let status: NonNullable<ProductVerification['prefCheck']>['status'];
-    if (onlyAkfta && pref.min === pref.max) {
-      if (seedRate === pref.min) status = 'exact-match';
-      else {
-        status = 'corrected';
-        akfta.rate = pref.min;
-        akftaConflict = b(`시드 ${seedRate}% → WITS ${pref.year} 공식 특혜세율 ${pref.min}%로 자동 보정`, `Seed ${seedRate}% auto-corrected to the official preferential ${pref.min}% (WITS ${pref.year})`);
-      }
-      akfta.level = 'official';
-      akfta.verifiedNote = `World Bank WITS TRAINS · PREF ${pref.year} · HS ${pref.hs6}`;
-    } else {
-      status = seedRate >= pref.min && seedRate <= pref.max ? 'within-range' : 'out-of-range';
-      if (status === 'within-range') akfta.level = 'crosscheck';
-    }
-    verification.prefCheck = { hs6: pref.hs6, year: pref.year, min: pref.min, max: pref.max, lines: pref.lines, scheme: onlyAkfta ? 'AKFTA' : 'BEST', seedRate, status, url: pref.url };
+  for (const [code, table] of Object.entries(p.tariffsByHs ?? {})) {
+    const hs6 = code.replace(/\./g, '').slice(0, 6);
+    const alt = checkTariffTable(table.tariffs, hs6, wits[hs6], SNAP.witsPrefByHs?.[p.id]?.[hs6]);
+    table.mfnCheck = alt.mfnCheck;
+    table.prefCheck = alt.prefCheck;
   }
 
   // Seed price vs official customs unit value (USD/kg)
@@ -270,16 +338,17 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     const stamp = `${e.source} · ${e.verifiedBy} · ${e.verifiedAt}`;
     const tg = e.target;
     if (tg.type === 'tariff') {
-      const t = p.tariffs.find((x) => x.scheme === tg.scheme);
+      const table = tg.hs && p.tariffsByHs?.[tg.hs] ? p.tariffsByHs[tg.hs].tariffs : p.tariffs;
+      const t = table.find((x) => x.scheme === tg.scheme);
       if (t) {
         t.rate = tg.rate;
         if (tg.roo) {
           t.roo = tg.roo;
-          if (t.scheme === p.bestFta.scheme) rooVerified = stamp;
+          if (t.scheme === p.bestFta.scheme && table === p.tariffs) rooVerified = stamp;
         }
         t.level = 'verified';
         t.verifiedNote = stamp;
-        if (t.scheme === 'MFN') mfnLevel = 'verified';
+        if (t.scheme === 'MFN' && table === p.tariffs) mfnLevel = 'verified';
       }
     } else if (tg.type === 'hs') {
       const h = p.hs.find((x) => x.code === tg.code);
@@ -287,8 +356,7 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     } else if (tg.type === 'partner') {
       const pt = p.partners.find((x) => x.id === tg.id);
       // An expired licence is not a verification.
-      const licenceActive = !tg.licenseValidUntil || tg.licenseValidUntil >= today();
-      if (pt && licenceActive) pt.license = { text: tg.license, validUntil: tg.licenseValidUntil, source: e.source, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
+      if (pt && licenceActive(e)) pt.license = { text: tg.license, validUntil: tg.licenseValidUntil, source: e.source, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
     } else if (tg.type === 'requirement') {
       const r = p.requirements.find((x) => x.id === tg.id);
       if (r) r.reviewed = { source: e.source, reference: e.reference, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
@@ -300,22 +368,15 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
         l.quote = { reference: e.reference, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt, validUntil: e.validUntil };
       }
     } else if (tg.type === 'pricing') {
-      if (tg.unitPrice) p.pricing.unitPrice = tg.unitPrice;
-      if (tg.moq) p.pricing.moq = tg.moq;
+      if (tg.unitPrice !== undefined) p.pricing.unitPrice = tg.unitPrice;
+      if (tg.moq !== undefined) p.pricing.moq = tg.moq;
       p.pricing.verified = { reference: e.reference, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
     }
   }
 
   // Preferential rates can never exceed MFN — applied after overrides so a verified MFN is respected too.
-  const mfnFinal = p.tariffs.find((t) => t.scheme === 'MFN');
-  if (mfnFinal) {
-    for (const t of p.tariffs) {
-      if (t.scheme !== 'MFN' && t.rate > mfnFinal.rate) {
-        t.rate = mfnFinal.rate;
-        if (t.level !== 'verified') t.verifiedNote = 'capped-at-mfn';
-      }
-    }
-  }
+  const capConflicts = capAtMfn(p.tariffs);
+  for (const table of Object.values(p.tariffsByHs ?? {})) capConflicts.push(...capAtMfn(table.tariffs));
 
   // 4) link checks ---------------------------------------------------------------
   const links = SNAP.links ?? {};
@@ -343,9 +404,10 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       source: t.level && t.verifiedNote !== 'capped-at-mfn' ? t.verifiedNote : undefined,
       checkedAt: t.level === 'official' || t.level === 'crosscheck' ? SNAP.sources?.wits?.fetchedAt : undefined,
       conflict:
-        t.verifiedNote === 'capped-at-mfn' ? b('시드값이 MFN보다 높아 MFN으로 상한 적용', 'Seed exceeded MFN — capped at MFN') : t.scheme === 'AKFTA' ? akftaConflict : undefined,
+        t.verifiedNote === 'capped-at-mfn' ? b('MFN보다 높아 MFN으로 상한 적용', 'Exceeded MFN — capped at MFN') : t.scheme === 'AKFTA' ? akftaConflict : undefined,
     });
   }
+  capConflicts.forEach((c, i) => items.push({ key: `cap:${i}`, category: 'fta', label: b('검증값 상한 충돌', 'Verified value capped'), level: 'seed', conflict: c }));
   items.push({ key: 'roo', category: 'roo', label: b('최적 협정 원산지기준', 'Rule of origin (best FTA)'), level: rooVerified ? 'verified' : 'seed', source: rooVerified });
   items.push({
     key: 'hs',

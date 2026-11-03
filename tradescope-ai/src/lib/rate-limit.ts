@@ -17,9 +17,30 @@ const positive = (v: string | undefined, d: number) => {
   return Number.isFinite(n) && n > 0 ? n : d;
 };
 
+/**
+ * Client identity for the per-client limit. Forwarding headers are only trusted when a proxy we control sets them:
+ *
+ * - on Vercel (VERCEL=1) the edge overwrites `x-real-ip` with the connecting address;
+ * - behind your own reverse proxy set TRUST_PROXY to the number of proxies in front of the app (Caddy / nginx
+ *   alone = 1); the client is then the entry that many hops from the END of X-Forwarded-For, because
+ *   anything to the left of it was supplied by the caller;
+ * - otherwise headers are ignored and every caller shares one bucket (the daily budget still applies).
+ */
 export function clientKey(req: Request): string {
-  const forwarded = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-  return (forwarded || req.headers.get('x-real-ip') || 'anonymous').slice(0, 64);
+  if (process.env.VERCEL === '1') {
+    const ip = req.headers.get('x-real-ip')?.trim();
+    if (ip) return ip.slice(0, 64);
+  }
+  const hops = Number(process.env.TRUST_PROXY);
+  if (Number.isInteger(hops) && hops > 0) {
+    const chain = (req.headers.get('x-forwarded-for') ?? '')
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean);
+    const ip = chain[chain.length - hops];
+    if (ip) return ip.slice(0, 64);
+  }
+  return 'shared';
 }
 
 export type LlmGate = { ok: true } | { ok: false; reason: 'rate-limited' | 'daily-budget' };

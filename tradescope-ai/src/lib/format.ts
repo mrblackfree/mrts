@@ -31,18 +31,28 @@ export function formatNumber(value: number, decimals = 0): string {
 }
 
 export function formatPct(value: number, decimals = 1, signed = false): string {
+  if (!Number.isFinite(value)) return '—';
   const s = value.toFixed(decimals);
   return signed && value > 0 ? `+${s}%` : `${s}%`;
 }
 
+/** Year-over-year growth in %; NaN when the previous value is 0 (growth from zero is undefined). */
 export function yoy(current: number, previous: number): number {
-  if (!previous) return 0;
+  if (!previous) return Number.NaN;
   return ((current - previous) / previous) * 100;
 }
 
-/** Local calendar date (YYYY-MM-DD) — not UTC, so invoices never shift a day around midnight. */
+/** Direction of a change for colouring: 'flat' when the value is undefined (e.g. growth from zero). */
+export function trend(value: number | null | undefined): 'up' | 'down' | 'flat' {
+  if (value === null || value === undefined || !Number.isFinite(value) || value === 0) return 'flat';
+  return value > 0 ? 'up' : 'down';
+}
+
+/** Calendar zone shared by the browser and the server (which usually runs in UTC). */
+export const BUSINESS_TZ = 'Asia/Seoul';
+
+/** Calendar date (YYYY-MM-DD) in BUSINESS_TZ, identical in the browser and on the server. */
 export function todayIso(offsetDays = 0): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const d = new Date(Date.now() + offsetDays * 86_400_000);
+  return new Intl.DateTimeFormat('en-CA', { timeZone: BUSINESS_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
 }

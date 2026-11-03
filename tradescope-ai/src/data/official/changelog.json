@@ -1,5 +1,5 @@
 {
-  "$comment": "Audit trail of seed values corrected because an official source disagreed. Append newest first.",
+  "$comment": "MANUAL audit trail: seed values in kr-ph-trade-db.ts that were edited because an official source disagreed. Append newest first. Corrections applied automatically at runtime by the official-data layer (src/data/official/index.ts) are NOT written here; they appear live as conflicts in the Data Trust Center and in /api/health.",
   "entries": [
     {
       "date": "2026-11-03",

@@ -3,7 +3,7 @@
  * Deterministic, dependency-free and isomorphic: it powers the zero-key fallback on the server
  * and the offline fallback in the browser, so the dashboard never shows an error state.
  */
-import { getProduct } from '@/data/kr-ph-trade-db';
+import { getProduct, refreshOfficialLayer } from '@/data/kr-ph-trade-db';
 import { formatNumber, formatPct, formatUsd, pick, todayIso, yoy } from '@/lib/format';
 import type {
   AnalysisReport,
@@ -63,11 +63,12 @@ export interface DutyLine {
   savingVsMfn: number;
 }
 
-export function computeDuties(product: TradeProduct, customsValueUsd: number): DutyLine[] {
+/** Duty/VAT per agreement. `tariffs` selects an HS-specific table (defaults to the primary HS table). */
+export function computeDuties(product: TradeProduct, customsValueUsd: number, tariffs: TariffRate[] = product.tariffs): DutyLine[] {
   const vatRate = importVat(product.direction) / 100;
-  const mfn = product.tariffs.find((t) => t.scheme === 'MFN');
+  const mfn = tariffs.find((t) => t.scheme === 'MFN');
   const mfnDuty = ((mfn?.rate ?? 0) / 100) * customsValueUsd;
-  return product.tariffs.map((t) => {
+  return tariffs.map((t) => {
     const duty = (t.rate / 100) * customsValueUsd;
     const vat = (customsValueUsd + duty) * vatRate;
     return { scheme: t.scheme, rate: t.rate, duty, vat, total: duty + vat, savingVsMfn: mfnDuty - duty };
@@ -100,6 +101,20 @@ function hash(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h);
+}
+
+/** cyrb53 — 53-bit string hash with far fewer collisions than a 32-bit rolling hash. */
+function hash53(s: string, seed = 0): number {
+  let h1 = 0xdeadbeef ^ seed;
+  let h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 }
 
 const clamp = (n: number) => Math.max(35, Math.min(99, Math.round(n)));
@@ -156,7 +171,8 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
   const shortQuery = query.length > 60 ? `${query.slice(0, 60)}…` : query;
   const v = product.verification;
   const mfnState = v?.mfnCheck?.status;
-  const ftaSeed = product.tariffs.filter((x) => x.scheme !== 'MFN' && x.level !== 'verified' && x.level !== 'official').length;
+  // only raw seed values are "unverified"; cross-checked rates are within an official range
+  const ftaSeed = product.tariffs.filter((x) => x.scheme !== 'MFN' && (x.level ?? 'seed') === 'seed').length;
 
   if (lang === 'ko') {
     const caveats: string[] = [];
@@ -178,7 +194,7 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
         `물류: ${lane.from}→${lane.to} ${lane.mode} $${formatNumber(lane.cost[0])}~${formatNumber(lane.cost[1])}, ${lane.transitDays[0]}~${lane.transitDays[1]}일`,
         ...(v
           ? [
-              `데이터 신뢰도 ${v.score}/100: 공식 통계(UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? '공식 세율 확인(WITS)' : mfnState === 'within-range' ? '공식 HS6 범위 내(WITS)' : mfnState === 'out-of-range' ? '공식 범위와 불일치 — 확인 필요' : '미검증'} · FTA 협정세율 ${ftaSeed ? `${ftaSeed}건 미검증 — UNI-PASS·Tariff Finder 확인 필요` : '모두 공식·전문가 검증'}`,
+              `데이터 신뢰도 ${v.score}/100: 공식 통계(UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? '공식 세율 확인(WITS)' : mfnState === 'within-range' ? '공식 HS6 범위 내(WITS)' : mfnState === 'out-of-range' ? '공식 범위와 불일치 — 확인 필요' : '미검증'} · FTA 협정세율 ${ftaSeed ? `${ftaSeed}건 미검증 — UNI-PASS·Tariff Finder 확인 필요` : '시드값 없음(공식·교차검증·전문가 검증)'}`,
             ]
           : []),
       ],
@@ -214,7 +230,7 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
       `Logistics: ${lane.from}→${lane.to} ${lane.mode} $${formatNumber(lane.cost[0])}–${formatNumber(lane.cost[1])}, ${lane.transitDays[0]}–${lane.transitDays[1]} days`,
       ...(v
         ? [
-            `Data trust ${v.score}/100: official statistics (UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? 'official rate confirmed (WITS)' : mfnState === 'within-range' ? 'within official HS6 range (WITS)' : mfnState === 'out-of-range' ? 'conflicts with the official range — review' : 'unverified'} · FTA rates ${ftaSeed ? `${ftaSeed} unverified — confirm in UNI-PASS / Tariff Finder` : 'all official or expert-verified'}`,
+            `Data trust ${v.score}/100: official statistics (UN Comtrade) · MFN ${mfnState === 'exact-match' || mfnState === 'corrected' ? 'official rate confirmed (WITS)' : mfnState === 'within-range' ? 'within official HS6 range (WITS)' : mfnState === 'out-of-range' ? 'conflicts with the official range — review' : 'unverified'} · FTA rates ${ftaSeed ? `${ftaSeed} unverified — confirm in UNI-PASS / Tariff Finder` : 'no seed values (official, cross-checked or expert-verified)'}`,
           ]
         : []),
     ],
@@ -237,6 +253,7 @@ export function buildBriefing(product: TradeProduct, intent: QueryIntent, retrie
 
 export function analyzeLocal(query: string, direction: Direction): { report: AnalysisReport; product: TradeProduct } {
   const started = Date.now();
+  refreshOfficialLayer(); // apply validUntil expiry in long-running servers
   const retrieval = retrieveProduct(query, direction);
   const intent = { ...parseIntent(query), matchedTerms: retrieval.matchedTerms };
   const product = retrieval.product;
@@ -263,16 +280,28 @@ export function analyzeLocal(query: string, direction: Direction): { report: Ana
 
 const INCOTERM_UPLIFT: Record<string, number> = { EXW: 0.97, FCA: 1, FOB: 1, CFR: 1.06, CPT: 1.06, CIF: 1.07, CIP: 1.07, DAP: 1.1, DPU: 1.1, DDP: 1.1 };
 
+/** Server-side bounds of the draft options (/api/draft rejects values outside them; inputs are clamped to them). */
+export const DRAFT_LIMITS = { unitPrice: 1_000_000, moq: 10_000_000, quantity: 10_000_000 } as const;
+
+/** Price multiplier of an incoterm relative to FOB (DDP also carries duty at the best FTA rate and import VAT). */
+function incotermFactor(product: TradeProduct, incoterm: string): number | undefined {
+  const term = incoterm.split(' ')[0].toUpperCase();
+  const f = INCOTERM_UPLIFT[term];
+  if (f === undefined) return undefined;
+  return term === 'DDP' ? f * (1 + bestTariff(product).rate / 100) * (1 + importVat(product.direction) / 100) : f;
+}
+
 /** Indicative unit price for an incoterm, starting from the seed FOB price. */
 export function priceForIncoterm(product: TradeProduct, incoterm: string): number {
-  const base = product.pricing.unitPrice / (INCOTERM_UPLIFT[product.pricing.defaultIncoterm.split(' ')[0]] ?? 1);
-  const term = incoterm.split(' ')[0].toUpperCase();
-  let price = base * (INCOTERM_UPLIFT[term] ?? 1);
-  if (term === 'DDP') {
-    price *= 1 + bestTariff(product).rate / 100;
-    price *= 1 + importVat(product.direction) / 100;
-  }
-  return Math.round(price * 100) / 100;
+  const base = product.pricing.unitPrice / (incotermFactor(product, product.pricing.defaultIncoterm) ?? 1);
+  return Math.round(base * (incotermFactor(product, incoterm) ?? 1) * 100) / 100;
+}
+
+/** Converts a price quoted on `fromIncoterm` to another basis (e.g. CIF / FOB of a customs benchmark). */
+export function priceOnBasis(product: TradeProduct, price: number, fromIncoterm: string, basis: string): number | undefined {
+  const from = incotermFactor(product, fromIncoterm);
+  const to = incotermFactor(product, basis);
+  return from && to ? (price / from) * to : undefined;
 }
 
 export function defaultDraftOptions(product: TradeProduct, intent?: QueryIntent, partner?: Partner): DraftOptions {
@@ -478,7 +507,7 @@ export function buildProforma(product: TradeProduct, partner: Partner, o: DraftO
   const total = lines.reduce((s, l) => s + l.amount, 0);
   return {
     // a per-draft suffix keeps two PIs with different terms from sharing a number
-    number: `TS-PI-${date.replace(/-/g, '')}-${product.id.slice(0, 3).toUpperCase()}${partner.id.slice(0, 2).toUpperCase()}-${hash(JSON.stringify(o)).toString(36).slice(0, 4).toUpperCase()}`,
+    number: `TS-PI-${date.replace(/-/g, '')}-${product.id.slice(0, 3).toUpperCase()}${partner.id.slice(0, 2).toUpperCase()}-${hash53(JSON.stringify(o)).toString(36).padStart(8, '0').slice(-8).toUpperCase()}`,
     date,
     validUntil: todayIso(30),
     seller: isSourcing ? partner.name : company,

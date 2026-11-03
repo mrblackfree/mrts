@@ -190,7 +190,7 @@ CLI로 배포하려면: `npx vercel@latest --cwd tradescope-ai --prod` (Vercel �
 ```bash
 git clone <repo> && cd <repo>/tradescope-ai
 cp .env.example .env.local          # (선택) AI 키 입력
-docker compose up -d --build        # http://SERVER_IP:3000
+APP_BIND=0.0.0.0 TRUST_PROXY=0 docker compose up -d --build   # http://SERVER_IP:3000 (프록시 없이 HTTP로 공개)
 docker compose logs -f tradescope   # 로그
 ```
 **도메인 + 자동 HTTPS (Caddy)**
@@ -198,9 +198,10 @@ docker compose logs -f tradescope   # 로그
 2. 방화벽/보안그룹에서 80, 443 포트 개방
 3. 실행:
 ```bash
-APP_BIND=127.0.0.1 DOMAIN=trade.example.com docker compose --profile https up -d --build
+DOMAIN=trade.example.com docker compose --profile https up -d --build
 ```
-Caddy가 Let's Encrypt 인증서를 자동 발급·갱신합니다 (`deploy/Caddyfile`). 이미 Nginx를 쓰는 서버라면 `deploy/nginx.conf.example` + `certbot --nginx`를 사용하세요.
+Caddy가 Let's Encrypt 인증서를 자동 발급·갱신합니다 (`deploy/Caddyfile`). 앱 포트 3000은 기본값 `APP_BIND=127.0.0.1`로 서버 내부에만 열리므로 HTTPS를 우회할 수 없습니다 — `--profile https`와 `APP_BIND=0.0.0.0`을 함께 쓰지 마세요. 프록시 뒤에서는 `TRUST_PROXY=1`(compose 기본값)로 LLM 호출 제한이 클라이언트별로 동작합니다.
+`NEXT_PUBLIC_*` 값(신뢰도 센터 링크)은 빌드 시 번들에 들어가며 `.env*`는 Docker 빌드 컨텍스트에서 제외되므로, `NEXT_PUBLIC_DATA_FEEDBACK_URL=... docker compose build`처럼 셸 환경변수(build args)로 넘깁니다. 이미 Nginx를 쓰는 서버라면 `deploy/nginx.conf.example` + `certbot --nginx`를 사용하세요.
 
 Docker 없이 이미지만 옮길 때:
 ```bash
@@ -213,7 +214,7 @@ docker load < tradescope-ai.tar.gz && docker run -d -p 3000:3000 --env-file .env
 npm ci && npm run build
 cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/
 sudo mkdir -p /opt/tradescope-ai && sudo cp -r .next/standalone/. /opt/tradescope-ai/
-sudo cp .env.local /opt/tradescope-ai/ 2>/dev/null || true    # (선택) AI 키
+[ -f .env.local ] && sudo install -m 600 -o root -g root .env.local /opt/tradescope-ai/.env.local   # (선택) AI 키 — 소유자만 읽기
 sudo cp deploy/tradescope.service.example /etc/systemd/system/tradescope.service
 sudo systemctl daemon-reload && sudo systemctl enable --now tradescope   # 127.0.0.1:3000
 ```

@@ -41,8 +41,8 @@ export const ROADMAP: RoadmapItem[] = [
     categories: ['mfn'],
     title: b('MFN·AKFTA 공식 교차검증·자동 보정', 'Official MFN & AKFTA cross-check & auto-correction'),
     now: b(
-      'World Bank WITS TRAINS(각국 정부 통보 세율)로 HS6 단위 검증 — MFN과, 필리핀이 한국산에 실제 적용한 특혜세율(AKFTA)을 자동 보정. 통관 단가(Comtrade)로 시드 단가도 교차검증',
-      'World Bank WITS TRAINS (government-notified tariffs) checks each HS6 — auto-corrects MFN and the preferential rate the Philippines applied to Korean goods (AKFTA). Seed prices are cross-checked with Comtrade unit values',
+      'World Bank WITS TRAINS(각국 정부 통보 세율)로 HS6 단위 검증 — MFN(2023년 통보분)과, 필리핀이 한국산에 2021년 실제 적용한 특혜세율(RCEP·한-필 FTA 발효 전이라 AKFTA)을 자동 보정. 현재 연도 협정세율은 아님. 통관 단가(Comtrade)로 시드 단가도 교차검증',
+      'World Bank WITS TRAINS (government-notified tariffs) checks each HS6 — auto-corrects MFN (2023 notification) and the preferential rate the Philippines applied to Korean goods in 2021 (AKFTA, before RCEP and the KR-PH FTA took effect). These are not current-year agreement rates. Seed prices are cross-checked with Comtrade unit values',
     ),
     steps: [
       b('한계: HS6 단위·통보 연도 지연(MFN 2023, 특혜 2021) — 10단위·당해연도 확정은 아래 "10단위 세율" 항목으로', 'Limits: HS6 level and reporting lag (MFN 2023, preferential 2021) — confirm 10-digit current-year rates below'),

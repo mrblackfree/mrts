@@ -71,12 +71,23 @@ CONTEXT: ${JSON.stringify(ragContext(product, intent, lang))}`,
     keyPoints: clean(parsed.keyPoints, 6),
     nextActions: clean(parsed.nextActions, 5),
   };
-  if (!briefing.headline || !briefing.summary || briefing.keyPoints.length === 0) return { error: 'invalid-json', latencyMs: res.latencyMs };
+  if (!briefing.headline || !briefing.summary || briefing.keyPoints.length === 0 || briefing.nextActions.length === 0) {
+    return { error: 'invalid-json', latencyMs: res.latencyMs };
+  }
   return {
     briefing,
     model: res.model,
     latencyMs: res.latencyMs,
   };
+}
+
+/**
+ * Whole-token, case-insensitive match. The term may not continue a number or Latin word on either side
+ * ("2,000" ≠ "12,000", "300" ≠ "1,300", "$1.20" ≠ "$1.205"), but Korean particles may follow directly ("$1.20에").
+ */
+export function containsToken(text: string, term: string): boolean {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(?<![A-Za-z0-9]|[0-9][.,])${escaped}(?![A-Za-z0-9]|[.,][0-9])`, 'i').test(text);
 }
 
 export async function llmPolishEmail(product: TradeProduct, partner: Partner, options: DraftOptions, draft: EmailDraft, lang: Lang): Promise<{ email: EmailDraft; model: string; latencyMs: number } | { error: string; latencyMs: number }> {
@@ -101,10 +112,11 @@ ${draft.body}`,
   if (!parsed || typeof parsed.subject !== 'string' || typeof parsed.body !== 'string' || parsed.body.length < 40) {
     return { error: 'invalid-json', latencyMs: res.latencyMs };
   }
-  // The polished email must keep every commercial term of the deterministic draft (it is sent with the same PI).
+  // Guard the key commercial terms that also appear on the PI (unit price, incoterm, HS code, MOQ). Other
+  // wording may change. Terms must appear as whole tokens, so "$1.20" is not satisfied by "$1.205".
   const body = parsed.body.trim().slice(0, 4000);
   const protectedTerms = [formatUsd(options.unitPrice, { decimals: 2 }), options.incoterm, product.hs[0].code, formatNumber(options.moq)];
-  const missing = protectedTerms.filter((term) => !body.toLowerCase().includes(term.toLowerCase()));
+  const missing = protectedTerms.filter((term) => !containsToken(body, term));
   if (missing.length) return { error: `altered-terms:${missing.join('|')}`, latencyMs: res.latencyMs };
   return { email: { subject: parsed.subject.trim().slice(0, 200), body }, model: res.model, latencyMs: res.latencyMs };
 }

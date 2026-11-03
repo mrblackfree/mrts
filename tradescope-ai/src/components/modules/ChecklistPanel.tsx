@@ -69,8 +69,7 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
                               {r.leadDays ? (
                                 <Badge tone="amber">
                                   <Clock className="size-3" />
-                                  {r.leadDays}
-                                  {t('days')}
+                                  {t('days').replace('{n}', String(r.leadDays))}
                                 </Badge>
                               ) : null}
                             </span>

@@ -31,7 +31,7 @@ export default function AnalysisProgress({ step }: { step: number }) {
               </span>
               <span className={cx('text-xs font-semibold', state === 'todo' ? 'text-slate-400' : 'text-slate-700 dark:text-slate-200')}>
                 {t(k)}
-                <span className="sr-only"> — {state}</span>
+                <span className="sr-only"> — {t(state === 'done' ? 'stepDone' : state === 'active' ? 'stepActive' : 'stepTodo')}</span>
               </span>
             </li>
           );

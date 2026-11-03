@@ -18,6 +18,11 @@ const TYPE_LABEL: Record<TargetType, { ko: string; en: string; hint: { ko: strin
   pricing: { ko: '단가·MOQ', en: 'Price & MOQ', hint: { ko: '공급사 견적서 / 계약서', en: 'Supplier quotation / contract' } },
 };
 
+/** Same placeholder rule as `npm run data:validate`. */
+const PLACEHOLDER = /(O{3}|_{3,}|0000호|\bTEST\b)/;
+/** Fields that point into one product and must be cleared when the product changes. */
+const PRODUCT_SCOPED = ['partnerId', 'reqId', 'lane', 'code', 'hs'];
+
 /** Builds a valid verified-overrides.json entry so reviewers never hand-write JSON. */
 export default function OverrideHelper({ defaultProductId }: { defaultProductId?: string }) {
   const { p, lang } = useI18n();
@@ -26,33 +31,63 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
   const [f, setF] = useState<Record<string, string>>({ scheme: 'KRPH', verifiedAt: todayIso() });
   const product = PRODUCTS.find((x) => x.id === productId)!;
   const set = (k: string, v: string) => setF((o) => ({ ...o, [k]: v }));
+  const changeProduct = (id: string) => {
+    setProductId(id);
+    setF((o) => Object.fromEntries(Object.entries(o).filter(([k]) => !PRODUCT_SCOPED.includes(k))));
+  };
+  const hsTables = Object.entries(product.tariffsByHs ?? {});
+  const tariffTable = f.hs && product.tariffsByHs?.[f.hs] ? product.tariffsByHs[f.hs].tariffs : product.tariffs;
   const editUrl = process.env.NEXT_PUBLIC_OVERRIDES_EDIT_URL;
 
-  const { entry, missing } = useMemo(() => {
+  const { entry, missing, invalid } = useMemo(() => {
     const num = (k: string) => (f[k] !== undefined && f[k] !== '' ? Number(f[k]) : undefined);
     let target: Record<string, unknown> = { type };
     const need: string[] = [];
+    const bad: string[] = [];
+    const today = todayIso();
+    const inRange = (k: string, lo: number, hi: number, msg: string) => {
+      const v = num(k);
+      if (v !== undefined && (!Number.isFinite(v) || v < lo || v > hi)) bad.push(msg);
+    };
+    // a [min, max] pair: both or neither, and min ≤ max
+    const pair = (lo: string, hi: string, name: string, max: number) => {
+      const a = num(lo);
+      const b = num(hi);
+      if ((a === undefined) !== (b === undefined)) bad.push(`${name}: min + max`);
+      inRange(lo, 0, max, `${name} 0–${max}`);
+      inRange(hi, 0, max, `${name} 0–${max}`);
+      return a !== undefined && b !== undefined ? (a <= b ? [a, b] : (bad.push(`${name}: min ≤ max`), undefined)) : undefined;
+    };
     if (type === 'tariff') {
-      target = { type, scheme: f.scheme ?? 'KRPH', rate: num('rate'), ...(f.roo ? { roo: f.roo } : {}) };
+      target = { type, ...(f.hs ? { hs: f.hs } : {}), scheme: f.scheme ?? 'KRPH', rate: num('rate'), ...(f.roo ? { roo: f.roo } : {}) };
       if (num('rate') === undefined) need.push('rate');
+      inRange('rate', 0, 100, 'rate 0–100%');
     } else if (type === 'hs') {
       target = { type, code: f.code ?? product.hs[0].code, ruling: f.ruling ?? '' };
       if (!f.ruling) need.push('ruling');
+      else if (PLACEHOLDER.test(f.ruling)) bad.push('ruling (placeholder)');
     } else if (type === 'partner') {
       target = { type, id: f.partnerId ?? product.partners[0].id, license: f.license ?? '', ...(f.licenseValidUntil ? { licenseValidUntil: f.licenseValidUntil } : {}) };
       if (!f.license) need.push('license');
+      if (f.licenseValidUntil && f.licenseValidUntil < today) bad.push('licenseValidUntil (expired)');
     } else if (type === 'requirement') {
       target = { type, id: f.reqId ?? product.requirements[0].id };
     } else if (type === 'logistics') {
-      const cost = num('costMin') !== undefined && num('costMax') !== undefined ? [num('costMin'), num('costMax')] : undefined;
-      const days = num('dMin') !== undefined && num('dMax') !== undefined ? [num('dMin'), num('dMax')] : undefined;
+      const cost = pair('costMin', 'costMax', 'cost', 100_000);
+      const days = pair('dMin', 'dMax', 'transitDays', 120);
       target = { type, index: Number(f.lane ?? 0), ...(cost ? { cost } : {}), ...(days ? { transitDays: days } : {}) };
       if (!cost && !days) need.push('cost / transitDays');
     } else {
       target = { type, ...(num('unitPrice') !== undefined ? { unitPrice: num('unitPrice') } : {}), ...(num('moq') !== undefined ? { moq: num('moq') } : {}) };
       if (num('unitPrice') === undefined && num('moq') === undefined) need.push('unitPrice / moq');
+      inRange('unitPrice', 0.0001, 1e6, 'unitPrice > 0');
+      inRange('moq', 1, 1e9, 'moq ≥ 1');
     }
     for (const k of ['source', 'reference', 'verifiedBy', 'verifiedAt']) if (!f[k]) need.push(k);
+    for (const k of ['source', 'reference', 'verifiedBy']) if (f[k] && PLACEHOLDER.test(f[k])) bad.push(`${k} (placeholder)`);
+    if (f.verifiedAt && f.verifiedAt > today) bad.push('verifiedAt (future)');
+    if (f.validUntil && f.validUntil < today) bad.push('validUntil (expired)');
+    else if (f.validUntil && f.verifiedAt && f.validUntil < f.verifiedAt) bad.push('validUntil < verifiedAt');
     const e = {
       productId,
       target,
@@ -62,7 +97,7 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
       verifiedAt: f.verifiedAt ?? '',
       ...(f.validUntil ? { validUntil: f.validUntil } : {}),
     };
-    return { entry: JSON.stringify(e, null, 2), missing: need };
+    return { entry: JSON.stringify(e, null, 2), missing: need, invalid: bad };
   }, [f, type, productId, product]);
 
   const input = 'h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-[13px] text-slate-900 outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white';
@@ -73,7 +108,7 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
       <div className="grid grid-cols-2 gap-2.5">
         <label className="col-span-2">
           <span className={label}>Product</span>
-          <select className={input} value={productId} onChange={(e) => setProductId(e.target.value)}>
+          <select className={input} value={productId} onChange={(e) => changeProduct(e.target.value)}>
             {PRODUCTS.map((x) => (
               <option key={x.id} value={x.id}>
                 {x.emoji} {p(x.name)}
@@ -81,11 +116,12 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
             ))}
           </select>
         </label>
-        <div className="col-span-2 flex flex-wrap gap-1.5">
+        <div role="group" aria-label={lang === 'ko' ? '검증 대상' : 'Target type'} className="col-span-2 flex flex-wrap gap-1.5">
           {TYPES.map((ty) => (
             <button
               key={ty}
               type="button"
+              aria-pressed={type === ty}
               onClick={() => setType(ty)}
               className={cx('rounded-full border px-2.5 py-1 text-[11px] font-bold', type === ty ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300')}
             >
@@ -97,10 +133,23 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
 
         {type === 'tariff' && (
           <>
+            {hsTables.length > 0 && (
+              <label className="col-span-2">
+                <span className={label}>HS tariff table</span>
+                <select className={input} value={f.hs ?? ''} onChange={(e) => set('hs', e.target.value)}>
+                  <option value="">HS {product.hs[0].code} ({p(product.hs[0].desc)})</option>
+                  {hsTables.map(([code, table]) => (
+                    <option key={code} value={code}>
+                      {p(table.label)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>
               <span className={label}>Scheme</span>
               <select className={input} value={f.scheme ?? 'KRPH'} onChange={(e) => set('scheme', e.target.value)}>
-                {product.tariffs.map((x) => (
+                {tariffTable.map((x) => (
                   <option key={x.scheme} value={x.scheme}>
                     {x.scheme} (now {x.rate}%)
                   </option>
@@ -109,7 +158,7 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
             </label>
             <label>
               <span className={label}>Rate %</span>
-              <input className={input} type="number" min={0} step={0.1} value={f.rate ?? ''} onChange={(e) => set('rate', e.target.value)} />
+              <input className={input} type="number" min={0} max={100} step={0.1} value={f.rate ?? ''} onChange={(e) => set('rate', e.target.value)} />
             </label>
             <label className="col-span-2">
               <span className={label}>Rule of origin (optional)</span>
@@ -191,11 +240,11 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
           <>
             <label>
               <span className={label}>Unit price $</span>
-              <input className={input} type="number" min={0} step={0.01} value={f.unitPrice ?? ''} onChange={(e) => set('unitPrice', e.target.value)} />
+              <input className={input} type="number" min={0.01} step={0.01} value={f.unitPrice ?? ''} onChange={(e) => set('unitPrice', e.target.value)} />
             </label>
             <label>
               <span className={label}>MOQ</span>
-              <input className={input} type="number" min={0} value={f.moq ?? ''} onChange={(e) => set('moq', e.target.value)} />
+              <input className={input} type="number" min={1} value={f.moq ?? ''} onChange={(e) => set('moq', e.target.value)} />
             </label>
           </>
         )}
@@ -224,11 +273,21 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
 
       <div className="flex min-w-0 flex-col">
         <pre className="thin-scroll max-h-80 flex-1 overflow-auto rounded-xl bg-slate-900 p-3 font-mono text-[11.5px] leading-relaxed text-emerald-200">{entry}</pre>
-        {missing.length > 0 ? (
-          <p className="mt-2 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-            {lang === 'ko' ? '필수 항목 입력 필요: ' : 'Required: '}
-            {missing.join(', ')}
-          </p>
+        {missing.length > 0 || invalid.length > 0 ? (
+          <div className="mt-2 space-y-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400" role="status">
+            {missing.length > 0 && (
+              <p>
+                {lang === 'ko' ? '필수 항목 입력 필요: ' : 'Required: '}
+                {missing.join(', ')}
+              </p>
+            )}
+            {invalid.length > 0 && (
+              <p className="text-rose-600 dark:text-rose-400">
+                {lang === 'ko' ? '값 확인 필요: ' : 'Invalid: '}
+                {invalid.join(', ')}
+              </p>
+            )}
+          </div>
         ) : (
           <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
             <ClipboardCheck className="size-3.5" />
@@ -236,7 +295,7 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
           </p>
         )}
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          {missing.length === 0 && <CopyButton text={entry} />}
+          {missing.length === 0 && invalid.length === 0 && <CopyButton text={entry} />}
           {editUrl && (
             <a href={editUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-400">
               verified-overrides.json {lang === 'ko' ? '편집' : 'edit'} <ExternalLink className="size-3" />

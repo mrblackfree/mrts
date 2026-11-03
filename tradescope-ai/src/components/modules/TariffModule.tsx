@@ -1,38 +1,124 @@
 'use client';
 
-import { BadgePercent, Calculator, CheckCircle2, ExternalLink, Sparkles, TriangleAlert } from 'lucide-react';
+import { BadgePercent, Calculator, CheckCircle2, ExternalLink, Info, Sparkles, TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AGENCY_LINKS } from '@/data/kr-ph-trade-db';
 import { OFFICIAL } from '@/data/official';
 import { formatUsd } from '@/lib/format';
 import { computeDuties, importVat, SCHEME_LABEL } from '@/lib/engine/simulate';
-import type { TradeProduct } from '@/lib/types';
+import type { Bilingual, FtaScheme, MfnCheck, PrefCheck, TariffRate, TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
 import { Badge, Card, cx, LevelBadge, ModuleHeader, SourceTag } from '../ui';
 import ChecklistPanel from './ChecklistPanel';
 
+type Tone = 'ok' | 'warn' | 'info';
+
+const TONE_CLASS: Record<Tone, string> = {
+  ok: 'border-emerald-200 bg-emerald-50/70 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
+  warn: 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200',
+  info: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200',
+};
+
+/** One official cross-check (MFN or preferential) — shared layout, tone by status. */
+function VerificationNotice({ tone, title, status, detail, url }: { tone: Tone; title: string; status: string; detail: string; url: string }) {
+  const Icon = tone === 'warn' ? TriangleAlert : tone === 'info' ? Info : CheckCircle2;
+  return (
+    <div className={cx('flex items-start gap-2.5 rounded-xl border p-3 text-xs', TONE_CLASS[tone])}>
+      <Icon className="mt-0.5 size-4 shrink-0" />
+      <div className="min-w-0">
+        <p className="font-bold">
+          {title} · {status}
+        </p>
+        <p className="mt-0.5 leading-relaxed">{detail}</p>
+        <a href={url} target="_blank" rel="noreferrer" className="no-print mt-1 inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline">
+          WITS API <ExternalLink className="size-3" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+interface TariffTableView {
+  key: string;
+  label: Bilingual;
+  tariffs: TariffRate[];
+  bestFta: { scheme: FtaScheme; reason: Bilingual };
+  mfnCheck?: MfnCheck;
+  prefCheck?: PrefCheck;
+}
+
+const fmtHs6 = (hs6: string) => `${hs6.slice(0, 4)}.${hs6.slice(4)}`;
+const fmtRange = (min: number, max: number) => (min === max ? `${min}%` : `${min}–${max}%`);
+
 export default function TariffModule({ product, initialAmount }: { product: TradeProduct; initialAmount?: number }) {
   const { t, p, lang } = useI18n();
   const [amount, setAmount] = useState<number>(initialAmount ?? 50_000);
-  const duties = useMemo(() => computeDuties(product, amount || 0), [product, amount]);
-  const maxRate = Math.max(...product.tariffs.map((x) => x.rate), 1);
-  const best = product.bestFta.scheme;
-  const bestLine = duties.find((d) => d.scheme === best)!;
+
+  // Primary HS table plus any HS-specific tables (e.g. flooring next to door locks); the module is keyed per
+  // report, so the selection resets when the product changes.
+  const tables = useMemo<TariffTableView[]>(() => {
+    const primary = product.hs[0];
+    const list: TariffTableView[] = [
+      {
+        key: primary.code,
+        label: { ko: `${primary.desc.ko} (HS ${primary.code.slice(0, 7)})`, en: `${primary.desc.en} (HS ${primary.code.slice(0, 7)})` },
+        tariffs: product.tariffs,
+        bestFta: product.bestFta,
+        mfnCheck: product.verification?.mfnCheck,
+        prefCheck: product.verification?.prefCheck,
+      },
+    ];
+    for (const [code, table] of Object.entries(product.tariffsByHs ?? {})) list.push({ key: code, ...table });
+    return list;
+  }, [product]);
+  const [tableKey, setTableKey] = useState(tables[0].key);
+  const table = tables.find((x) => x.key === tableKey) ?? tables[0];
+
+  const duties = useMemo(() => computeDuties(product, amount || 0, table.tariffs), [product, amount, table]);
+  const maxRate = Math.max(...table.tariffs.map((x) => x.rate), 1);
+  const best = table.bestFta.scheme;
+  const bestLine = duties.find((d) => d.scheme === best) ?? duties[0];
+  const mfnLine = duties.find((d) => d.scheme === 'MFN') ?? duties[0];
   const officialFinder = product.direction === 'KR_TO_PH' ? AGENCY_LINKS.phTcPhkr : AGENCY_LINKS.ftaPortal;
-  const mfnCheck = product.verification?.mfnCheck;
-  const prefCheck = product.verification?.prefCheck;
+  const { mfnCheck, prefCheck } = table;
   const fx = OFFICIAL.fx;
+  const statusLabel = (s: MfnCheck['status'] | PrefCheck['status']) =>
+    s === 'exact-match' ? t('mfnExact') : s === 'corrected' ? t('mfnCorrected') : s === 'within-range' ? t('mfnWithin') : s === 'info' ? t('prefInfoStatus') : t('mfnOut');
+  const seedToApplied = (seed: number, applied: number) => t('seedToApplied').replace('{seed}', String(seed)).replace('{applied}', String(applied));
 
   return (
     <Card id="m-tariff" className="rise-in scroll-mt-28" >
       <ModuleHeader index={2} title={t('m2Title')} icon={<BadgePercent className="size-5" />} />
       <div className="grid gap-5 p-5 xl:grid-cols-5">
         <div className="min-w-0 space-y-5 xl:col-span-3">
+          {tables.length > 1 && (
+            <div>
+              <p className="mb-2 text-xs font-semibold text-slate-500 dark:text-slate-400">{t('hsTables')}</p>
+              <div role="group" aria-label={t('hsTables')} className="flex flex-wrap gap-1.5">
+                {tables.map((x, i) => (
+                  <button
+                    key={x.key}
+                    type="button"
+                    aria-pressed={x.key === table.key}
+                    onClick={() => setTableKey(x.key)}
+                    className={cx(
+                      'rounded-lg border px-2.5 py-1 text-left text-xs font-semibold transition',
+                      x.key === table.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' : 'border-slate-200 text-slate-500 hover:border-brand-500 dark:border-slate-700 dark:text-slate-400',
+                    )}
+                  >
+                    {i === 0 && <span className="mr-1 text-[10px] uppercase tracking-wide opacity-70">{t('hsPrimary')}</span>}
+                    {p(x.label)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Rate comparison bars */}
           <div>
             <p className="mb-3 text-sm font-bold text-slate-800 dark:text-slate-100">{t('rateCompare')}</p>
             <ul className="space-y-3">
-              {product.tariffs.map((rate) => {
+              {table.tariffs.map((rate) => {
                 const isBest = rate.scheme === best;
                 return (
                   <li key={rate.scheme} className="grid grid-cols-[7.5rem_1fr_3.5rem] items-center gap-3 sm:grid-cols-[10.5rem_1fr_4rem]">
@@ -65,59 +151,38 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
             </ul>
           </div>
 
-          {/* Official MFN cross-check */}
+          {/* Official cross-checks for the selected HS table */}
           {mfnCheck && (
-            <div
-              className={cx(
-                'flex items-start gap-2.5 rounded-xl border p-3 text-xs',
-                mfnCheck.status === 'out-of-range'
-                  ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200'
-                  : 'border-emerald-200 bg-emerald-50/70 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
-              )}
-            >
-              {mfnCheck.status === 'out-of-range' ? <TriangleAlert className="mt-0.5 size-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 size-4 shrink-0" />}
-              <div className="min-w-0">
-                <p className="font-bold">
-                  {t('mfnCheckTitle')} ·{' '}
-                  {mfnCheck.status === 'exact-match' ? t('mfnExact') : mfnCheck.status === 'corrected' ? t('mfnCorrected') : mfnCheck.status === 'within-range' ? t('mfnWithin') : t('mfnOut')}
-                </p>
-                <p className="mt-0.5 leading-relaxed">
-                  HS {mfnCheck.hs6.slice(0, 4)}.{mfnCheck.hs6.slice(4)} · {mfnCheck.year} · MFN {mfnCheck.min === mfnCheck.max ? `${mfnCheck.min}%` : `${mfnCheck.min}–${mfnCheck.max}% (avg ${mfnCheck.avg}%)`} · {mfnCheck.lines} {t('lines')}
-                  {mfnCheck.status === 'corrected' ? ` · seed ${mfnCheck.seedRate}% → ${mfnCheck.appliedRate}%` : ''}
-                  {mfnCheck.status === 'within-range' ? (lang === 'ko' ? ' · 10단위 세율 확정은 UNI-PASS 조회 필요' : ' · confirm the 10-digit rate in UNI-PASS') : ''}
-                </p>
-                <a href={mfnCheck.url} target="_blank" rel="noreferrer" className="no-print mt-1 inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline">
-                  WITS API <ExternalLink className="size-3" />
-                </a>
-              </div>
-            </div>
+            <VerificationNotice
+              tone={mfnCheck.status === 'out-of-range' ? 'warn' : 'ok'}
+              title={t('mfnCheckTitle')}
+              status={statusLabel(mfnCheck.status)}
+              detail={[
+                `HS ${fmtHs6(mfnCheck.hs6)} · ${mfnCheck.year} · MFN ${mfnCheck.min === mfnCheck.max ? `${mfnCheck.min}%` : `${mfnCheck.min}–${mfnCheck.max}% (avg ${mfnCheck.avg}%)`} · ${t('lines').replace('{n}', String(mfnCheck.lines))}`,
+                mfnCheck.status === 'corrected' ? seedToApplied(mfnCheck.seedRate, mfnCheck.appliedRate) : '',
+                mfnCheck.status === 'within-range' ? t('confirmUnipass') : '',
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+              url={mfnCheck.url}
+            />
           )}
 
           {prefCheck && (
-            <div
-              className={cx(
-                'flex items-start gap-2.5 rounded-xl border p-3 text-xs',
-                prefCheck.status === 'out-of-range'
-                  ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200'
-                  : 'border-emerald-200 bg-emerald-50/70 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
-              )}
-            >
-              {prefCheck.status === 'out-of-range' ? <TriangleAlert className="mt-0.5 size-4 shrink-0" /> : <CheckCircle2 className="mt-0.5 size-4 shrink-0" />}
-              <div className="min-w-0">
-                <p className="font-bold">
-                  {lang === 'ko' ? '공식 특혜세율 교차검증 (WITS PREF)' : 'Official preferential-rate check (WITS PREF)'} ·{' '}
-                  {prefCheck.status === 'exact-match' ? t('mfnExact') : prefCheck.status === 'corrected' ? t('mfnCorrected') : prefCheck.status === 'within-range' ? t('mfnWithin') : t('mfnOut')}
-                </p>
-                <p className="mt-0.5 leading-relaxed">
-                  {lang === 'ko'
-                    ? `필리핀이 한국산에 실제 적용한 특혜세율 · ${prefCheck.year}년 · HS ${prefCheck.hs6.slice(0, 4)}.${prefCheck.hs6.slice(4)} · ${prefCheck.min === prefCheck.max ? `${prefCheck.min}%` : `${prefCheck.min}–${prefCheck.max}%`} (${prefCheck.lines}개 세번)${prefCheck.scheme === 'AKFTA' ? ' — 당시 유일한 양국 협정은 AKFTA' : ''}`
-                    : `Preferential rate the Philippines applied to Korean goods · ${prefCheck.year} · HS ${prefCheck.hs6.slice(0, 4)}.${prefCheck.hs6.slice(4)} · ${prefCheck.min === prefCheck.max ? `${prefCheck.min}%` : `${prefCheck.min}–${prefCheck.max}%`} (${prefCheck.lines} lines)${prefCheck.scheme === 'AKFTA' ? ' — AKFTA was the only KR-PH agreement in force' : ''}`}
-                </p>
-                <a href={prefCheck.url} target="_blank" rel="noreferrer" className="no-print mt-1 inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline">
-                  WITS API <ExternalLink className="size-3" />
-                </a>
-              </div>
-            </div>
+            <VerificationNotice
+              tone={prefCheck.status === 'out-of-range' ? 'warn' : prefCheck.status === 'info' ? 'info' : 'ok'}
+              title={t('prefCheckTitle')}
+              status={statusLabel(prefCheck.status)}
+              detail={[
+                product.direction === 'KR_TO_PH' ? t('prefAppliedToKr') : t('prefAppliedToPh'),
+                `${prefCheck.year} · HS ${fmtHs6(prefCheck.hs6)} · ${fmtRange(prefCheck.min, prefCheck.max)} (${t('lines').replace('{n}', String(prefCheck.lines))})`,
+                prefCheck.status === 'corrected' && prefCheck.seedRate !== undefined ? seedToApplied(prefCheck.seedRate, prefCheck.min) : '',
+                prefCheck.scheme === 'AKFTA' ? t('prefOnlyAkfta') : t('prefBestInfo'),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+              url={prefCheck.url}
+            />
           )}
 
           {/* Calculator */}
@@ -166,14 +231,16 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
               </p>
               <p className="mt-0.5 text-3xl font-extrabold tracking-tight text-emerald-700 tabular-nums dark:text-emerald-300">{formatUsd(bestLine.savingVsMfn)}</p>
               <p className="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/80">
-                {t('duty')} {formatUsd(duties[0].duty)} → {formatUsd(bestLine.duty)} · {t('importVat')} {importVat(product.direction)}%
+                {t('duty')} {formatUsd(mfnLine.duty)} → {formatUsd(bestLine.duty)} · {t('importVat')} {importVat(product.direction)}%
               </p>
               {product.direction === 'PH_TO_KR' &&
                 (fx ? (
                   <p className="mt-1 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
                     {t('krwDuty')}: ₩{Math.round(bestLine.savingVsMfn * fx.usdKrw).toLocaleString('ko-KR')} (USD 1 = ₩{fx.usdKrw.toLocaleString('ko-KR')}, {fx.appliedFrom})
                   </p>
-                ) : null)}
+                ) : (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('krwHint')}</p>
+                ))}
             </div>
 
             <div className="thin-scroll mt-4 overflow-x-auto">
@@ -212,7 +279,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
               {t('roo')} · {t('certificate')}
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
-              {product.tariffs
+              {table.tariffs
                 .filter((r) => r.scheme !== 'MFN')
                 .map((r) => (
                   <div key={r.scheme} className={cx('rounded-xl border p-3', r.scheme === best ? 'border-emerald-400/60 dark:border-emerald-500/40' : 'border-slate-200 dark:border-slate-800')}>
@@ -226,7 +293,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
             </div>
             <div className="mt-3 rounded-xl bg-brand-50 p-3 text-[13px] leading-relaxed text-brand-900 dark:bg-brand-500/10 dark:text-brand-200">
               <span className="font-bold">{t('bestReason')}: </span>
-              {p(product.bestFta.reason)}
+              {p(table.bestFta.reason)}
             </div>
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
               <SourceTag meta={product.tariffMeta} />

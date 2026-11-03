@@ -8,10 +8,11 @@ import type { Direction, IntentFocus, QueryIntent, TradeProduct } from '@/lib/ty
 const compact = (s: string) => s.toLowerCase().replace(/[\s·\-_/(),.?!~'"’:;]+/g, '');
 
 const FOCUS_KEYWORDS: Record<IntentFocus, string[]> = {
-  tariff: ['관세', '세율', 'fta', '절세', '원산지', '협정', 'duty', 'duties', 'tariff', 'origin', 'tax'],
-  regulation: ['절차', '인증', '통관', '등록', 'fda', '식약처', '규정', '라벨', '할랄', 'cpr', 'lto', 'cpn', '검역', '요건', 'procedure', 'certification', 'customs', 'register', 'registration', 'label', 'halal', 'requirement', 'permit'],
-  partners: ['바이어', '공급사', '셀러', '유통사', '벤더', '매칭', '거래처', '수입사', '추천', '발굴', '파트너', 'buyer', 'buyers', 'supplier', 'suppliers', 'distributor', 'vendor', 'vendors', 'partner', 'matching', 'importer'],
-  logistics: ['물류', '운임', '컨테이너', '해상', '리드타임', '선적', '배송', '항구', '40ft', '20ft', 'lcl', 'freight', 'shipping', 'container', 'logistics', 'lead time', 'port'],
+  // ASCII keywords match whole words, so plural / inflected forms are listed explicitly
+  tariff: ['관세', '세율', 'fta', '절세', '원산지', '협정', 'duty', 'duties', 'tariff', 'tariffs', 'origin', 'tax', 'taxes'],
+  regulation: ['절차', '인증', '통관', '등록', 'fda', '식약처', '규정', '라벨', '할랄', 'cpr', 'lto', 'cpn', '검역', '요건', 'procedure', 'procedures', 'certification', 'certifications', 'customs', 'register', 'registration', 'registrations', 'label', 'labels', 'labeling', 'labelling', 'halal', 'requirement', 'requirements', 'permit', 'permits', 'regulation', 'regulations'],
+  partners: ['바이어', '공급사', '셀러', '유통사', '벤더', '매칭', '거래처', '수입사', '추천', '발굴', '파트너', 'buyer', 'buyers', 'supplier', 'suppliers', 'distributor', 'distributors', 'vendor', 'vendors', 'partner', 'partners', 'matching', 'importer', 'importers'],
+  logistics: ['물류', '운임', '컨테이너', '해상', '리드타임', '선적', '배송', '항구', '40ft', '20ft', 'lcl', 'freight', 'shipping', 'container', 'containers', 'logistics', 'lead time', 'port', 'ports'],
   market: ['시장', '통계', '규모', '점유율', '수요', '트렌드', '교역', 'market', 'trend', 'share', 'demand', 'statistics', 'size'],
 };
 

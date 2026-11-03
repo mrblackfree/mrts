@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog';
 import { formatNumber, formatUsd } from '@/lib/format';
 import { PARTNER_TYPE_LABEL, type DictKey } from '@/lib/i18n';
-import { buildDraftLocal, defaultDraftOptions, partnerFactors, priceForIncoterm, proformaToText } from '@/lib/engine/simulate';
+import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, partnerFactors, priceForIncoterm, priceOnBasis, proformaToText } from '@/lib/engine/simulate';
 import type { DraftOptions, EmailDraft, Lang, Partner, QueryIntent, TradeProduct } from '@/lib/types';
 import { useI18n } from './I18nProvider';
 import { Badge, CopyButton, cx, ProgressBar, ScoreRing, Segmented } from './ui';
@@ -72,7 +72,9 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
         body: JSON.stringify({ productId: product.id, partnerId: partner.id, options: requested, lang: emailLang, polish: true }),
       });
       const json = await res.json();
-      if (json?.ok && json.draft?.engine?.mode === 'llm') {
+      if (json?.error === 'invalid-option') {
+        setNotice(`${t('polishInvalid')}: ${String(json.field ?? '')}`);
+      } else if (json?.ok && json.draft?.engine?.mode === 'llm') {
         setPolished({ lang: emailLang, email: json.draft.email[emailLang], model: json.draft.engine.model, options: requested });
       } else {
         setNotice(json?.draft?.engine?.fallbackReason === 'no-api-key' ? t('polishNoKey') : t('polishFail'));
@@ -84,7 +86,19 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
     }
   };
 
-  const mailto = email ? `mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}` : '#';
+  // Some desktop mail clients truncate long mailto URLs (Korean text triples in size when encoded). Above the
+  // limit the full text goes to the clipboard and the mail client opens with a short pointer instead.
+  const MAILTO_MAX = 1800;
+  const fullMailto = email ? `mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}` : '#';
+  const mailtoTooLong = fullMailto.length > MAILTO_MAX;
+  const mailto = email && mailtoTooLong ? `mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(t('mailtoPaste'))}` : fullMailto;
+  const onMailto = () => {
+    if (!email || !mailtoTooLong) return;
+    navigator.clipboard?.writeText(`${email.body}`).then(
+      () => setNotice(t('mailtoCopied')),
+      () => setNotice(t('mailtoCopyFail')),
+    );
+  };
   const inputCls =
     'h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm font-semibold text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white';
   const labelCls = 'mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-400';
@@ -234,10 +248,11 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                       onChange={(e) => {
                         const raw = e.target.value.replace(/[^0-9.]/g, '');
                         setPriceText(raw);
-                        const n = Number(raw);
+                        const n = Math.min(DRAFT_LIMITS.unitPrice, Number(raw));
                         if (raw !== '' && !raw.endsWith('.') && Number.isFinite(n)) {
                           setOptions((o) => ({ ...o, unitPrice: n }));
                           setPolished(null);
+                          setNotice(null);
                         }
                       }}
                       onBlur={() => setPriceText(String(options.unitPrice))}
@@ -247,15 +262,22 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                     <span className={labelCls}>
                       {t('moq')} ({product.pricing.unit})
                     </span>
-                    <input type="number" min={0} className={inputCls} value={options.moq} onChange={(e) => update({ moq: Math.max(0, Number(e.target.value)) })} />
+                    <input type="number" min={0} max={DRAFT_LIMITS.moq} className={inputCls} value={options.moq} onChange={(e) => update({ moq: Math.min(DRAFT_LIMITS.moq, Math.max(0, Number(e.target.value))) })} />
                   </label>
                   <p className="col-span-2 -mt-1 text-[11px] text-slate-400 sm:col-span-4">{t('priceHint')}</p>
-                  {product.verification?.priceCheck && product.pricing.unitKg && product.verification.priceCheck.status !== 'not-comparable' && (
-                    <p className="col-span-2 -mt-1 text-[11px] font-semibold text-emerald-700 sm:col-span-4 dark:text-emerald-400">
-                      {lang === 'ko' ? '공식 통관 단가 기준' : 'Official unit-value benchmark'}: ${product.verification.priceCheck.usdPerKg}/kg ({product.verification.priceCheck.year} {product.verification.priceCheck.basis}) →{' '}
-                      {lang === 'ko' ? '현재 단가' : 'current price'} ${(options.unitPrice / product.pricing.unitKg).toFixed(2)}/kg ({(options.unitPrice / product.pricing.unitKg / product.verification.priceCheck.usdPerKg).toFixed(2)}×)
-                    </p>
-                  )}
+                  {(() => {
+                    const pc = product.verification?.priceCheck;
+                    if (!pc || !product.pricing.unitKg || pc.status === 'not-comparable') return null;
+                    // compare on the benchmark's own basis (CIF for imports, FOB for exports), not the selected incoterm
+                    const onBasis = priceOnBasis(product, options.unitPrice, options.incoterm, pc.basis);
+                    if (onBasis === undefined) return null;
+                    const perKg = onBasis / product.pricing.unitKg;
+                    return (
+                      <p className="col-span-2 -mt-1 text-[11px] font-semibold text-emerald-700 sm:col-span-4 dark:text-emerald-400">
+                        {lang === 'ko' ? '공식 통관 단가 기준' : 'Official unit-value benchmark'}: ${pc.usdPerKg}/kg ({pc.year} {pc.basis}) → {lang === 'ko' ? `현재 단가 ${pc.basis} 환산` : `current price on ${pc.basis} basis`} ${perKg.toFixed(2)}/kg ({(perKg / pc.usdPerKg).toFixed(2)}×)
+                      </p>
+                    );
+                  })()}
                   <label className="col-span-2">
                     <span className={labelCls}>{t('payment')}</span>
                     <select className={inputCls} value={options.payment} onChange={(e) => update({ payment: e.target.value as DraftOptions['payment'] })}>
@@ -266,7 +288,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                   </label>
                   <label className="col-span-2">
                     <span className={labelCls}>{t('quantity')}</span>
-                    <input type="number" min={0} className={inputCls} value={options.quantity} onChange={(e) => update({ quantity: Math.max(0, Number(e.target.value)) })} />
+                    <input type="number" min={0} max={DRAFT_LIMITS.quantity} className={inputCls} value={options.quantity} onChange={(e) => update({ quantity: Math.min(DRAFT_LIMITS.quantity, Math.max(0, Number(e.target.value))) })} />
                   </label>
                   <fieldset className="col-span-2 sm:col-span-4">
                     <legend className={labelCls}>{t('sample')}</legend>
@@ -336,7 +358,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                   </div>
                   <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-4 py-3 dark:border-slate-800">
                     <CopyButton text={`${email.subject}\n\n${email.body}`} />
-                    <a href={mailto} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-brand-500 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                    <a href={mailto} onClick={onMailto} title={mailtoTooLong ? t('mailtoCopied') : undefined} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-brand-500 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
                       <Mail className="size-3.5" />
                       {t('openMail')}
                     </a>

@@ -141,6 +141,9 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                 <History className="size-4 text-violet-500" />
                 {lang === 'ko' ? '공식 데이터 기반 보정 이력' : 'Corrections from official data'}
               </h3>
+              <p className="-mt-1 mb-2 text-[11px] text-slate-400">
+                {lang === 'ko' ? `시드값을 직접 수정한 기록(수동) — 실행 중 자동 보정은 「${t('conflicts')}」 목록에 표시` : `Manual record of edited seed values — automatic runtime corrections are listed under “${t('conflicts')}”`}
+              </p>
               <ul className="thin-scroll max-h-52 space-y-1.5 overflow-y-auto text-xs">
                 {CHANGELOG.map((c, i) => {
                   const prod = PRODUCTS.find((x) => x.id === c.productId);
@@ -199,9 +202,17 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                       <div className="space-y-3 border-t border-slate-100 p-3 dark:border-slate-800">
                         {(() => {
                           const cats = categoryBreakdown(prod);
-                          const gains = cats
-                            .filter((c) => c.value < 1)
-                            .map((c) => ({ ...c, gain: Math.round(((1 - c.value) / cats.length) * 100), rm: ROADMAP.find((r) => r.id === CATEGORY_ROADMAP[c.category]) }))
+                          // one line per roadmap item: several categories (e.g. MFN/FTA/ROO) close with the same step
+                          const byStep = new Map<string, { key: string; gain: number; labels: string[]; rm?: (typeof ROADMAP)[number] }>();
+                          for (const c of cats.filter((x) => x.value < 1)) {
+                            const id = CATEGORY_ROADMAP[c.category] ?? c.category;
+                            const g = byStep.get(id) ?? { key: id, gain: 0, labels: [], rm: ROADMAP.find((r) => r.id === id) };
+                            g.gain += ((1 - c.value) / cats.length) * 100;
+                            g.labels.push(p(CATEGORY_LABEL[c.category]));
+                            byStep.set(id, g);
+                          }
+                          const gains = [...byStep.values()]
+                            .map((g) => ({ ...g, gain: Math.round(g.gain) }))
                             .sort((a, b) => b.gain - a.gain)
                             .slice(0, 3);
                           return gains.length ? (
@@ -209,8 +220,9 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                               <p className="mb-1.5 text-xs font-bold text-violet-800 dark:text-violet-200">{lang === 'ko' ? '점수를 올리는 다음 검증' : 'Next verifications to raise the score'}</p>
                               <ul className="space-y-1 text-[11.5px] text-violet-900 dark:text-violet-200">
                                 {gains.map((g) => (
-                                  <li key={g.category}>
-                                    <b>+{g.gain}</b> · {p(CATEGORY_LABEL[g.category])} — {g.rm ? p(g.rm.title) : ''}
+                                  <li key={g.key}>
+                                    <b>+{g.gain}</b> · {g.labels.join(' · ')}
+                                    {g.rm ? ` — ${p(g.rm.title)}` : ''}
                                   </li>
                                 ))}
                               </ul>

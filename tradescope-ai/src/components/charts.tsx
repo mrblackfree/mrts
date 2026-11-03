@@ -1,6 +1,6 @@
 'use client';
 
-import { formatPct, formatUsd, yoy } from '@/lib/format';
+import { formatPct, formatUsd, trend, yoy } from '@/lib/format';
 import type { CompetitorShare, YearValue } from '@/lib/types';
 import { cx } from './ui';
 
@@ -43,7 +43,7 @@ export function TrendColumns({ series, ariaLabel, accent = '#06b6d4' }: { series
               {s.year}
             </text>
             {growth !== null && (
-              <text x={cx0} y={top - 18} textAnchor="middle" className={cx('text-[10.5px] font-bold', growth >= 0 ? 'fill-emerald-600 dark:fill-emerald-400' : 'fill-rose-600 dark:fill-rose-400')}>
+              <text x={cx0} y={top - 18} textAnchor="middle" className={cx('text-[10.5px] font-bold', { up: 'fill-emerald-600 dark:fill-emerald-400', down: 'fill-rose-600 dark:fill-rose-400', flat: 'fill-slate-400' }[trend(growth)])}>
                 {formatPct(growth, 1, true)}
               </text>
             )}

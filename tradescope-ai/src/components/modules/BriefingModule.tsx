@@ -146,7 +146,7 @@ export default function BriefingModule({ report, product, onOpenTrust }: { repor
                     const off = v?.mfnCheck && v.mfnCheck.hs6 === hs6 ? v.mfnCheck : v?.altMfn?.[hs6];
                     return off ? (
                       <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                        {t('officialMfnAlt')} {off.min === off.max ? `${off.min}%` : `${off.min}–${off.max}%`} · WITS {off.year} · {off.lines} {t('lines')}
+                        {t('officialMfnAlt')} {off.min === off.max ? `${off.min}%` : `${off.min}–${off.max}%`} · WITS {off.year} · {t('lines').replace('{n}', String(off.lines))}
                       </p>
                     ) : null;
                   })()}

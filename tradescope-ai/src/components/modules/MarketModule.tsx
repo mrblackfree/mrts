@@ -1,7 +1,7 @@
 'use client';
 
 import { Anchor, Lightbulb, Ship, TrendingUp } from 'lucide-react';
-import { formatNumber, formatPct, formatUsd, yoy } from '@/lib/format';
+import { formatNumber, formatPct, formatUsd, trend, yoy } from '@/lib/format';
 import type { TradeProduct } from '@/lib/types';
 import { ShareBars, TrendColumns } from '../charts';
 import { useI18n } from '../I18nProvider';
@@ -19,14 +19,14 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
   const highlighted = m.competitors.find((c) => c.highlight);
 
   const kpis = [
-    { label: `${t('latest')} (${last.year})`, value: formatUsd(last.value, { compact: true }), sub: `${t('yoyLabel')} ${formatPct(growth, 1, true)}`, tone: growth >= 0 ? 'up' : 'down' },
+    { label: `${t('latest')} (${last.year})`, value: formatUsd(last.value, { compact: true }), sub: `${t('yoyLabel')} ${formatPct(growth, 1, true)}`, tone: trend(growth) },
     { label: `CAGR ${s[0].year}–${last.year}`, value: formatPct(cagr, 1, true), sub: `HS ${m.hsBasis}`, tone: 'flat' },
     { label: `${t('marketSize')} (${m.marketSize.year})`, value: formatUsd(m.marketSize.value, { compact: true }), sub: highlighted ? `${p(highlighted.country)} ${highlighted.share}%` : '', tone: 'flat' },
     ...(m.unitValue
       ? [{ label: `${lang === 'ko' ? '공식 통관 단가' : 'Official unit value'} (${m.unitValue.year} ${m.unitValue.basis})`, value: `$${m.unitValue.usdPerKg}/kg`, sub: `${(m.unitValue.netWgtKg / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 })} t · Comtrade`, tone: 'flat' }]
       : []),
     ...(m.latestMonthly
-      ? [{ label: `${t('ytdKcs')} ${m.latestMonthly.from.slice(0, 4)}.${m.latestMonthly.from.slice(4)}–${m.latestMonthly.to.slice(4)}`, value: formatUsd(m.latestMonthly.value, { compact: true }), sub: 'KCS · data.go.kr', tone: 'flat' }]
+      ? [{ label: `${t('ytdKcs')} ${m.latestMonthly.from.slice(0, 4)}.${m.latestMonthly.from.slice(4)}–${m.latestMonthly.to.slice(4)}`, value: formatUsd(m.latestMonthly.value, { compact: true }), sub: m.latestMonthly.source, tone: 'flat' }]
       : []),
   ];
 
@@ -73,6 +73,16 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
             </p>
             {p(m.insight)}
             {product.verification?.insightStale && <p className="mt-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">⚠ {t('insightStale')}</p>}
+            {m.mirror && Math.abs(m.mirror.ratio - 1) >= 0.2 && (
+              <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-300">
+                ⓘ{' '}
+                {t('mirrorGap')
+                  .replace('{year}', String(m.mirror.year))
+                  .replace('{kr}', formatUsd(m.mirror.krReported, { compact: true }))
+                  .replace('{ph}', formatUsd(m.mirror.phReported, { compact: true }))
+                  .replace('{ratio}', m.mirror.ratio.toFixed(1))}
+              </p>
+            )}
           </div>
           <SourceTag meta={m.meta} className="mt-3" />
         </div>
@@ -108,7 +118,7 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
                 </dd>
                 <dt className="text-slate-400">{t('transit')}</dt>
                 <dd className="text-right font-semibold tabular-nums text-slate-700 dark:text-slate-200">
-                  {l.transitDays[0]}–{l.transitDays[1]} {t('days')}
+                  {t('days').replace('{n}', `${l.transitDays[0]}–${l.transitDays[1]}`)}
                 </dd>
                 <dt className="text-slate-400">{t('frequency')}</dt>
                 <dd className="text-right text-slate-600 dark:text-slate-300">{p(l.frequency)}</dd>
