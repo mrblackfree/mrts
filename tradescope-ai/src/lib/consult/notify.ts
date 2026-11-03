@@ -10,8 +10,18 @@ export function webhookUrl(): string | undefined {
   return v && isHttpsUrl(v) ? v : undefined;
 }
 
-/** Slack mrkdwn control characters: a requester must not be able to inject <!here>, links or mentions. */
-export const slackEscape = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/**
+ * Requester text for Slack mrkdwn: control characters are escaped (no <!here>, mentions or <url|label> links), and
+ * plain URLs are broken with a zero-width space after the scheme / "www", so Slack does not auto-link them — an
+ * operator never gets a clickable link that only a requester typed.
+ */
+export const slackEscape = (v: string) =>
+  v
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\b([a-z][a-z0-9+.-]{1,15}):\/\//gi, '$1:\u200b//')
+    .replace(/\bwww\./gi, 'www\u200b.');
 
 /** The message text: requester-written fields are escaped, so they cannot mention @here or add links. */
 export function summaryText(record: ConsultRequest): string {
@@ -32,8 +42,11 @@ export async function notify(webhook: string, record: ConsultRequest): Promise<b
       signal: AbortSignal.timeout(5000),
     });
     await res.body?.cancel().catch(() => undefined);
+    // the URL carries a token: log the status only, never the address
+    if (!res.ok) console.warn('[consult] webhook delivery failed', record.id, `HTTP ${res.status}`);
     return res.ok;
-  } catch {
+  } catch (e) {
+    console.warn('[consult] webhook delivery failed', record.id, e instanceof Error ? e.name : 'error');
     return false;
   }
 }

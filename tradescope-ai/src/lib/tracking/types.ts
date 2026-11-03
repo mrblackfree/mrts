@@ -91,8 +91,13 @@ export function isContainerNumber(raw: string): boolean {
 /** Spaces and dashes removed, upper case. Length is checked by the caller, never cut: a cut number is a different one. */
 export const normaliseReference = (raw: string) => raw.replace(/[\s-]/g, '').toUpperCase();
 
-/** Latest actual milestone of a timeline. */
+/**
+ * Latest actual milestone of a timeline. Events the source could not map (`other`, e.g. an unknown code) are
+ * skipped when a known milestone exists, so the current step never reads "Other" after "Departed".
+ */
 export function statusOf(events: TrackEvent[]): Milestone | 'unknown' {
   const actual = events.filter((e) => e.actual).sort((a, b) => a.at.localeCompare(b.at));
-  return actual.length ? actual[actual.length - 1].milestone : 'unknown';
+  if (!actual.length) return 'unknown';
+  const known = actual.filter((e) => e.milestone !== 'other');
+  return (known.length ? known : actual)[(known.length ? known : actual).length - 1].milestone;
 }

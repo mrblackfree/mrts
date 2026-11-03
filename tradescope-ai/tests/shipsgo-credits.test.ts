@@ -18,20 +18,20 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 }) as typeof fetch;
 
 const q = (reference: string) => ({ reference, kind: 'container' as const });
-let err = '';
-try {
-  await trackShipsGo('t', q('MSKU1234565'), 1);
-} catch (e) {
-  err = (e as Error).message;
-}
-ok('timeout surfaces as an error', /timeout/i.test(err), err);
+const attempt = async (ref: string, cap: number) => {
+  try {
+    return { result: await trackShipsGo('t', q(ref), cap), err: '' };
+  } catch (e) {
+    return { result: null, err: (e as Error).message };
+  }
+};
+// cap 2: a timed-out POST (slot kept), a successful one (slot used), then the cap
+const first = await attempt('MSKU1234565', 2);
+ok('timeout surfaces as an error', /timeout/i.test(first.err), first.err);
 mode = 'ok';
-err = '';
-try {
-  await trackShipsGo('t', q('CSQU3054383'), 1);
-} catch (e) {
-  err = (e as Error).message;
-}
-ok('the timed-out POST keeps its slot (cap of 1 reached)', /daily new-shipment limit/.test(err) && posts === 1, { err, posts });
+const second = await attempt('CSQU3054383', 2);
+ok('second registration succeeds and reads back (pending)', second.result?.pending === true && posts === 2, { second, posts });
+const third = await attempt('TGHU1234560', 2);
+ok('the timed-out slot still counts: third new shipment hits the cap without a POST', /daily new-shipment limit/.test(third.err) && posts === 2, { third, posts });
 
 done('shipsgo credits');

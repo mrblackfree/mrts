@@ -25,26 +25,45 @@ const p = PRODUCTS.find((x) => x.id === 'banana-chips')!;
 const q = '필리핀 바나나칩 한국 수입 5만 달러';
 const { report } = analyzeLocal(q, p.direction);
 const base: Briefing = { headline: 'h', summary: 's', keyPoints: ['k'], nextActions: ['a'] };
-const mfn = p.tariffs.find((t) => t.scheme === 'MFN')!.rate;
+// "real" figures are read from the product data, so the weekly data sync cannot break them; the invented ones are
+// checked below to still be absent from the data before they are used
+const rate = (scheme: string) => p.tariffs.find((t) => t.scheme === scheme)!.rate;
+const mfn = rate('MFN');
+const akfta = rate('AKFTA');
+const rcep = rate('RCEP');
+const series = p.market.series.map((x) => x.value);
+const [prev, last] = series.slice(-2);
+const growth = (last / prev - 1) * 100;
+const size = p.market.marketSize.value;
+const top = p.market.competitors[0];
+const ph = p.market.competitors.find((c) => c.highlight)!;
+const hs = p.hs[0].code; // e.g. 2008.99.9000
+const hs6 = hs.slice(0, 7);
+const fmt1 = (n: number) => n.toFixed(1);
+const eok = (v: number) => `${Math.floor(v / 1e8)}억 ${Math.round((v % 1e8) / 1e7)}천만`;
+const [lo, hi] = [Math.min(akfta, rcep), Math.max(akfta, rcep)];
+const fcl = p.logistics[0].cost[1];
+const usd = (n: number) => `$${n.toLocaleString('en-US')}`;
+
 const cases: Array<[string, string, boolean]> = [
   ['real MFN rate', `기본세율은 ${mfn}%입니다`, false],
   ['invented rate 17.5%', '한-아세안 FTA 세율은 17.5%입니다', true],
-  ['invented HS line', 'HS 2008.99.1234로 분류하세요', true],
-  ['shortened real HS', 'HS 2008.99로 분류하세요', false],
+  ['invented HS line', `HS ${hs6}.1234로 분류하세요`, true],
+  ['shortened real HS', `HS ${hs6}로 분류하세요`, false],
   ['invented market size', '시장 규모는 $987.6M입니다', true],
   ['question amount', '5만 달러 규모 기준', false],
   ['invented saving', '관세 $12,345를 절감합니다', true],
-  ['real share gap 31.7pp', '점유율 격차 31.7%p', false],
+  ['real share gap', `점유율 격차 ${fmt1(top.share - ph.share)}%p`, false],
   ['invented duty 12%', '관세율은 12%입니다', true],
   ['invented duty 22% (EN)', 'The AKFTA duty is 22%', true],
-  ['duty gap real', `MFN 대비 ${mfn}%p 절감`, false],
-  ['growth not a tariff', '시장은 전년 대비 34.8% 감소', false],
-  ['official MFN range', '공식 MFN 범위 8~45% 중 최고 45%', false],
-  ['RCEP real', 'RCEP 세율 30%', false],
+  ['duty gap real', `MFN 대비 ${mfn - akfta}%p 절감`, false],
+  ['growth not a tariff', `시장은 전년 대비 ${fmt1(Math.abs(growth))}% ${growth < 0 ? '감소' : '증가'}`, false],
+  ['real rate range', `세율 범위 ${lo}~${mfn}% 중 최고 ${mfn}%`, false],
+  ['RCEP real', `RCEP 세율 ${rcep}%`, false],
   ['invented $14', '샘플 비용은 $14입니다', true],
-  ['$9,000 from HS suffix', '총 $9,000입니다', true],
+  ['amount from HS suffix', `총 ${usd(Number(hs.slice(-4)))}입니다`, true],
   ['undotted invented HS', 'HS 999999로 신고', true],
-  ['undotted real HS', 'HS 200899로 신고', false],
+  ['undotted real HS', `HS ${hs6.replace('.', '')}로 신고`, false],
   ['tariff rate 100%', 'Tariff is 100%', true],
   ['100% duty-free saving', '관세 100% 면제', false],
   ['12% tariff (after)', 'a 12% tariff applies', true],
@@ -52,19 +71,22 @@ const cases: Array<[string, string, boolean]> = [
   ['-15% tariff', '관세 -15%', true],
   ['invented 1.2 million dollars', 'a market of 1.2 million dollars', true],
   ['invented 3억 7천만 달러', '시장 규모 3억 7천만 달러', true],
-  ['real 1억 2천만 달러 (market size)', '시장 규모 약 1억 2천만 달러', false],
-  ['real market in 만 달러', '2025년 수입액 약 444만 달러', false],
-  ['relative saving 89%', '관세 89% 절감', false],
-  ['real cost $950 (lane)', 'FCL 운임 약 $950', false],
+  ['real market size in 억', `시장 규모 약 ${eok(size)} 달러`, false],
+  ['real imports in 만 달러', `${p.market.series.at(-1)!.year}년 수입액 약 ${Math.round(last / 1e4)}만 달러`, false],
+  ['relative saving', `관세 ${Math.round(((mfn - akfta) / mfn) * 100)}% 절감`, false],
+  ['real lane cost', `FCL 운임 약 ${usd(fcl)}`, false],
   ['invented 7.9 million USD', 'about 7.9 million USD', true],
-  ['real decline 2.4 million USD', 'imports fell by about 2.4 million USD', false],
-  ['real $124.0M market', 'market of $124.0M', false],
-  ['grouped real HS spaced', 'HSK 2008 99 9000', false],
-  ['range 5%-30% (real rates)', 'AKFTA·RCEP 세율 5%-30%', false],
-  ['range 5% - 30% spaced', '세율은 5% - 30% 범위', false],
-  ['range 5-30% (no first %)', '세율 5-30%', false],
-  ['real negative growth', '전년 대비 -34.8%', false],
+  ['real change in million USD', `imports changed by about ${fmt1(Math.abs(last - prev) / 1e6)} million USD`, false],
+  ['real $M market', `market of $${fmt1(size / 1e6)}M`, false],
+  ['grouped real HS spaced', `HSK ${hs.replace(/\./g, ' ')}`, false],
+  ['range of real rates', `AKFTA·RCEP 세율 ${lo}%-${hi}%`, false],
+  ['range spaced', `세율은 ${lo}% - ${hi}% 범위`, false],
+  ['range (no first %)', `세율 ${lo}-${hi}%`, false],
+  ['real signed growth', `전년 대비 ${growth < 0 ? '-' : '+'}${fmt1(Math.abs(growth))}%`, false],
 ];
+// invented rates must stay invented whatever the sync brings in
+const known = new Set([...p.tariffs.map((t) => t.rate), ...p.market.competitors.map((c) => c.share)]);
+for (const v of [17.5, 12, 22]) if (known.has(v)) throw new Error(`fixture: ${v}% is now a real figure for ${p.id}; pick another invented value`);
 for (const [name, text, expectBad] of cases) {
   const bad = ungroundedFigures(p, report.intent, q, 'ko', { ...base, summary: text });
   const ok = (bad.length > 0) === expectBad;

@@ -82,7 +82,8 @@ ok('sg picks the matching container', sg.events.length === 5 && sg.events[0].mil
 ok('sg sorted', sg.events.map((e) => e.milestone).join(',') === 'empty-out,loaded,departed,other,arrived', sg.events.map((e) => e.milestone));
 ok('sg ETA predicted', sg.eta === '2026-10-19T04:00:00.000Z', sg.eta);
 ok('sg pol/pod', sg.pol === 'BUSAN (KRPUS)' && sg.pod === 'MANILA (PHMNL)');
-ok('sg status departed', sg.status === 'departed' || sg.status === 'other', sg.status);
+// the last actual event is an unknown code (ZZZZ → other); the current step stays the last known one
+ok('sg status = last known actual milestone', sg.status === 'departed', sg.status);
 ok('sg containers listed', sg.containers?.length === 2);
 ok('sg carrier name', sg.carrier === 'ARKAS LINE');
 ok('sg vessel', sg.vessel === 'LODUR / ASA2325', sg.vessel);

@@ -13,7 +13,8 @@ const ids = new Set(Array.from({ length: 2000 }, newRequestId));
 ok('2000 ids are distinct', ids.size === 2000);
 
 const a = appendRequest(input);
-ok('file mode 0600', (statSync(file).mode & 0o777) === 0o600, (statSync(file).mode & 0o777).toString(8));
+// POSIX permission bits are not enforced on Windows
+ok('file mode 0600', process.platform === 'win32' || (statSync(file).mode & 0o777) === 0o600, (statSync(file).mode & 0o777).toString(8));
 // an interrupted append leaves half a line without a newline
 appendFileSync(file, '{"id":"TS-BROKEN","name":"half');
 const b = appendRequest({ ...input, name: 'Lee' });

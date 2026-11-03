@@ -17,7 +17,9 @@ const rec: ConsultRequest = {
   message: 'hello <!channel>',
   lang: 'ko',
 };
+rec.message += ' visit https://evil.example/login or www.evil.example';
 const text = summaryText(rec);
+ok('plain URLs are not linkable', !/https:\/\/evil|www\.evil/.test(text) && text.includes('https:\u200b//evil.example/login') && text.includes('www\u200b.evil.example'), text);
 ok('no raw mention or link markup', !/<!here>|<!channel>|<@U123>|<https:/.test(text), text);
 ok('escaped text kept readable', text.includes('&lt;!here&gt; Kim') && text.includes('A&amp;B'), text);
 ok('service title in Korean', text.includes('필리핀 FDA 식품 인허가 대행'));

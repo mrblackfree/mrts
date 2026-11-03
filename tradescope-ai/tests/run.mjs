@@ -11,6 +11,11 @@ const only = process.argv[2];
 const files = readdirSync(here)
   .filter((f) => f.endsWith('.test.ts') && (!only || f.includes(only)))
   .sort();
+if (!files.length) {
+  // a typo in the filter (or a moved folder) must not turn CI green without running anything
+  console.error(only ? `no test file matches "${only}"` : 'no test files found');
+  process.exit(1);
+}
 let failed = 0;
 for (const f of files) {
   // each file gets an empty data directory: tests never read or write the real .data/settings.json
