@@ -5,7 +5,7 @@ import { ungroundedFigures } from '@/lib/engine/llm';
 import type { Briefing } from '@/lib/types';
 let fails = 0;
 const queries: Record<string, string> = {
-  // CIP and CIF amounts are used as stated
+  // one query per product, with FOB / EXW / DDP / CIP amounts or none, so the CIF conversion is exercised too
 
   'banana-chips': '필리핀 바나나칩 한국 수입 FOB 5만 달러', 'dried-mango': '건망고 수입 $120,000', 'coconut-oil': 'coconut oil import CIP Busan $80k',
   'seasoned-laver': '조미김 필리핀 수출 EXW $30,000', 'k-beauty': '화장품 필리핀 수출', 'instant-ramen': '라면 필리핀 수출 DDP Manila $200,000', 'smart-building': '도어락 필리핀 수출',

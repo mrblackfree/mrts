@@ -35,11 +35,13 @@ export function newRequestId(): string {
   return `TS-${Array.from(randomBytes(8), (x) => alphabet[x % alphabet.length]).join('')}`;
 }
 
+/** The file's text; '' only when it does not exist yet. Any other read error is thrown (callers answer 5xx). */
 function readRaw(): string {
   try {
     return readFileSync(file(), 'utf8');
-  } catch {
-    return '';
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return '';
+    throw e;
   }
 }
 

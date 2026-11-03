@@ -184,6 +184,8 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
       if (detail?.key !== key) return;
       setSaved(detail.value);
       setReference(detail.value.reference);
+      // the old timeline belongs to the previous number: show the new number's saved row instead
+      setState({ kind: 'idle' });
       setKind(customs && detail.value.kind !== 'bl' ? 'bl' : detail.value.kind);
       setCarrier(detail.value.carrier);
     };
@@ -191,7 +193,9 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
     return () => window.removeEventListener(SAVED_EVENT, onSaved);
   }, [product.id, apiMode, customs]);
 
-  const lookup = async (q: Saved) => {
+  /** `save: false` looks a number up without making it this trade's saved reference (related cargo). */
+  const lookup = async (q: Saved, opts: { save?: boolean } = {}) => {
+    const save = opts.save !== false;
     setState({ kind: 'loading' });
     try {
       const res = await fetch('/api/track', {
@@ -201,13 +205,15 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
       });
       const j = await res.json().catch(() => ({}));
       if (res.ok && j?.ok && j.result) {
-        try {
-          localStorage.setItem(savedKey(product.id, apiMode), JSON.stringify(q));
-        } catch {
-          /* private mode */
+        if (save) {
+          try {
+            localStorage.setItem(savedKey(product.id, apiMode), JSON.stringify(q));
+          } catch {
+            /* private mode */
+          }
+          setSaved(q);
+          window.dispatchEvent(new CustomEvent(SAVED_EVENT, { detail: { key: savedKey(product.id, apiMode), value: q } }));
         }
-        setSaved(q);
-        window.dispatchEvent(new CustomEvent(SAVED_EVENT, { detail: { key: savedKey(product.id, apiMode), value: q } }));
         return setState({ kind: 'done', result: j.result as TrackResult, tried: j.tried });
       }
       const message = j?.error === 'not-found' ? s.notFound : j?.error === 'not-covered' ? s.notCovered : j?.error === 'rate-limited' ? s.rateLimited : s.failed;
@@ -368,7 +374,7 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
                     <dt className="text-slate-400">{s.related}</dt>
                     {r.relatedRefs.map((ref) => (
                       <dd key={ref} className="m-0">
-                        <button type="button" onClick={() => void lookup({ reference: ref, kind: 'bl', carrier: '' })} className="no-print rounded-md px-1.5 py-0.5 font-mono text-[11.5px] text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50 dark:text-brand-300 dark:ring-brand-400/30">
+                        <button type="button" onClick={() => void lookup({ reference: ref, kind: 'bl', carrier: '' }, { save: false })} className="no-print rounded-md px-1.5 py-0.5 font-mono text-[11.5px] text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50 dark:text-brand-300 dark:ring-brand-400/30">
                           {ref}
                         </button>
                       </dd>

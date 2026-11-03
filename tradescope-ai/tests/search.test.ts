@@ -49,9 +49,25 @@ const cases: Array<[string, string | null]> = [
   ['coconut oil extracted from copra', 'coconut-oil'],
   ['코프라 수입', null],
 ];
+// why an unsupported query is unsupported: a different form of a known product, an HS heading only, or no match
+const REASON: Record<string, 'other-form' | 'heading-only'> = {
+  '필리핀 생바나나 수입하고 싶어요': 'other-form',
+  'HS 1905 필리핀 수출': 'heading-only',
+  '필리핀 망고 생과 수입': 'other-form',
+  '아이스크림 필리핀 수출': 'other-form',
+  '헤어 에센스 필리핀 수출': 'other-form',
+  '쌀국수 필리핀 수출': 'other-form',
+  '코코넛 워터 수입': 'other-form',
+  'banana ketchup import Korea': 'other-form',
+  '생바나나 0803.90 수입': 'other-form',
+};
 for (const [q, want] of cases) {
   const r = retrieveProduct(q, inferDirection(q) ?? 'KR_TO_PH');
   const got = r.supported ? r.product.id : null;
   ok(`${q} → ${want ?? 'unsupported'}`, got === want, { got, reason: r.unsupportedReason, terms: r.matchedTerms });
+  if (want === null) {
+    const reason = REASON[q] ?? 'no-match';
+    ok(`${q} → reason ${reason}`, r.unsupportedReason === reason, r.unsupportedReason);
+  }
 }
 done(`product search (${cases.length} queries)`);

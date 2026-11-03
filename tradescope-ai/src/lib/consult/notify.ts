@@ -7,8 +7,15 @@ import type { ConsultRequest } from './store';
 /** The notification webhook, only when it is a usable https:// address (the same rule for GET and POST). */
 export function webhookUrl(): string | undefined {
   const v = getSetting('CONSULT_WEBHOOK_URL');
-  return v && isHttpsUrl(v) ? v : undefined;
+  if (v && !isHttpsUrl(v)) {
+    // the admin page rejects such a value; one set in the environment is ignored, so say so once
+    if (!warned) console.warn('[consult] CONSULT_WEBHOOK_URL is not an https:// URL and is ignored');
+    warned = true;
+    return undefined;
+  }
+  return v || undefined;
 }
+let warned = false;
 
 /**
  * Requester text for Slack mrkdwn: control characters are escaped (no <!here>, mentions or <url|label> links), and

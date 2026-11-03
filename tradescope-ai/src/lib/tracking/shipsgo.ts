@@ -76,7 +76,9 @@ async function findExisting(token: string, q: TrackQuery): Promise<number | null
   const res = await callApi(SOURCE, `${BASE}/ocean/shipments?${params.toString()}`, { headers: headersFor(token) });
   if (res.status !== 200) {
     if (res.status === 401 || res.status === 403) throw new TrackApiError(SOURCE, res.status, 'token rejected');
-    return null; // search unavailable: fall through to registration (409 still reuses an existing one)
+    // search unavailable: fall through to registration. Below the daily cap a known shipment comes back as a
+    // free 409; at the cap the registration is refused before any POST, so the lookup fails until the search works
+    return null;
   }
   const id = parseJson<{ shipments?: Array<{ id?: number }> }>(SOURCE, res.text).shipments?.[0]?.id;
   return typeof id === 'number' ? id : null;
