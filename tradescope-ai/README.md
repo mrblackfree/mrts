@@ -74,7 +74,7 @@ API 키와 운영 설정을 브라우저에서 넣고 바로 적용하는 설정
 **켜는 방법**
 
 1. 서버 환경변수에 `ADMIN_PASSWORD`(10자 이상)를 설정합니다. 설정하지 않으면 페이지가 비활성화됩니다.
-2. 선택으로 `ADMIN_SECRET`(`openssl rand -base64 32`)을 함께 둡니다. 이렇게 하면 비밀번호를 바꿔도 저장된 키가 유지됩니다.
+2. 선택으로 `ADMIN_SECRET`(32자 이상, `openssl rand -base64 32`)을 함께 둡니다. 이렇게 하면 비밀번호를 바꿔도 저장된 키가 유지됩니다. 32자보다 짧은 값은 거부되어 관리자 페이지가 꺼집니다.
 3. 서버를 재시작한 뒤 `https://<도메인>/admin`에서 로그인합니다.
 
 ```bash
@@ -100,12 +100,14 @@ ADMIN_SECRET=<openssl rand -base64 32 결과>
 - 환경변수로 설정된 항목은 관리자 화면에서 "환경변수 (잠김)"으로 표시되며 바꿀 수 없습니다.
 - 관리자 저장값은 `.data/settings.json`(Docker는 `/app/.data` 볼륨)에 파일 권한 0600으로 저장됩니다. 키는 `ADMIN_SECRET`(없으면 `ADMIN_PASSWORD`)에서 파생한 키로 **AES-256-GCM 암호화**됩니다.
 - 브라우저에는 마스킹된 값(`••••abcd`)만 전달되고, 키 원문은 어떤 응답에도 포함되지 않습니다.
+- 설정 파일이 손상되었거나 읽을 수 없으면 덮어쓰지 않고 저장을 막습니다(기존 값과 암호화 salt 보호). 화면에 원인이 표시됩니다.
 - Vercel·Netlify 서버리스는 파일이 유지되지 않으므로 화면이 **읽기 전용**으로 열립니다. 이 경우 같은 이름의 환경변수를 플랫폼 설정에 넣으세요.
 
 **보안**
 
 - 세션은 HttpOnly·SameSite=Strict 쿠키(HTTPS에서는 Secure)로 8시간 유지되며, 비밀번호나 `ADMIN_SECRET`을 바꾸면 모든 세션이 만료됩니다.
-- 로그인 실패는 클라이언트별 15분 8회, 전체 15분 100회로 제한합니다.
+- 로그아웃은 이 브라우저의 쿠키를 지웁니다. 세션 토큰은 서버에 저장하지 않으므로, 모든 세션을 즉시 끊으려면 `ADMIN_PASSWORD`나 `ADMIN_SECRET`을 바꾸고 재시작하세요.
+- 로그인 실패는 전체 15분 100회로 제한하고, 클라이언트를 식별할 수 있으면(`TRUST_PROXY` 설정 또는 Vercel) 클라이언트별 15분 8회로도 제한합니다. 식별할 수 없을 때 클라이언트별 제한을 걸면 한 사람의 오입력으로 모든 관리자가 잠기기 때문입니다.
 - 저장·테스트 요청은 같은 출처(Origin)에서 온 것만 받습니다.
 - `/admin`과 `/api/admin/*`에는 `no-store`·`noindex`·`X-Frame-Options: DENY` 헤더를 붙입니다.
 
@@ -252,13 +254,14 @@ sed -i '/^TRUST_PROXY=0$/d' .env.local 2>/dev/null   # 앱 단독 공개 때 넣
 DOMAIN=trade.example.com docker compose --profile https up -d --build
 ```
 Caddy가 Let's Encrypt 인증서를 자동 발급·갱신합니다 (`deploy/Caddyfile`). 앱 포트 3000은 기본값 `APP_BIND=127.0.0.1`로 서버 내부에만 열리므로 HTTPS를 우회할 수 없습니다 — `--profile https`와 `APP_BIND=0.0.0.0`을 함께 쓰지 마세요. 프록시 뒤에서는 `TRUST_PROXY=1`(compose 기본값, `deploy/compose.env`)로 LLM 호출 제한이 클라이언트별로 동작하며, `.env.local`에 적은 값이 이 기본값보다 우선합니다.
-`NEXT_PUBLIC_*` 값(신뢰도 센터 링크)은 빌드 시 번들에 들어가며 `.env*`는 Docker 빌드 컨텍스트에서 제외되므로, `NEXT_PUBLIC_DATA_FEEDBACK_URL=... docker compose build`처럼 셸 환경변수(build args)로 넘깁니다. 이미 Nginx를 쓰는 서버라면 `deploy/nginx.conf.example` + `certbot --nginx`를 사용하세요.
+신뢰도 센터 링크는 `/admin` → 링크 메뉴나 런타임 환경변수(`DATA_FEEDBACK_URL`, `OVERRIDES_EDIT_URL`)로 재빌드 없이 바꿀 수 있습니다. 빌드 때 넣는 `NEXT_PUBLIC_*` 값은 그 기본값으로 남으며(`.env*`는 Docker 빌드 컨텍스트에서 제외되므로 `NEXT_PUBLIC_DATA_FEEDBACK_URL=... docker compose build`처럼 셸 환경변수로 넘김), 이 경우 `/admin`에서 값을 지우면 빌드 기본값으로 돌아갑니다. 이미 Nginx를 쓰는 서버라면 `deploy/nginx.conf.example` + `certbot --nginx`를 사용하세요.
 
 Docker 없이 이미지만 옮길 때:
 ```bash
 docker save tradescope-ai:latest | gzip > tradescope-ai.tar.gz     # 기존 서버
-docker load < tradescope-ai.tar.gz && docker run -d -p 3000:3000 --env-file .env.local --restart unless-stopped tradescope-ai:latest   # 새 서버
+docker load < tradescope-ai.tar.gz && docker run -d -p 3000:3000 --env-file .env.local -v tradescope_data:/app/.data --restart unless-stopped tradescope-ai:latest   # 새 서버
 ```
+`-v tradescope_data:/app/.data`(이름 있는 볼륨)를 빼면 `/admin`에서 저장한 값이 컨테이너를 교체할 때 사라집니다 — 이미지가 선언한 익명 볼륨은 새 컨테이너에 다시 연결되지 않습니다.
 
 ### D. 자체 Linux 서버 (Docker 없이, Node 22)
 ```bash
@@ -269,7 +272,7 @@ sudo mkdir -p /opt/tradescope-ai && sudo cp -r .next/standalone/. /opt/tradescop
 sudo cp deploy/tradescope.service.example /etc/systemd/system/tradescope.service
 sudo systemctl daemon-reload && sudo systemctl enable --now tradescope   # 127.0.0.1:3000
 ```
-이후 Nginx/Caddy로 도메인을 연결합니다.
+`/admin` 저장 폴더 `/opt/tradescope-ai/.data`는 서비스가 시작할 때 `ExecStartPre`로 만들어집니다(실행 사용자 `www-data`, 권한 700). 다른 사용자로 실행하면 유닛 파일의 `User=`와 `ExecStartPre`의 `-o/-g`를 함께 바꾸세요. 이후 Nginx/Caddy로 도메인을 연결합니다.
 
 ### E. Windows 서버
 ```powershell

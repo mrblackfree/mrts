@@ -71,7 +71,7 @@ export async function POST(req: Request) {
   } catch {
     /* empty */
   }
-  const run = TESTS[target];
+  const run = Object.hasOwn(TESTS, target) ? TESTS[target] : undefined;
   if (!run) return adminJson({ ok: false, error: 'unknown-target' }, { status: 400 });
   return adminJson({ ok: true, target, result: await run() });
 }

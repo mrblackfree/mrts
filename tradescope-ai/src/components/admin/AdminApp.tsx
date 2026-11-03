@@ -40,7 +40,7 @@ interface Snapshot {
   ai: { enabled: boolean; model: string | null; provider: string | null };
   officialData: { generatedAt: string | null; sources: Record<string, string | null>; activeOverrides: number };
 }
-type Session = { enabled: boolean; reason?: 'not-set' | 'too-short'; authenticated: boolean; expiresAt: number | null };
+type Session = { enabled: boolean; reason?: 'not-set' | 'too-short' | 'secret-too-short'; authenticated: boolean; expiresAt: number | null };
 type TestResult = { ok: boolean; message: string; latencyMs: number; detail?: string };
 type Section = 'overview' | SettingGroup | 'deploy';
 
@@ -56,6 +56,9 @@ const S = {
     disabledTitle: '관리자 페이지가 꺼져 있습니다',
     disabledNotSet: '서버 환경변수 ADMIN_PASSWORD가 없어 관리자 기능이 비활성화되어 있습니다.',
     disabledShort: 'ADMIN_PASSWORD가 너무 짧습니다(10자 이상 필요).',
+    disabledSecretShort: 'ADMIN_SECRET이 너무 짧습니다(32자 이상 필요). 늘리거나 지우면 관리자 기능이 켜집니다.',
+    simulation: '한국–필리핀 시뮬레이션',
+    presetPickModel: '이 제공사는 모델 ID를 직접 입력해야 합니다. 제공사 콘솔에서 쓸 모델 이름을 확인해 아래 모델 칸에 넣으세요.',
     disabledHow: '아래처럼 설정한 뒤 서버를 다시 시작하세요. 비밀번호는 서버에만 두고 공유하지 마세요.',
     loginTitle: '관리자 로그인',
     loginSub: '서버에 설정된 ADMIN_PASSWORD로 로그인합니다. 세션은 8시간 유지됩니다.',
@@ -95,6 +98,8 @@ const S = {
       'readonly-env': 'SETTINGS_READONLY가 켜져 있습니다.',
       'no-secret': 'ADMIN_PASSWORD가 없어 값을 암호화할 수 없습니다.',
       'fs-error': '저장 폴더에 쓸 수 없습니다. 폴더 권한(또는 Docker 볼륨)을 확인하세요.',
+      'file-unreadable': '설정 파일을 읽을 수 없습니다(권한 확인). 기존 값을 지키기 위해 저장을 막았습니다.',
+      'file-corrupt': '설정 파일이 손상되었습니다. 기존 값을 지키기 위해 저장을 막았습니다. 파일을 복구하거나 백업 후 지우세요.',
     } as Record<string, string>,
     test: '연결 테스트',
     testing: '테스트 중…',
@@ -129,6 +134,8 @@ const S = {
     err: {
       'locked-by-env': '환경변수로 잠겨 있습니다',
       'not-a-number': '숫자를 입력하세요',
+      'not-an-integer': '정수를 입력하세요',
+      'model-required': '이 제공사의 모델 ID를 입력하세요 (기본값 gpt-4o-mini는 OpenAI 전용)',
       'not-a-url': '올바른 주소(URL)가 아닙니다',
       'not-http-url': 'http(s) 주소만 쓸 수 있습니다',
       'not-boolean': '켜기/끄기 값이 아닙니다',
@@ -157,6 +164,9 @@ const S = {
     disabledTitle: 'The admin page is off',
     disabledNotSet: 'ADMIN_PASSWORD is not set on the server, so the admin features are disabled.',
     disabledShort: 'ADMIN_PASSWORD is too short (10+ characters required).',
+    disabledSecretShort: 'ADMIN_SECRET is too short (32+ characters required). Lengthen or remove it to enable the admin.',
+    simulation: 'KR-PH simulation',
+    presetPickModel: "This provider needs a model ID. Look up the model name in the provider's console and enter it in the model field below.",
     disabledHow: 'Set it as shown below and restart the server. Keep the password on the server only.',
     loginTitle: 'Admin sign-in',
     loginSub: 'Sign in with the server’s ADMIN_PASSWORD. Sessions last 8 hours.',
@@ -196,6 +206,8 @@ const S = {
       'readonly-env': 'SETTINGS_READONLY is on.',
       'no-secret': 'ADMIN_PASSWORD is missing, so values cannot be encrypted.',
       'fs-error': 'The settings folder is not writable. Check its permissions (or the Docker volume).',
+      'file-unreadable': 'The settings file cannot be read (check permissions). Saving is blocked to protect the existing values.',
+      'file-corrupt': 'The settings file is damaged. Saving is blocked to protect the existing values. Restore it, or back it up and delete it.',
     } as Record<string, string>,
     test: 'Test connection',
     testing: 'Testing…',
@@ -230,6 +242,8 @@ const S = {
     err: {
       'locked-by-env': 'Locked by an environment variable',
       'not-a-number': 'Enter a number',
+      'not-an-integer': 'Enter a whole number',
+      'model-required': "Enter this provider's model ID (the gpt-4o-mini default only works with OpenAI)",
       'not-a-url': 'Not a valid URL',
       'not-http-url': 'Only http(s) URLs are allowed',
       'not-boolean': 'Not an on/off value',
@@ -255,6 +269,7 @@ type Strings = (typeof S)['ko'];
 
 const PRESETS: Array<{ id: string; label: string; baseUrl: string; model: string }> = [
   { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
+  // model '' = the provider's model must be entered by hand (save is blocked until it is)
   { id: 'anthropic', label: 'Anthropic (Claude)', baseUrl: 'https://api.anthropic.com/v1', model: '' },
   { id: 'lab', label: '모두의 AI 실험실', baseUrl: '', model: '' },
   { id: 'ollama', label: 'Ollama', baseUrl: 'http://localhost:11434/v1', model: 'llama3.1' },
@@ -405,7 +420,7 @@ function Disabled({ s, reason }: { s: Strings; reason?: string }) {
           <Lock className="size-5" aria-hidden />
         </span>
         <h1 className="mt-4 text-xl font-bold text-slate-900 dark:text-white">{s.disabledTitle}</h1>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{reason === 'too-short' ? s.disabledShort : s.disabledNotSet}</p>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{reason === 'too-short' ? s.disabledShort : reason === 'secret-too-short' ? s.disabledSecretShort : s.disabledNotSet}</p>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{s.disabledHow}</p>
         <div className="mt-4 space-y-2.5">
           <CodeBlock>{`# .env.local (npm / systemd / docker compose)\nADMIN_PASSWORD=<10자 이상 / 10+ characters>\nADMIN_SECRET=<32자 이상 임의 문자열 / 32+ random characters>   # 선택 · optional`}</CodeBlock>
@@ -563,7 +578,7 @@ function Overview({ s, lang, snap, fields, expiresAt, go }: { s: Strings; lang: 
       icon: <Cpu className="size-4" />,
       label: s.statusAi,
       value: snap.ai.enabled ? s.llmOn : s.llmOff,
-      sub: snap.ai.enabled ? `${snap.ai.model} · ${snap.ai.provider}` : 'KR-PH simulation',
+      sub: snap.ai.enabled ? `${snap.ai.model} · ${snap.ai.provider}` : s.simulation,
       tone: snap.ai.enabled ? 'green' : 'slate',
     },
     {
@@ -649,7 +664,11 @@ function GroupForm({
   const [draft, setDraft] = useState<Record<string, string | null>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error' | 'info'; text: string } | null>(null);
+  // set by a preset without a fixed model: saving is blocked until a model is entered
+  const [needModel, setNeedModel] = useState(false);
+  // bumped after a save or reset so rows remount (secret inputs go back to their masked view)
+  const [generation, setGeneration] = useState(0);
   const dirty = Object.keys(draft).length > 0;
 
   const setValue = (key: string, v: string | null | undefined) =>
@@ -661,15 +680,26 @@ function GroupForm({
     });
 
   const save = async () => {
-    setBusy(true);
     setNotice(null);
     setErrors({});
+    if (needModel && fields.AI_MODEL?.source !== 'env') {
+      const model = ('AI_MODEL' in draft ? draft.AI_MODEL : fields.AI_MODEL?.value)?.trim() ?? '';
+      if (!model || PRESETS.some((p) => p.model && p.model === model) || (fields.AI_MODEL?.source === 'default' && model === fields.AI_MODEL.value)) {
+        setErrors({ AI_MODEL: 'model-required' });
+        setNotice({ tone: 'error', text: s.saveFailed });
+        document.getElementById('f-AI_MODEL')?.focus();
+        return;
+      }
+    }
+    setBusy(true);
     try {
       const r = await api<Snapshot & { ok: boolean; errors?: Record<string, string> }>('/api/admin/settings', 'PUT', { values: draft });
       if (r.status === 401) return onUnauthorized();
       if (r.data?.fields) setSnap(r.data);
       if (r.data?.ok) {
         setDraft({});
+        setNeedModel(false);
+        setGeneration((g) => g + 1);
         setNotice({ tone: 'ok', text: `${s.saved} ${group === 'data' ? s.savedSync : s.savedRuntime}` });
       } else {
         setErrors(r.data?.errors ?? {});
@@ -694,10 +724,23 @@ function GroupForm({
               <Button
                 key={p.id}
                 size="sm"
-                disabled={!writable}
+                disabled={!writable || busy}
                 onClick={() => {
                   if (p.baseUrl && fields.AI_BASE_URL?.source !== 'env') setValue('AI_BASE_URL', p.baseUrl);
-                  if (p.model && fields.AI_MODEL?.source !== 'env') setValue('AI_MODEL', p.model);
+                  if (fields.AI_MODEL?.source === 'env') return;
+                  setErrors((e) => {
+                    const { AI_MODEL: _drop, ...rest } = e;
+                    return rest;
+                  });
+                  if (p.model) {
+                    setValue('AI_MODEL', p.model);
+                    setNeedModel(false);
+                    setNotice(null);
+                  } else {
+                    setNeedModel(true);
+                    setNotice({ tone: 'info', text: s.presetPickModel });
+                    document.getElementById('f-AI_MODEL')?.focus();
+                  }
                 }}
               >
                 {p.label}
@@ -709,31 +752,40 @@ function GroupForm({
 
       {group === 'data' && <Notice tone="info">{s.dataNote}</Notice>}
 
-      <Card className="divide-y divide-slate-100 dark:divide-white/[0.06]">
-        {defs.map((def) => (
-          <FieldRow
-            key={def.key}
-            s={s}
-            lang={lang}
-            def={def}
-            field={fields[def.key]}
-            draft={draft[def.key]}
-            hasDraft={def.key in draft}
-            error={errors[def.key]}
-            writable={writable}
-            onChange={(v) => setValue(def.key, v)}
-            test={def.key === 'AI_API_KEY' ? 'ai' : def.key === 'DATA_GO_KR_SERVICE_KEY' ? 'dataGoKr' : def.key === 'COMTRADE_API_KEY' ? 'comtrade' : undefined}
-            onUnauthorized={onUnauthorized}
-          />
-        ))}
-        <div className="flex flex-wrap items-center gap-2 px-5 py-4">
+      <Card>
+        {/* disabled while saving: the request carries the click-time draft, so later edits would be lost */}
+        <fieldset disabled={busy} className="min-w-0 divide-y divide-slate-100 dark:divide-white/[0.06]">
+          {defs.map((def) => (
+            <FieldRow
+              key={`${def.key}:${generation}`}
+              s={s}
+              lang={lang}
+              def={def}
+              field={fields[def.key]}
+              draft={draft[def.key]}
+              hasDraft={def.key in draft}
+              error={errors[def.key]}
+              writable={writable}
+              onChange={(v) => setValue(def.key, v)}
+              test={def.key === 'AI_API_KEY' ? 'ai' : def.key === 'DATA_GO_KR_SERVICE_KEY' ? 'dataGoKr' : def.key === 'COMTRADE_API_KEY' ? 'comtrade' : undefined}
+              onUnauthorized={onUnauthorized}
+            />
+          ))}
+        </fieldset>
+        <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-4 dark:border-white/[0.06]">
           {notice && (
-            <p role={notice.tone === 'error' ? 'alert' : 'status'} className={cx('mr-auto text-[13px] font-medium', notice.tone === 'ok' ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')}>
+            <p
+              role={notice.tone === 'error' ? 'alert' : 'status'}
+              className={cx(
+                'mr-auto text-[13px] font-medium',
+                notice.tone === 'ok' ? 'text-emerald-700 dark:text-emerald-400' : notice.tone === 'info' ? 'text-slate-600 dark:text-slate-300' : 'text-rose-600 dark:text-rose-400',
+              )}
+            >
               {notice.text}
             </p>
           )}
           <div className="ml-auto flex gap-2">
-            <Button size="md" disabled={!dirty || busy} onClick={() => (setDraft({}), setErrors({}), setNotice(null))}>
+            <Button size="md" disabled={!(dirty || needModel) || busy} onClick={() => (setDraft({}), setErrors({}), setNotice(null), setNeedModel(false), setGeneration((g) => g + 1))}>
               {s.reset}
             </Button>
             <Button variant="primary" size="md" disabled={!dirty || !writable} loading={busy} onClick={save}>
@@ -794,7 +846,7 @@ function FieldRow({
     try {
       const r = await api<{ ok: boolean; result?: TestResult }>('/api/admin/test', 'POST', { target: test });
       if (r.status === 401) return onUnauthorized();
-      setTestState({ busy: false, result: r.data?.result });
+      setTestState({ busy: false, result: r.data?.result ?? { ok: false, message: r.status >= 400 ? `http-${r.status}` : 'invalid-json', latencyMs: 0 } });
     } catch {
       setTestState({ busy: false, result: { ok: false, message: 'network-error', latencyMs: 0 } });
     }

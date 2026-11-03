@@ -25,23 +25,32 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readSettings } from '../src/lib/settings/core.mjs';
 
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
 // Keys come from the environment first, then from values saved on the /admin page (same server, decrypted with
-// ADMIN_SECRET / ADMIN_PASSWORD). .env.local is loaded so a local run sees the same configuration as the app.
-try {
-  process.loadEnvFile?.('.env.local');
-} catch {
-  /* no .env.local */
+// ADMIN_SECRET / ADMIN_PASSWORD). The project's .env.local is loaded so a local run sees the same configuration as
+// the app (variables already set in the environment are kept).
+const ENV_LOCAL = path.join(ROOT, '.env.local');
+if (typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile(ENV_LOCAL);
+  } catch (e) {
+    if (e?.code !== 'ENOENT') console.warn(`  .env.local not loaded: ${e?.message ?? e}`);
+  }
+} else {
+  console.warn(`  this Node version cannot load .env.local (needs ≥ 20.12) — export the variables instead`);
 }
 const SAVED = (() => {
   try {
-    return readSettings().values;
+    const { values, unreadable, problem } = readSettings();
+    if (problem) console.warn(`  saved /admin settings ignored (${problem}) — check the settings file`);
+    if (unreadable.length) console.warn(`  saved settings unreadable (ADMIN_SECRET / ADMIN_PASSWORD changed?) — re-enter on /admin: ${unreadable.join(', ')}`);
+    return values;
   } catch {
     return {};
   }
 })();
 const configured = (name) => process.env[name]?.trim() || SAVED[name]?.trim() || undefined;
-
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DB_FILE = path.join(ROOT, 'src/data/kr-ph-trade-db.ts');
 const LINK_FILES = [DB_FILE, path.join(ROOT, 'src/data/official/roadmap.ts')];
 const OVERRIDES_FILE = path.join(ROOT, 'src/data/verified-overrides.json');

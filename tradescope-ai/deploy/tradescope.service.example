@@ -17,8 +17,9 @@ Environment=HOSTNAME=127.0.0.1
 ExecStart=/usr/bin/node server.js
 Restart=always
 RestartSec=3
-# hardening — the only runtime writes are the /admin settings in .data
-#   sudo mkdir -p /opt/tradescope-ai/.data && sudo chown www-data: /opt/tradescope-ai/.data && sudo chmod 700 /opt/tradescope-ai/.data
+# hardening — the only runtime writes are the /admin settings in .data. ReadWritePaths needs the folder to exist
+# before the sandbox is set up, so it is created first; '+' runs that one step outside the sandbox, as root.
+ExecStartPre=+/usr/bin/install -d -m 700 -o www-data -g www-data /opt/tradescope-ai/.data
 ReadWritePaths=/opt/tradescope-ai/.data
 NoNewPrivileges=true
 ProtectSystem=strict

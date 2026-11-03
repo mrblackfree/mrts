@@ -3,7 +3,7 @@
  * Never import this from client components — it reads the settings file with Node APIs.
  */
 import { accessSync, constants, mkdirSync } from 'node:fs';
-import { masterSecret, readSettings, settingsDir, settingsFile, settingsMtime, writeSettings } from './core.mjs';
+import { masterSecret, readSettings, settingsDir, settingsFile, settingsFileProblem, settingsMtime, writeSettings } from './core.mjs';
 import { SECRET_KEYS, SETTING_INDEX, SETTINGS, validateSetting, type SettingDef } from './schema';
 
 type Stored = { values: Record<string, string>; unreadable: string[]; updatedAt: string | null };
@@ -41,7 +41,12 @@ export function getSetting(key: string): string | undefined {
 
 export type StorageState =
   | { writable: true; path: string }
-  | { writable: false; path: string; reason: 'vercel' | 'netlify' | 'readonly-env' | 'no-secret' | 'fs-error'; detail?: string };
+  | {
+      writable: false;
+      path: string;
+      reason: 'vercel' | 'netlify' | 'readonly-env' | 'no-secret' | 'fs-error' | 'file-unreadable' | 'file-corrupt';
+      detail?: string;
+    };
 
 /** Whether the admin page can persist values here. Serverless filesystems are not persistent. */
 export function storageState(): StorageState {
@@ -53,10 +58,13 @@ export function storageState(): StorageState {
   try {
     mkdirSync(settingsDir(), { recursive: true, mode: 0o700 });
     accessSync(settingsDir(), constants.W_OK);
-    return { writable: true, path };
   } catch (e) {
     return { writable: false, path, reason: 'fs-error', detail: (e as NodeJS.ErrnoException).code ?? 'error' };
   }
+  // an existing file we cannot parse is never overwritten — saving would lose every stored value
+  const problem = settingsFileProblem();
+  if (problem) return { writable: false, path, reason: problem };
+  return { writable: true, path };
 }
 
 const mask = (v: string) => (v.length >= 12 ? `••••${v.slice(-4)}` : '••••');
@@ -98,8 +106,9 @@ export function settingsUpdatedAt(): string | null {
  * variable are locked and rejected. Returns per-key errors; nothing is written when any key is invalid.
  */
 export function updateSettings(patch: Record<string, unknown>): { ok: true } | { ok: false; errors: Record<string, string> } {
-  const errors: Record<string, string> = {};
-  const clean: Record<string, string | null> = {};
+  // null prototype: a `__proto__` key from the request must land in `errors`, not change the object's prototype
+  const errors: Record<string, string> = Object.create(null);
+  const clean: Record<string, string | null> = Object.create(null);
   for (const [key, raw] of Object.entries(patch)) {
     const def = SETTING_INDEX[key];
     if (!def) {
@@ -125,7 +134,13 @@ export function updateSettings(patch: Record<string, unknown>): { ok: true } | {
   if (Object.keys(errors).length) return { ok: false, errors };
   const st = storageState();
   if (!st.writable) return { ok: false, errors: { _storage: st.reason } };
-  writeSettings(clean, SECRET_KEYS);
-  cache = null;
+  try {
+    writeSettings(clean, SECRET_KEYS);
+  } catch (e) {
+    const msg = (e as Error).message;
+    return { ok: false, errors: { _storage: msg === 'file-unreadable' || msg === 'file-corrupt' ? msg : 'fs-error' } };
+  } finally {
+    cache = null;
+  }
   return { ok: true };
 }

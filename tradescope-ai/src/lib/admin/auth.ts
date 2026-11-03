@@ -1,25 +1,28 @@
 /**
  * Admin authentication (server-side only).
  *
- * - Enabled only when ADMIN_PASSWORD (≥ 10 characters) is set in the server environment.
+ * - Enabled only when ADMIN_PASSWORD (≥ 10 characters) is set in the server environment, and ADMIN_SECRET, when
+ *   set, is ≥ 32 characters.
  * - Login issues a stateless session cookie: `<expiry>.<nonce>.<HMAC-SHA256>`, HttpOnly + SameSite=Strict (+ Secure
- *   over HTTPS). The HMAC key derives from ADMIN_SECRET / ADMIN_PASSWORD, so changing either signs everyone out.
- * - Failed logins are rate-limited per client and globally.
+ *   over HTTPS). The HMAC key derives from ADMIN_SECRET and ADMIN_PASSWORD, so changing either signs everyone out.
+ * - Failed logins are rate-limited per client (when the client can be identified) and globally.
  * - State-changing admin requests must come from the same origin (CSRF defence on top of SameSite).
  */
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
-import { masterSecret } from '@/lib/settings/core.mjs';
+import { masterSecret, MIN_ADMIN_SECRET } from '@/lib/settings/core.mjs';
 
 export const SESSION_COOKIE = 'ts_admin';
 const SESSION_TTL_S = 8 * 60 * 60;
 const MIN_PASSWORD = 10;
 
-export type AdminAvailability = { enabled: true } | { enabled: false; reason: 'not-set' | 'too-short' };
+export type AdminAvailability = { enabled: true } | { enabled: false; reason: 'not-set' | 'too-short' | 'secret-too-short' };
 
 export function adminAvailability(): AdminAvailability {
   const pw = process.env.ADMIN_PASSWORD?.trim();
   if (!pw) return { enabled: false, reason: 'not-set' };
   if (pw.length < MIN_PASSWORD) return { enabled: false, reason: 'too-short' };
+  const secret = process.env.ADMIN_SECRET?.trim();
+  if (secret && secret.length < MIN_ADMIN_SECRET) return { enabled: false, reason: 'secret-too-short' };
   return { enabled: true };
 }
 
@@ -32,8 +35,11 @@ export function passwordMatches(candidate: string): boolean {
   return timingSafeEqual(digest(candidate), digest(pw));
 }
 
+/** Both secrets go into the key, so rotating either ADMIN_SECRET or ADMIN_PASSWORD invalidates every session. */
 function sessionKey(): Buffer {
-  return createHash('sha256').update(`tradescope-admin-session\0${masterSecret() ?? ''}`).digest();
+  return createHash('sha256')
+    .update(`tradescope-admin-session\0${masterSecret() ?? ''}\0${process.env.ADMIN_PASSWORD?.trim() ?? ''}`)
+    .digest();
 }
 
 function sign(payload: string): string {
@@ -103,24 +109,34 @@ export function sameOrigin(req: Request): boolean {
 }
 
 // ---- login attempt limit (per process) ----------------------------------------------
+// `clientKey` returns 'shared' when the client cannot be identified (no trusted proxy). A per-client limit on that
+// bucket would let any visitor lock every admin out, so only the global limit applies to it.
 const WINDOW_MS = 15 * 60 * 1000;
 const PER_CLIENT = 8;
 const GLOBAL = 100;
+const SHARED = 'shared';
 const failures = new Map<string, number[]>();
 let globalFailures: number[] = [];
 
+const recent = (list: number[], now: number) => list.filter((t) => now - t < WINDOW_MS);
+
+/** Callers must not await between this check and recording the outcome, or a burst could slip past the limit. */
 export function loginBlocked(client: string): boolean {
   const now = Date.now();
-  globalFailures = globalFailures.filter((t) => now - t < WINDOW_MS);
-  const mine = (failures.get(client) ?? []).filter((t) => now - t < WINDOW_MS);
-  failures.set(client, mine);
-  return mine.length >= PER_CLIENT || globalFailures.length >= GLOBAL;
+  globalFailures = recent(globalFailures, now);
+  if (globalFailures.length >= GLOBAL) return true;
+  if (client === SHARED) return false;
+  const mine = recent(failures.get(client) ?? [], now);
+  if (mine.length) failures.set(client, mine);
+  else failures.delete(client);
+  return mine.length >= PER_CLIENT;
 }
 
 export function recordLoginFailure(client: string): void {
   const now = Date.now();
-  failures.set(client, [...(failures.get(client) ?? []), now]);
   globalFailures.push(now);
+  if (client === SHARED) return;
+  failures.set(client, [...(failures.get(client) ?? []), now]);
   if (failures.size > 5000) for (const [k, v] of failures) if (!v.some((t) => now - t < WINDOW_MS)) failures.delete(k);
 }
 

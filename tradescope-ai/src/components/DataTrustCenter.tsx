@@ -57,7 +57,9 @@ export default function DataTrustCenter({
   const [open, setOpen] = useState<string | null>(focusProductId ?? null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const overall = useMemo(overallTrustScore, []);
-  const feedbackUrl = links?.feedbackUrl ?? process.env.NEXT_PUBLIC_DATA_FEEDBACK_URL;
+  // once /api/health has answered, the server's value wins (null = cleared on /admin); the build-time value only
+  // covers the moment before it loads
+  const feedbackUrl = links ? links.feedbackUrl : process.env.NEXT_PUBLIC_DATA_FEEDBACK_URL;
 
   const dialogRef = useModalDialog<HTMLDivElement>(onClose, closeRef);
 
@@ -321,7 +323,7 @@ export default function DataTrustCenter({
                 ? '공식 문서로 확인한 값을 입력하면 verified-overrides.json 형식의 항목이 생성됩니다. 커밋 후 배포되면 해당 항목이 "전문가 검증"으로 승격됩니다.'
                 : 'Enter a value confirmed on an official document to generate a verified-overrides.json entry. Once committed and deployed, the datum is promoted to “expert-verified”.'}
             </p>
-            <OverrideHelper defaultProductId={focusProductId} editUrl={links?.overridesEditUrl ?? undefined} />
+            <OverrideHelper defaultProductId={focusProductId} editUrl={links ? links.overridesEditUrl : undefined} />
           </section>
 
           {feedbackUrl && (

@@ -151,6 +151,8 @@ export const SETTINGS: SettingDef[] = [
     label: b('데이터 오류 제보 링크', 'Data feedback link'),
     help: b('신뢰도 센터의 「데이터 오류 제보」 버튼이 여는 주소 (예: GitHub 이슈 작성 링크)', 'Opened by the Trust Center feedback button (e.g. a new GitHub issue link)'),
     placeholder: 'https://github.com/<owner>/<repo>/issues/new?labels=data',
+    // a value baked in at build time (Docker build arg) stays the fallback, so build-arg-only setups keep their link
+    default: process.env.NEXT_PUBLIC_DATA_FEEDBACK_URL || undefined,
   },
   {
     key: 'OVERRIDES_EDIT_URL',
@@ -161,6 +163,7 @@ export const SETTINGS: SettingDef[] = [
     label: b('검증값 파일 편집 링크', 'Verified-overrides edit link'),
     help: b('검증값 입력 도우미의 「편집」 링크 (예: GitHub에서 verified-overrides.json 편집)', 'The helper’s “edit” link (e.g. editing verified-overrides.json on GitHub)'),
     placeholder: 'https://github.com/<owner>/<repo>/edit/main/tradescope-ai/src/data/verified-overrides.json',
+    default: process.env.NEXT_PUBLIC_OVERRIDES_EDIT_URL || undefined,
   },
 
   // ---- cost guard & proxy ----
@@ -205,7 +208,10 @@ export const SETTINGS: SettingDef[] = [
   },
 ];
 
-export const SETTING_INDEX: Record<string, SettingDef> = Object.fromEntries(SETTINGS.map((s) => [s.key, s]));
+/** Null prototype: keys such as `constructor` or `__proto__` from a request body must not resolve to a setting. */
+export const SETTING_INDEX: Record<string, SettingDef> = Object.assign(Object.create(null), Object.fromEntries(SETTINGS.map((s) => [s.key, s])));
+/** Number settings that accept fractions; every other number setting must be an integer. */
+const FRACTIONAL = new Set(['AI_TEMPERATURE']);
 export const SECRET_KEYS = SETTINGS.filter((s) => s.type === 'secret').map((s) => s.key);
 
 /** Normalises and validates one value; returns the stored string or an error code. */
@@ -215,7 +221,8 @@ export function validateSetting(def: SettingDef, raw: string): { ok: true; value
   switch (def.type) {
     case 'number': {
       const n = Number(v);
-      if (!Number.isFinite(n)) return { ok: false, error: 'not-a-number' };
+      if (v === '' || !Number.isFinite(n)) return { ok: false, error: 'not-a-number' };
+      if (!FRACTIONAL.has(def.key) && !Number.isInteger(n)) return { ok: false, error: 'not-an-integer' };
       if (def.min !== undefined && n < def.min) return { ok: false, error: `min:${def.min}` };
       if (def.max !== undefined && n > def.max) return { ok: false, error: `max:${def.max}` };
       return { ok: true, value: String(n) };

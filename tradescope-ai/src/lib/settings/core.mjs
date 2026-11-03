@@ -32,9 +32,17 @@ export function settingsFile() {
   return path.join(settingsDir(), 'settings.json');
 }
 
-/** The secret that protects stored values (and admin sessions); null when the admin is not configured. */
+export const MIN_ADMIN_SECRET = 32;
+
+/**
+ * The secret that protects stored values (and admin sessions); null when the admin is not configured.
+ * An ADMIN_SECRET shorter than MIN_ADMIN_SECRET is rejected outright (no fallback to the password), so a weak value
+ * can never protect anything — the admin page reports it instead.
+ */
 export function masterSecret() {
-  return process.env.ADMIN_SECRET?.trim() || process.env.ADMIN_PASSWORD?.trim() || null;
+  const secret = process.env.ADMIN_SECRET?.trim();
+  if (secret) return secret.length >= MIN_ADMIN_SECRET ? secret : null;
+  return process.env.ADMIN_PASSWORD?.trim() || null;
 }
 
 const keyCache = new Map();
@@ -72,24 +80,44 @@ export function settingsMtime() {
   }
 }
 
-function readDoc() {
+/**
+ * Reads the settings document. A missing file is `{ doc: null }`; anything else that prevents reading it
+ * (permissions, invalid JSON, unknown format) is reported as `problem`, so callers never mistake it for "empty".
+ */
+function loadDoc() {
+  let raw;
   try {
-    const doc = JSON.parse(readFileSync(settingsFile(), 'utf8'));
-    return doc && typeof doc === 'object' && doc.format === FORMAT ? doc : null;
-  } catch {
-    return null;
+    raw = readFileSync(settingsFile(), 'utf8');
+  } catch (e) {
+    return e && e.code === 'ENOENT' ? { doc: null } : { doc: null, problem: 'file-unreadable' };
   }
+  let doc;
+  try {
+    doc = JSON.parse(raw);
+  } catch {
+    return { doc: null, problem: 'file-corrupt' };
+  }
+  const plainObject = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+  if (!plainObject(doc) || doc.format !== FORMAT || typeof doc.salt !== 'string' || (doc.values !== undefined && !plainObject(doc.values))) {
+    return { doc: null, problem: 'file-corrupt' };
+  }
+  return { doc };
+}
+
+/** Why the settings file cannot be used, or null when it is fine or simply does not exist yet. */
+export function settingsFileProblem() {
+  return loadDoc().problem ?? null;
 }
 
 /**
  * Decrypted values. Secrets that cannot be decrypted (secret changed, file tampered) are listed in `unreadable`
- * instead of throwing.
+ * instead of throwing; a file that cannot be read at all yields no values and a `problem`.
  */
 export function readSettings() {
-  const doc = readDoc();
+  const { doc, problem = null } = loadDoc();
   const values = {};
   const unreadable = [];
-  if (!doc) return { values, unreadable, updatedAt: null };
+  if (!doc) return { values, unreadable, updatedAt: null, problem };
   const secret = masterSecret();
   for (const [k, entry] of Object.entries(doc.values ?? {})) {
     if (entry && typeof entry.v === 'string') values[k] = entry.v;
@@ -102,17 +130,20 @@ export function readSettings() {
       }
     }
   }
-  return { values, unreadable, updatedAt: doc.updatedAt ?? null };
+  return { values, unreadable, updatedAt: doc.updatedAt ?? null, problem };
 }
 
 /**
  * Applies a patch (`null` removes a key) and writes the file atomically with mode 0600.
- * `secretKeys` lists the keys that must be stored encrypted.
+ * `secretKeys` lists the keys that must be stored encrypted. Throws `admin-not-configured`, `file-unreadable` or
+ * `file-corrupt` without touching the file.
  */
 export function writeSettings(patch, secretKeys) {
   const secret = masterSecret();
   if (!secret) throw new Error('admin-not-configured');
-  const prev = readDoc();
+  const { doc: prev, problem } = loadDoc();
+  // never overwrite a file we could not read: that would drop every saved value and rotate the salt
+  if (problem) throw new Error(problem);
   const salt = prev?.salt ?? randomBytes(16).toString('base64');
   const key = deriveKey(secret, salt);
   const values = { ...(prev?.values ?? {}) };

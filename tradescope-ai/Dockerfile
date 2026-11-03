@@ -42,6 +42,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # settings saved on /admin (AES-GCM encrypted, mode 0600) — mount a volume so they survive container rebuilds
 RUN mkdir -p /app/.data && chown nextjs:nodejs /app/.data && chmod 700 /app/.data
+# mount a named volume here (compose does: tradescope_data) — plain `docker run` needs `-v tradescope_data:/app/.data`,
+# otherwise each new container gets a fresh anonymous volume and the saved settings are gone
 VOLUME ["/app/.data"]
 
 USER nextjs

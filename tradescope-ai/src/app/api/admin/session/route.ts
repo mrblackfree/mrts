@@ -17,16 +17,17 @@ export async function POST(req: Request) {
   const availability = adminAvailability();
   if (!availability.enabled) return adminJson({ ok: false, error: 'admin-disabled', reason: availability.reason }, { status: 403 });
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });
-  const client = clientKey(req);
-  if (loginBlocked(client)) return adminJson({ ok: false, error: 'too-many-attempts' }, { status: 429 });
 
   let password = '';
   try {
     const body = (await req.json()) as { password?: unknown };
-    password = typeof body?.password === 'string' ? body.password.slice(0, 512) : '';
+    password = typeof body?.password === 'string' ? body.password : '';
   } catch {
     /* empty body */
   }
+  // limit check, verification and failure record run with no await in between (see loginBlocked)
+  const client = clientKey(req);
+  if (loginBlocked(client)) return adminJson({ ok: false, error: 'too-many-attempts' }, { status: 429 });
   if (!passwordMatches(password)) {
     recordLoginFailure(client);
     return adminJson({ ok: false, error: 'wrong-password' }, { status: 401 });
