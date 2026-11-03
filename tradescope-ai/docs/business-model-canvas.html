@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TradeScope AI 비즈니스 모델 캔버스</title>
-<meta name="description" content="TradeScope AI 비즈니스 모델 캔버스 v2 — 7단계 거래 가이드, 현지 전문가 서비스, 컨테이너·통관 추적과 가설 검증 계획">
+<meta name="description" content="TradeScope AI 비즈니스 모델 캔버스 v2 — 7단계 거래 가이드, 현지 전문가 서비스, 컨테이너·통관 추적과 가설 검증 계획·판정 계산기">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
@@ -197,13 +197,62 @@
   details.more > summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--harbor); }
   details.more[open] > summary { margin-bottom: 8px; }
 
+
+  /* ---- validating as hard as we can ---- */
+  .play { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .ladder li { background: var(--sheet); display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 9px 12px; align-items: start; }
+  .ladder .rung { font-family: var(--font-mono); font-weight: 600; font-size: 13px; text-align: center; padding: 3px 0; border: 1px solid var(--rule-strong); }
+  .ladder li[data-r="4"] .rung { background: var(--field-no-bg); color: var(--field-no-fg); }
+  .ladder li[data-r="3"] .rung { background: var(--ink-3); color: var(--sheet); border-color: var(--ink-3); }
+  .ladder b { display: block; font-size: 13.5px; }
+  .ladder span.ev { margin-top: 2px; }
+  .rules { margin: 0; padding-left: 20px; display: grid; gap: 7px; font-size: 13px; }
+  .rules b { color: var(--ink); }
+  .note { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+  .cadence { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .cadence section { background: var(--sheet); padding: 10px 12px 12px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+  .cadence h3 { margin: 0; font-size: 13.5px; }
+  .cadence h3 .mono { display: block; font-size: 11px; color: var(--ink-3); font-weight: 500; letter-spacing: 0.06em; }
+  .cadence ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 12.5px; }
+  .calc { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+  .calc form { padding: 12px 14px 14px; display: grid; gap: 10px; align-content: start; border-right: 1px solid var(--rule); }
+  .calc label { display: grid; gap: 4px; font-size: 12px; color: var(--ink-3); min-width: 0; }
+  .calc input, .calc select { font: inherit; font-size: 13.5px; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule-strong); padding: 7px 8px; border-radius: 0; min-width: 0; width: 100%; }
+  .calc input:focus-visible, .btn:focus-visible { outline: 2px solid var(--harbor); outline-offset: 2px; }
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .pair[hidden] { display: none; }
+  .out { padding: 12px 14px 14px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+  .out p { margin: 0; }
+  .vd { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; padding: 4px 9px; border: 1px solid currentColor; justify-self: start; }
+  .vd.pass { color: var(--ok); background: var(--ok-soft); }
+  .vd.hold { color: var(--ochre); background: var(--ochre-soft); }
+  .vd.stop { color: var(--bad); background: var(--bad-soft); }
+  .vd.insufficient { color: var(--ink-3); background: var(--paper); }
+  .big { font-family: var(--font-mono); font-size: 26px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .big small { font-size: 12.5px; color: var(--ink-3); font-weight: 500; margin-left: 6px; }
+  .muted { color: var(--ink-3); font-size: 12.5px; }
+  .err { color: var(--bad); font-size: 12.5px; font-weight: 600; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .btn { font: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 12px; border: 1px solid var(--rule-strong); background: var(--ink); color: var(--sheet); cursor: pointer; }
+  .btn.ghost { background: var(--sheet); color: var(--ink); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .logc { color: var(--harbor); text-decoration: none; font-weight: 600; }
+  .logc[hidden] { display: none; }
+  #log td .vd { font-size: 12px; padding: 2px 6px; }
+
   @media (max-width: 1100px) {
     .canvas { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "cs vp" "ch cr" "re re" "kr ka" "kp kp" "co co"; }
     .journey { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .road { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
+  @media (max-width: 900px) {
+    .play, .calc { grid-template-columns: minmax(0, 1fr); }
+    .calc form { border-right: 0; border-bottom: 1px solid var(--rule); }
+  }
   @media (max-width: 760px) {
     .hyps { grid-template-columns: minmax(0, 1fr); }
+    .cadence { grid-template-columns: minmax(0, 1fr); }
     .journey { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 680px) {
@@ -227,7 +276,7 @@
       --field-no-bg: #0b1220; --field-no-fg: #fff; color-scheme: light;
     }
     .toolbar .seg, .status, .no-print { display: none !important; }
-    .hcard, .road section, .quad, .field { break-inside: avoid; }
+    .hcard, .road section, .quad, .field, .ladder, .cadence, .calc { break-inside: avoid; }
     .scroll { overflow: visible; }
     .scroll table { min-width: 0; }
     body[data-filter] .field li { display: grid !important; }
@@ -479,7 +528,7 @@
       <article class="hcard" id="H3" data-h="H3">
         <header><span class="hid">H3</span><h3>인허가 단계에 도착한 사용자는 「맡기기」로 실제 요청을 남긴다</h3><select class="status" aria-label="H3 상태"></select><p class="meta"><span class="risk d">수요 · 전환</span><span>캔버스 2 · 3</span><span>4주 · 비용 낮음</span></p></header>
         <dl>
-          <dt>방법</dt><dd><b>스모크 테스트(실제 이행 포함)</b> — 이미 구현된 요청 버튼과 양식을 그대로 사용하고, 들어온 요청은 운영팀이 직접 응대합니다. 측정 전에 단계 진입·버튼 클릭 익명 카운터를 추가해야 합니다(현재는 요청 건수만 기록).</dd>
+          <dt>방법</dt><dd><b>스모크 테스트(실제 이행 포함)</b> — 이미 구현된 요청 버튼과 양식을 그대로 사용하고, 들어온 요청은 운영팀이 직접 응대합니다. 단계 첫 진입·「맡기기」 열기·제출은 사이트가 익명 합계로 세고, <b>/admin → 가설 검증</b>에서 아래 기준으로 자동 판정합니다.</dd>
           <dt>측정</dt><dd>인허가 단계 진입 대비 「맡기기」 클릭률, 클릭 대비 제출률, 서비스별 요청 분포</dd>
           <dt>통과</dt><dd class="pass">인허가 단계 진입 200회 이상에서 제출률 5% 이상, 제출자 중 70% 이상이 연락에 응답</dd>
           <dt>중단·전환</dt><dd class="kill">제출률 1% 미만이면 양식 단순화·가격 표시 실험 후 재측정, 그래도 낮으면 셀프서비스 중심으로 전환</dd>
@@ -587,13 +636,177 @@
     </div>
   </section>
 
+  <!-- ===================================================== validating as hard as we can -->
+  <section aria-labelledby="h-max" style="display:grid;grid-template-columns:minmax(0,1fr);gap:14px">
+    <h2 class="sec-title" id="h-max"><span class="en" lang="en">Validating as hard as we can</span>가설을 최대한 검증하는 방법</h2>
+    <p class="order-note">한 줄 요약: <b>시작 전에 기준을 적고, 말보다 행동·돈을 증거로 삼고, 표본이 찰 때까지 판정하지 않는다.</b> 결과는 아래 계산기로 판정해 기록에 남깁니다.</p>
+
+    <div class="play">
+      <section class="panel" aria-labelledby="h-ladder">
+        <h2 id="h-ladder">증거의 사다리 <span class="en" lang="en">Evidence ladder</span></h2>
+        <div class="body">
+          <ol class="ladder" aria-label="증거 강도, 강한 것부터">
+            <li data-r="4"><span class="rung">4</span><p style="margin:0"><b>돈</b><span class="ev">착수금 결제·계약·실제 원가와 매출 — H4 · H6</span></p></li>
+            <li data-r="3"><span class="rung">3</span><p style="margin:0"><b>약속·이행</b><span class="ev">서류 제출, 일정 확보, 연락에 응답, 시범 건을 기한 안에 끝냄 — H3 응답률 · H5</span></p></li>
+            <li data-r="2"><span class="rung">2</span><p style="margin:0"><b>행동</b><span class="ev">요청 제출·재조회·과제 수행처럼 시간을 들인 행동 — H2 · H3 · H7 · H9 · H10</span></p></li>
+            <li data-r="1"><span class="rung">1</span><p style="margin:0"><b>말</b><span class="ev">인터뷰·설문·칭찬 — 과거에 실제로 한 일과 쓴 돈만 증거로 인정 — H1 · H2 SUS · H5 CSAT</span></p></li>
+          </ol>
+          <p class="note">카드의 통과 기준은 필요한 단까지 올라가야 합니다. <b>1단(말)만으로 통과한 가설은 보류로 보고</b> 위 단의 증거를 하나 더 붙입니다 — 예: H1 인터뷰 통과 → H3 요청(2단) → H4 착수금(4단).</p>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-rules">
+        <h2 id="h-rules">검증 원칙 8가지 <span class="en" lang="en">Rules that keep us honest</span></h2>
+        <div class="body">
+          <ol class="rules">
+            <li><b>시작 전에 적는다</b> — 측정·통과·중단·최소 표본은 카드에 이미 있습니다. 실험 시작일을 기록에 남기고, 결과를 본 뒤에는 기준을 바꾸지 않습니다(바꿔야 하면 새 실험으로 다시 시작).</li>
+            <li><b>가장 위험한 것부터</b> — 증거 지도의 「먼저 검증」 칸(H1 → H4·H5 → H6) 순서. 이 넷이 실패하면 나머지는 의미가 없습니다.</li>
+            <li><b>과거를 묻는다</b> — 「쓰시겠어요?」「얼마면 내시겠어요?」 대신 「마지막으로 했을 때 어떻게 했고 얼마 들었나요?」. 솔루션 소개는 인터뷰 마지막에만.</li>
+            <li><b>한 번에 하나만 바꾼다</b> — 보류 뒤 재측정에서 바꾸는 것은 한 가지(버튼 문구, 가격 구조, 안내 문구 중 하나).</li>
+            <li><b>표본이 차기 전에는 판정하지 않는다</b> — 중간에 좋아 보여서 멈추면 우연을 믿게 됩니다. 계산기는 최소 표본 전에는 「표본 부족」만 보여 줍니다.</li>
+            <li><b>아는 사람은 따로 센다</b> — 지인·투자자·파트너 소개는 메모에 표시해 분리하고, 한 회사에서는 한 명만.</li>
+            <li><b>두 종류 이상의 증거로 교차 확인</b> — H1 인터뷰 + H3 행동, H4 결제 + H6 원가처럼 서로 다른 방법에서 같은 결론이 나와야 통과로 봅니다.</li>
+            <li><b>기각도 결과다</b> — 중단 기준에 걸리면 카드의 전환 계획대로 하고, 이유를 기록에 남깁니다. 기록이 다음 결정을 빠르게 합니다.</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel" aria-labelledby="h-sample">
+      <h2 id="h-sample">표본은 얼마나 — 통과선에 딱 걸린 결과가 말해 주는 범위 <span class="en" lang="en">How big a sample</span></h2>
+      <div class="body" style="padding-bottom:4px"><p class="note">같은 5%라도 표본이 작으면 실제 비율은 훨씬 낮거나 높을 수 있습니다. 아래 구간은 결과가 통과선에 정확히 걸렸을 때 실제 비율이 있을 법한 범위(95% 윌슨 구간)입니다. 구간의 아래 끝이 중단선보다 높아야 「통과」와 「중단」을 구분할 수 있습니다. <b>오차를 절반으로 줄이려면 표본이 4배</b> 필요합니다.</p></div>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>가설 · 지표</th><th>통과 / 중단</th><th>카드의 최소 표본</th><th>통과선에 딱 걸린 결과 → 95% 구간</th><th>구간이 중단선 위로 올라오는 표본</th><th>읽는 법</th></tr></thead>
+          <tbody>
+            <tr><td><b>H1</b> 문제 경험</td><td class="mono">60% / 33%</td><td>15곳</td><td class="mono">9/15 → 36–80%</td><td class="mono">13곳</td><td>방향 확인에는 충분 — 그래서 H3·H4의 행동·결제 데이터로 반드시 교차 확인</td></tr>
+            <tr><td><b>H2</b> 과제 완료</td><td class="mono">80% / 60%</td><td>6~8명</td><td class="mono">5/6 → 44–97%</td><td class="mono">24명</td><td>6~8명은 막히는 지점을 찾는 용도. 완료율로 판정하려면 24명 이상</td></tr>
+            <tr><td><b>H3</b> 요청 제출</td><td class="mono">5% / 1%</td><td>인허가 진입 200</td><td class="mono">10/200 → 2.7–9.0%</td><td class="mono">24</td><td>200이면 중단선과 분명히 구분 — 사이트가 자동으로 판정</td></tr>
+            <tr><td><b>H4</b> 착수금 결제</td><td class="mono">30% / 10%</td><td>견적 10건</td><td class="mono">3/10 → 11–60%</td><td class="mono">9건</td><td>겨우 구분되는 크기 — 통과해도 다음 견적 10건으로 재확인</td></tr>
+            <tr><td><b>H5</b> 기한 준수</td><td class="mono">80% / 60%</td><td>시범 3~5건</td><td class="mono">4/5 → 38–96%</td><td class="mono">24건</td><td>시범 건수로는 비율 판정이 어려움 — 건마다 늦어진 원인을 적어 함께 판단</td></tr>
+            <tr><td><b>H7</b> 선적 후 재조회</td><td class="mono">50% / 20%</td><td>선적 단계 20</td><td class="mono">10/20 → 30–70%</td><td class="mono">7</td><td>20이면 충분 — 사이트가 자동으로 판정</td></tr>
+            <tr><td><b>H8</b> 추적 성공</td><td class="mono">90% / 75%</td><td>번호 20건</td><td class="mono">18/20 → 70–97%</td><td class="mono">33건</td><td>20건은 중단선과 구분되지 않음 — 35건(선사별 3건 이상)으로 늘리기 권장</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-recruit">
+      <h2 id="h-recruit">어디서 사람을 모으나 <span class="en" lang="en">Recruiting</span></h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>경로</th><th>찾는 사람</th><th>가설</th><th>방법 · 주의</th></tr></thead>
+          <tbody>
+            <tr><td><b>KOTRA 마닐라 무역관 · 해외진출 지원사업</b></td><td>필리핀 진출을 시도한 식품·소비재 기업</td><td class="mono">H1 · H9</td><td>지원사업 참가 기업 대상 설명회·상담회에서 인터뷰 요청. 기관이 소개한 기업은 「소개」로 표시</td></tr>
+            <tr><td><b>aT 농식품 수출 지원 사업</b></td><td>농식품·가공식품 수출 기업</td><td class="mono">H1 · H4 · H9</td><td>수출 상담회·교육 참가 기업. 펫푸드 기업은 별도 세그먼트로 표시</td></tr>
+            <tr><td><b>한국무역협회 회원사 · 무역 교육</b></td><td>무역 1~3년차 실무자</td><td class="mono">H2</td><td>사용성 테스트 참가자(무역 경험 1년 미만 포함)</td></tr>
+            <tr><td><b>포워더 · 관세사 파트너</b></td><td>실제로 선적 중인 화주</td><td class="mono">H7 · H8 · H9</td><td>화주가 동의한 실제 컨테이너 번호만 사용. 추천 링크에 <code>?utm_source=</code> 채널 이름</td></tr>
+            <tr><td><b>사이트 요청자</b></td><td>「맡기기」로 요청한 기업</td><td class="mono">H3 · H4 · H6</td><td>첫 연락 때 15분 인터뷰 동의 여부를 따로 묻기 — 요청 처리와 섞지 않음</td></tr>
+            <tr><td><b>무역 실무자 온라인 커뮤니티</b></td><td>처음 수출을 준비하는 개인·소기업</td><td class="mono">H1 · H2</td><td>모집 글에 목적·사례·소요 시간 명시, 한 회사 한 명</td></tr>
+            <tr><td><b>필리핀 기관 공개 명단</b></td><td>면허 관세사 · 인허가 컨설턴트 · 수입자</td><td class="mono">H5</td><td>PRC 면허·FDA LTO 공개 조회로 확인한 곳만 시범 건에 배정</td></tr>
+            <tr><td><b>수출바우처 수행기관 등록</b> <span class="unconf">검토·확인 필요</span></td><td>바우처로 대행 서비스를 사는 기업</td><td class="mono">H4 · H6</td><td>등록 요건·수수료 기준을 먼저 확인 — 확인 전에는 채널로 계산하지 않음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="body"><p class="note"><b>선별 기준</b> — 최근 12개월 안에 필리핀 진출을 시도했거나 준비 중이고, 서류를 직접 다룬 실무자 또는 결정권자. 사례는 소정의 금액으로 정해 모두에게 같게 주고, 사례 때문에 좋게 말하지 않도록 「솔직한 불편이 가장 도움이 된다」고 먼저 말합니다.</p></div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-site">
+      <h2 id="h-site">사이트가 자동으로 재는 것 <span class="en" lang="en">Measured by the product</span></h2>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>가설</th><th>사이트가 세는 것 (익명 합계)</th><th>볼 곳</th><th>사람이 따로 기록할 것</th></tr></thead>
+          <tbody>
+            <tr><td class="mono"><b>H3</b></td><td>인허가 단계 첫 진입 → 「맡기기」 열기(체크리스트·서비스 카드·통관·미지원 품목별) → 요청 제출(위치·채널별)</td><td>/admin → 가설 검증</td><td>연락 후 응답 — 요청 상태를 「진행 중」·「완료」로 바꾸면 70% 조건에 자동 반영</td></tr>
+            <tr><td class="mono"><b>H7</b></td><td>선적 단계 첫 진입, 저장한 번호를 1시간 이상 간격으로 두 번 다시 조회한 거래</td><td>같은 화면</td><td>수동 알림을 보낸 고객 목록(알림 그룹 비교용)</td></tr>
+            <tr><td class="mono"><b>H8</b></td><td>실제 소스 조회 결과: 조회됨 · 등록 대기 · 못 찾음 · 지원 소스 없음 · 오류, 응답한 소스 — 예시 데이터는 제외</td><td>같은 화면</td><td>선사 홈페이지와 주요 이정표 일치 여부, 발생 → 표시 지연</td></tr>
+            <tr><td class="mono"><b>H9</b></td><td>채널별 방문 → 인허가 진입 → 열기 → 요청 (링크의 <code>?utm_source=</code>)</td><td>같은 화면의 채널 표</td><td>채널별 비용(설명회 비용, 광고비, 소개 수수료)</td></tr>
+            <tr><td class="mono"><b>H10</b></td><td>배지를 켜고 끄는 기능은 아직 없음</td><td>—</td><td>도입 전·후 기간의 H3 숫자를 계산기 A/B에 입력(전후 비교는 동시 A/B보다 약한 증거)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="body"><p class="note">수집 방식: 날짜별 합계만 저장하고 쿠키·IP·기기 ID·입력 내용은 남기지 않습니다. Do Not Track·Global Privacy Control을 켠 브라우저는 보내지 않습니다. 관리자 화면은 매주 같은 요일, 같은 기간(28일)으로 봅니다.</p></div>
+    </section>
+
+    <div class="play">
+      <section class="panel" aria-labelledby="h-week">
+        <h2 id="h-week">매주 운영 리듬 <span class="en" lang="en">Weekly cadence</span></h2>
+        <div class="body">
+          <div class="cadence">
+            <section><h3><span class="mono">MON · 30분</span>계획</h3><ul><li>이번 주 실험 1~2개 고르기</li><li>카드의 기준·최소 표본 확인</li><li>담당과 모집 경로 정하기</li></ul></section>
+            <section><h3><span class="mono">TUE–THU</span>실행</h3><ul><li>인터뷰 3~5건, 당일 노트 정리</li><li>노트는 두 사람이 따로 분류한 뒤 맞춤</li><li>시범 건 시간·원가 기록</li></ul></section>
+            <section><h3><span class="mono">FRI · 30분</span>판정</h3><ul><li>계산기로 판정 → 기록 추가</li><li>통과 = 다음 단계 · 보류 = 한 가지 바꿔 재측정 · 중단 = 전환 계획 실행</li><li>관문 주차에는 계속·전환·중단 결정</li></ul></section>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="h-ethics">
+        <h2 id="h-ethics">지켜야 할 선 <span class="en" lang="en">Ethics &amp; legal</span></h2>
+        <div class="body">
+          <ol class="rules">
+            <li><b>가짜 문은 쓰지 않는다</b> — 「맡기기」 버튼 뒤에는 항상 실제 응대가 있습니다.</li>
+            <li><b>이행할 수 있는 것만 판다</b> — 사전 판매 견적에 범위·기간과 「착수하지 못하면 전액 환불」을 적습니다.</li>
+            <li><b>녹음·메모는 사전 동의</b> — 개인정보는 검증 목적에만 쓰고, 끝나면 파기하거나 익명화합니다.</li>
+            <li><b>가격 실험은 구조로</b> — 같은 조건의 고객에게 금액을 몰래 다르게 보이지 않고, 정액 vs 착수금+성공보수처럼 구조를 번갈아 제시하며 낸 견적은 지킵니다.</li>
+            <li><b>사람이 보내는 알림은 그렇다고 말한다</b> — H7의 수동 알림은 「운영팀이 확인해 보내 드립니다」라고 표시합니다.</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel" aria-labelledby="h-calc">
+      <h2 id="h-calc">판정 계산기 <span class="en" lang="en">Verdict calculator</span></h2>
+      <div class="calc">
+        <form id="calc" novalidate>
+          <label for="calc-m">가설 · 지표
+            <select id="calc-m"></select>
+          </label>
+          <div class="pair" id="calc-ra">
+            <label for="calc-a1"><span id="calc-a1-l">성공</span><input id="calc-a1" type="number" inputmode="decimal" step="any"></label>
+            <label for="calc-a2"><span id="calc-a2-l">전체</span><input id="calc-a2" type="number" inputmode="numeric" min="0" step="1"></label>
+          </div>
+          <div class="pair" id="calc-rb" hidden>
+            <label for="calc-b1"><span id="calc-b1-l">노출군 요청</span><input id="calc-b1" type="number" inputmode="numeric" min="0" step="1"></label>
+            <label for="calc-b2"><span id="calc-b2-l">노출군 방문</span><input id="calc-b2" type="number" inputmode="numeric" min="0" step="1"></label>
+          </div>
+          <label for="calc-note">메모 (선택 — 기간, 모집 경로, 바꾼 한 가지, 「소개」 여부)
+            <input id="calc-note" type="text" maxlength="200" autocomplete="off">
+          </label>
+          <p class="muted" id="calc-hint" style="margin:0"></p>
+          <div class="actions no-print">
+            <button class="btn" type="submit" id="calc-add" disabled>기록에 추가</button>
+            <span class="muted">기록하면 그 카드의 상태가 「검증 전」에서 「검증 중」으로 바뀝니다.</span>
+          </div>
+        </form>
+        <div class="out" id="calc-out" aria-live="polite"><p class="muted">값을 넣으면 카드의 기준으로 바로 판정합니다.</p></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-log" id="log-panel">
+      <h2 id="h-log">검증 기록 <span class="en" lang="en">Evidence log</span></h2>
+      <div class="scroll">
+        <table id="log">
+          <thead><tr><th>날짜</th><th>가설 · 지표</th><th>결과</th><th>판정</th><th>메모</th><th class="no-print">관리</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="body">
+        <div class="actions no-print">
+          <button class="btn ghost" type="button" id="log-csv">CSV로 내보내기</button>
+          <button class="btn ghost" type="button" id="log-clear">모두 지우기</button>
+        </div>
+        <p class="note">기록은 이 브라우저에만 저장됩니다. 팀과 함께 보려면 CSV로 내보내 공유 드라이브에 올리세요.</p>
+      </div>
+    </section>
+  </section>
+
   <!-- ===================================================== roadmap -->
   <section aria-labelledby="h-road" style="display:grid;gap:10px">
     <h2 class="sec-title" id="h-road"><span class="en" lang="en">12-week roadmap</span>12주 검증 로드맵</h2>
     <div class="road">
       <section>
         <h3><span class="mono">WEEK 1–2</span>문제와 사용성</h3>
-        <ul><li>H1 문제 인터뷰 15곳</li><li>H2 사용성 테스트 6~8명</li><li>단계 진입·버튼 클릭 익명 카운터 추가</li><li>추적 키 신청(UNI-PASS·Hapag-Lloyd·CMA CGM·ShipsGo 체험)</li></ul>
+        <ul><li>H1 문제 인터뷰 15곳</li><li>H2 사용성 테스트 6~8명</li><li>/admin 「가설 검증」으로 H3·H7·H8·H9 측정 시작(채널별 링크 배포)</li><li>추적 키 신청(UNI-PASS·Hapag-Lloyd·CMA CGM·ShipsGo 체험)</li></ul>
         <p class="gate"><b>관문 1</b> H1 통과 시 진행, 실패 시 타깃 전환 후 인터뷰 반복</p>
       </section>
       <section>
@@ -652,6 +865,234 @@
         try { localStorage.setItem('ts-bmc:status', JSON.stringify(store)); } catch (e) { /* storage unavailable */ }
       });
     });
+
+    // ---- verdict calculator + evidence log (per viewer, this browser only) ----
+    // thresholds are the ones on the cards; rates use a 95% Wilson interval like /admin → 가설 검증
+    var METRICS = [
+      { id: 'H1a', h: 'H1', name: '직접 찾아봤고 어려웠다고 답한 기업', type: 'rate', a1: '그렇다고 답한 기업', a2: '인터뷰한 기업', pass: 0.6, stop: 1 / 3, stopText: '5곳 미만(15곳 기준)', min: 15, rung: 1,
+        next: { pass: 'H1b(이미 돈을 쓴 대안)도 확인한 뒤 H4·H5 준비로 진행', hold: '세그먼트를 좁혀(예: 펫푸드만) 5곳을 더 인터뷰하고 다시 판단', stop: '1차 타깃을 「필리핀 → 한국 수입」이나 다른 품목군으로 바꿔 다시 인터뷰' } },
+      { id: 'H1b', h: 'H1', name: '그중 이미 돈을 쓴 대안이 있는 기업', type: 'rate', a1: '돈을 쓴 대안이 있는 기업', a2: '어려웠다고 답한 기업', pass: 0.5, stop: null, min: 9, rung: 1,
+        next: { pass: 'H1 통과 — 관문 1 통과 조건 충족', hold: '대안의 금액·기간을 구체적으로 다시 확인 — 금액이 안 나오면 문제가 절실하지 않다는 신호' } },
+      { id: 'H2a', h: 'H2', name: '과제 완료율', type: 'rate', a1: '완료한 참가자', a2: '참가자', pass: 0.8, stop: 0.6, min: 6, rung: 2,
+        next: { pass: 'SUS·누락 건수도 확인', hold: '가장 많이 막힌 단계 하나만 고쳐 같은 과제로 재시험', stop: '막힌 단계의 문구·순서를 고치고 재시험(같은 지점에서 3명 이상 막혔다면 결과와 관계없이 수정)' } },
+      { id: 'H2b', h: 'H2', name: 'SUS 평균 점수', type: 'mean', a1: 'SUS 평균 (0~100)', a2: '응답자', lo: 0, hi: 100, pass: 70, stop: 50, min: 6, rung: 1,
+        next: { pass: '완료율·누락 건수와 함께 판단', hold: '가장 낮은 문항과 관련된 화면 하나만 고쳐 재시험', stop: '전체 흐름을 다시 설계한 뒤 재시험' } },
+      { id: 'H2c', h: 'H2', name: '빠뜨린 필수 단계', type: 'zero', a1: '빠뜨린 필수 단계 (합계)', a2: '참가자', min: 6, rung: 2,
+        next: { pass: '필수 단계 누락 없음', hold: '빠뜨린 단계의 안내·순서를 고치고 같은 과제로 재시험' } },
+      { id: 'H3a', h: 'H3', name: '인허가 단계 요청 제출률', type: 'rate', a1: '인허가 단계에서 보낸 요청', a2: '인허가 단계 첫 진입', pass: 0.05, stop: 0.01, min: 200, rung: 2, hint: '/admin → 가설 검증의 H3 카드 숫자를 그대로 넣으세요.',
+        next: { pass: 'H3b 응답률도 확인한 뒤 H4 사전 판매로', hold: '방문 200회를 더 모으거나 버튼 문구·위치 하나만 바꿔 다시 측정', stop: '양식 단순화·가격 표시 실험 후 재측정, 그래도 낮으면 셀프서비스 중심으로 전환' } },
+      { id: 'H3b', h: 'H3', name: '연락했을 때 응답한 요청자', type: 'rate', a1: '응답한 요청자', a2: '연락한 요청', pass: 0.7, stop: null, min: 10, rung: 3,
+        next: { pass: 'H3 통과', hold: '요청의 질 확인 — 연락처 정확도, 요청 의도(정보 탐색인지 실제 진행인지)' } },
+      { id: 'H4', h: 'H4', name: '견적 대비 착수금 결제율', type: 'rate', a1: '착수금을 낸 기업', a2: '견적을 받은 기업', pass: 0.3, stop: 0.1, min: 10, rung: 4,
+        next: { pass: '다음 견적 10건으로 재확인하며 H5·H6 파일럿 진행', hold: '거절 사유 상위 하나(가격·기간·신뢰)를 고친 견적으로 5건 더 제시', stop: '신뢰 문제인지 인터뷰로 확인(전문가 소개·사례 공개), 이후에도 낮으면 리퍼럴 수수료 모델로 전환' } },
+      { id: 'H5a', h: 'H5', name: '48시간 안 첫 응답', type: 'rate', a1: '48시간 안에 응답한 건', a2: '배정한 건', pass: 0.9, stop: null, min: 3, rung: 3,
+        next: { pass: '기한 준수·CSAT도 확인', hold: '늦게 응답한 전문가를 교체하거나 응답 기한을 계약에 명시' } },
+      { id: 'H5b', h: 'H5', name: '약속 기한 준수율', type: 'rate', a1: '기한을 지킨 건', a2: '끝난 건', pass: 0.8, stop: 0.6, min: 3, rung: 3,
+        next: { pass: '첫 응답·CSAT도 확인', hold: '미달 지표의 담당 전문가를 교체하거나 1건 더 시범 운영 후 판단', stop: '그 분야는 직접 대행 대신 「추천 목록」으로만 제공' } },
+      { id: 'H5c', h: 'H5', name: '고객 만족도(CSAT)', type: 'mean', a1: 'CSAT 평균 (1~5)', a2: '응답 수', lo: 1, hi: 5, pass: 4.3, stop: null, min: 3, rung: 1,
+        next: { pass: '첫 응답·기한 준수와 함께 판단', hold: '불만 사유를 건별로 확인해 담당 교체 또는 안내 개선' } },
+      { id: 'H6a', h: 'H6', name: '건당 공헌이익률', type: 'value', unit: '%', dir: 'high', a1: '평균 공헌이익률 (%)', a2: '시범 건수', lo: -100, hi: 100, pass: 25, stop: 0, min: 3, rung: 4,
+        next: { pass: '운영 시간 감소(H6b)도 확인', hold: '운영 시간이 가장 큰 단계를 표준화(서류 체크리스트·템플릿)한 뒤 2건 더 측정', stop: '직접 대행 대신 전문가 리퍼럴 수수료로 전환' } },
+      { id: 'H6b', h: 'H6', name: '마지막 건 운영 시간 ÷ 첫 건', type: 'value', unit: '%', dir: 'low', a1: '마지막 건 ÷ 첫 건 (%)', a2: '시범 건수', lo: 0, hi: 1000, pass: 50, stop: null, min: 2, rung: 4,
+        next: { pass: '운영이 반복될수록 빨라짐 — 정식 패키지 가격 산정에 반영', hold: '가장 오래 걸린 단계를 표준화한 뒤 다시 측정' } },
+      { id: 'H7', h: 'H7', name: '선적 후 두 번 이상 재조회', type: 'rate', a1: '두 번 이상 재조회한 거래', a2: '선적 단계 첫 진입', pass: 0.5, stop: 0.2, min: 20, rung: 2, hint: '/admin → 가설 검증의 H7 카드 숫자를 그대로 넣으세요.',
+        next: { pass: '추적 프리미엄 수익원 검토 유지', hold: '알림(수동 발송)을 붙인 그룹과 비교해 한 번 더 측정', stop: '추적은 무료 부가 기능으로 두고 추적 프리미엄 수익원은 제외' } },
+      { id: 'H8', h: 'H8', name: '실제 소스 추적 성공률', type: 'rate', a1: '결과를 받은 번호', a2: '조회한 번호', pass: 0.9, stop: 0.75, min: 20, rung: null, hint: '이정표 불일치 0건·지연 중앙값 12시간 이하도 함께 확인하세요.',
+        next: { pass: '이정표 일치·지연 기준도 확인', hold: '실패한 선사만 다른 번호 5건으로 재시험', stop: '반복 실패하는 선사의 공식 API 어댑터를 우선 추가하거나 다른 집계 API와 비교' } },
+      { id: 'H10', h: 'H10', name: '검증 배지 노출 효과 (A/B)', type: 'ab', a1: '비노출군 요청', a2: '비노출군 분모(인허가 진입)', b1: '노출군 요청', b2: '노출군 분모(인허가 진입)', min: 30, rung: 2,
+        next: { pass: '검증 배지를 마케팅 메시지에 사용', hold: '어느 한 군이라도 요청 30건 미만 — 2주 더 같은 조건으로 측정', stop: '검증은 품질 기준으로만 유지하고 마케팅 메시지에서 제외' } }
+    ];
+    var VERDICT = { pass: ['✓', '통과'], hold: ['Ⅱ', '보류'], stop: ['✕', '중단·전환'], insufficient: ['…', '표본 부족'] };
+    var RUNG = { 1: '1단 · 말', 2: '2단 · 행동', 3: '3단 · 약속·이행', 4: '4단 · 돈' };
+    var byId = {};
+    METRICS.forEach(function (m) { byId[m.id] = m; });
+
+    function wilson(k, n) {
+      if (n <= 0) return [0, 1];
+      var z = 1.96, p = k / n, z2 = z * z, d = 1 + z2 / n;
+      var c = (p + z2 / (2 * n)) / d, h = (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / d;
+      return [Math.max(0, c - h), Math.min(1, c + h)];
+    }
+    /** smallest n at which a rate of p has its interval above `line` (null when p is not above it) */
+    function needFor(p, line) {
+      if (!(p > line)) return null;
+      for (var n = 1; n <= 100000; n++) if (wilson(p * n, n)[0] >= line) return n;
+      return null;
+    }
+    var pct = function (x) { return (x * 100).toFixed(1) + '%'; };
+    var num = function (x) { return Number.isInteger(x) ? String(x) : x.toFixed(2); };
+    function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+    /** { verdict, big, sub, lines[], summary } or { error } */
+    function judge(m, a1, a2, b1, b2) {
+      var bad = function (x) { return x === null || !isFinite(x); };
+      var whole = function (x) { return !bad(x) && x >= 0 && Math.floor(x) === x; };
+      if (m.type === 'ab') {
+        if (![a1, a2, b1, b2].every(whole)) return { error: '네 칸 모두 0 이상의 정수로 넣어 주세요.' };
+        if (a1 > a2 || b1 > b2) return { error: '요청 수는 분모보다 클 수 없습니다.' };
+        if (!a2 || !b2) return { error: '분모가 0입니다.' };
+        var pa = a1 / a2, pb = b1 / b2, pool = (a1 + b1) / (a2 + b2);
+        var se0 = Math.sqrt(pool * (1 - pool) * (1 / a2 + 1 / b2));
+        var zv = se0 ? (pb - pa) / se0 : 0;
+        var se = Math.sqrt((pa * (1 - pa)) / a2 + (pb * (1 - pb)) / b2);
+        var lo = pb - pa - 1.96 * se, hi = pb - pa + 1.96 * se;
+        var v = a1 < m.min || b1 < m.min ? 'insufficient' : pb > pa && zv >= 1.96 ? 'pass' : 'stop';
+        var lines = ['차이(노출 − 비노출) 95% 구간: ' + pct(lo) + ' ~ ' + pct(hi) + ' · z = ' + zv.toFixed(2)];
+        lines.push(v === 'insufficient' ? '각 군 요청 ' + m.min + '건 이상이 모일 때까지 판정하지 않습니다 (지금 ' + a1 + '건 · ' + b1 + '건).' : v === 'pass' ? '노출군이 의미 있게 높습니다(유의수준 5%).' : '의미 있는 차이가 없습니다' + (pb < pa && zv <= -1.96 ? ' — 오히려 노출군이 낮습니다.' : '.'));
+        return { verdict: v, big: pct(pb) + ' vs ' + pct(pa), sub: '노출 ' + b1 + '/' + b2 + ' · 비노출 ' + a1 + '/' + a2, lines: lines, summary: '노출 ' + b1 + '/' + b2 + ' (' + pct(pb) + ') vs 비노출 ' + a1 + '/' + a2 + ' (' + pct(pa) + '), z=' + zv.toFixed(2) };
+      }
+      if (!whole(a2)) return { error: m.a2 + '은(는) 0 이상의 정수로 넣어 주세요.' };
+      if (m.type === 'rate' || m.type === 'zero') {
+        if (!whole(a1)) return { error: m.a1 + '은(는) 0 이상의 정수로 넣어 주세요.' };
+        if (m.type === 'rate' && a1 > a2) return { error: m.a1 + '은(는) ' + m.a2 + '보다 클 수 없습니다.' };
+      } else if (bad(a1) || a1 < m.lo || a1 > m.hi) return { error: m.a1 + '은(는) ' + m.lo + '~' + m.hi + ' 사이로 넣어 주세요.' };
+      if (!a2) return { error: m.a2 + '이(가) 0입니다.' };
+      var short = a2 < m.min;
+      var rule, verdict, big, sub = '', lines = [], summary;
+      if (m.type === 'rate') {
+        var r = a1 / a2, ci = wilson(a1, a2);
+        rule = '통과 ' + pct(m.pass) + ' 이상' + (m.stop !== null ? ' · 중단 ' + (m.stopText || pct(m.stop) + ' 미만') : '') + ' · 최소 ' + m.min;
+        verdict = short ? 'insufficient' : r >= m.pass ? 'pass' : m.stop !== null && r < m.stop ? 'stop' : 'hold';
+        big = pct(r); sub = a1 + ' / ' + a2;
+        lines.push('95% 구간 ' + pct(ci[0]) + ' – ' + pct(ci[1]));
+        if (verdict === 'pass' && m.stop !== null) {
+          var need = needFor(r, m.stop);
+          lines.push(ci[0] >= m.stop ? '구간 전체가 중단선 위 — 우연히 통과했을 가능성은 낮습니다.' : '구간이 중단선 아래까지 걸쳐 있습니다 — 같은 비율이면 약 ' + need + '까지 표본을 늘려 다시 확인하세요.');
+        } else if (verdict === 'stop') {
+          lines.push(ci[1] < m.pass ? '구간 전체가 통과선 아래 — 분명한 미달입니다.' : '구간이 통과선까지 걸쳐 있습니다 — 전환 전에 같은 조건으로 한 번 더 측정할 가치가 있습니다.');
+        } else if (verdict === 'hold') {
+          lines.push('통과선과 중단선 사이 — 표본을 늘리거나 한 가지만 바꿔 다시 측정합니다.');
+        }
+        summary = a1 + '/' + a2 + ' = ' + pct(r) + ' (95% ' + pct(ci[0]) + '–' + pct(ci[1]) + ')';
+      } else if (m.type === 'mean') {
+        rule = '통과 ' + m.pass + ' 이상' + (m.stop !== null ? ' · 중단 ' + m.stop + ' 미만' : '') + ' · 최소 ' + m.min + '명';
+        verdict = short ? 'insufficient' : a1 >= m.pass ? 'pass' : m.stop !== null && a1 < m.stop ? 'stop' : 'hold';
+        big = num(a1); sub = '응답 ' + a2;
+        lines.push('평균만으로는 구간을 낼 수 없습니다 — 점수 분포와 가장 낮은 응답의 이유를 함께 보세요.');
+        summary = '평균 ' + num(a1) + ' (n=' + a2 + ')';
+      } else if (m.type === 'value') {
+        var hiGood = m.dir === 'high';
+        rule = hiGood ? '통과 ' + m.pass + m.unit + ' 이상' + (m.stop !== null ? ' · 중단 ' + m.stop + m.unit + ' 이하' : '') : '통과 ' + m.pass + m.unit + ' 이하';
+        rule += ' · 최소 ' + m.min + '건';
+        verdict = short ? 'insufficient' : hiGood ? (a1 >= m.pass ? 'pass' : m.stop !== null && a1 <= m.stop ? 'stop' : 'hold') : a1 <= m.pass ? 'pass' : 'hold';
+        big = num(a1) + m.unit; sub = a2 + '건';
+        summary = num(a1) + m.unit + ' (' + a2 + '건)';
+      } else {
+        rule = '누락 0건이면 통과 · 최소 ' + m.min + '명';
+        verdict = short ? 'insufficient' : a1 === 0 ? 'pass' : 'hold';
+        big = a1 + '건'; sub = '참가자 ' + a2;
+        summary = '누락 ' + a1 + '건 (참가자 ' + a2 + ')';
+      }
+      if (short) lines.unshift('최소 표본까지 ' + (m.min - a2) + ' 남았습니다 — 그 전에는 판정하지 않습니다.');
+      lines.unshift('기준: ' + rule);
+      return { verdict: verdict, big: big, sub: sub, lines: lines, summary: summary };
+    }
+
+    var sel = document.getElementById('calc-m');
+    var groups = {};
+    METRICS.forEach(function (m) {
+      if (!groups[m.h]) { groups[m.h] = document.createElement('optgroup'); groups[m.h].label = m.h; sel.appendChild(groups[m.h]); }
+      var o = document.createElement('option'); o.value = m.id; o.textContent = m.id + ' ' + m.name;
+      groups[m.h].appendChild(o);
+    });
+    var f = function (id) { return document.getElementById(id); };
+    var val = function (id) { var t = f(id).value.trim(); return t === '' ? null : Number(t); };
+    var current = null;
+    function setup() {
+      var m = byId[sel.value];
+      f('calc-a1-l').textContent = m.a1; f('calc-a2-l').textContent = m.a2;
+      var isAb = m.type === 'ab';
+      f('calc-rb').hidden = !isAb;
+      if (isAb) { f('calc-b1-l').textContent = m.b1; f('calc-b2-l').textContent = m.b2; }
+      f('calc-a1').step = m.type === 'mean' || m.type === 'value' ? 'any' : '1';
+      f('calc-a1').min = m.type === 'mean' || m.type === 'value' ? String(m.lo) : '0';
+      f('calc-hint').textContent = (m.rung ? '증거: ' + RUNG[m.rung] + '. ' : '증거: 기술 실측. ') + (m.hint || '');
+      ['calc-a1', 'calc-a2', 'calc-b1', 'calc-b2'].forEach(function (id) { f(id).value = ''; });
+      render();
+    }
+    function render() {
+      var m = byId[sel.value], out = f('calc-out');
+      var empty = val('calc-a1') === null && val('calc-a2') === null;
+      current = null;
+      f('calc-add').disabled = true;
+      if (empty) { out.innerHTML = '<p class="muted">값을 넣으면 카드의 기준으로 바로 판정합니다.</p>'; return; }
+      var r = judge(m, val('calc-a1'), val('calc-a2'), val('calc-b1'), val('calc-b2'));
+      if (r.error) { out.innerHTML = '<p class="err" role="alert">' + esc(r.error) + '</p>'; return; }
+      current = { m: m, r: r };
+      f('calc-add').disabled = false;
+      var v = VERDICT[r.verdict];
+      var nextText = m.next[r.verdict === 'insufficient' ? 'hold' : r.verdict] || '';
+      out.innerHTML = '<span class="vd ' + r.verdict + '"><span aria-hidden="true">' + v[0] + '</span>' + v[1] + '</span>' +
+        '<p class="big">' + esc(r.big) + '<small>' + esc(r.sub) + '</small></p>' +
+        r.lines.map(function (l) { return '<p class="muted">' + esc(l) + '</p>'; }).join('') +
+        (r.verdict !== 'insufficient' && nextText ? '<p><b>다음 행동</b> — ' + esc(nextText) + '</p>' : '') +
+        '<p><a class="logc" href="#' + m.h + '">' + m.h + ' 카드 보기</a></p>';
+    }
+    sel.addEventListener('change', setup);
+    ['calc-a1', 'calc-a2', 'calc-b1', 'calc-b2'].forEach(function (id) { f(id).addEventListener('input', render); });
+
+    var LOG_KEY = 'ts-bmc:log';
+    var log = [];
+    try { log = JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); if (!Array.isArray(log)) log = []; } catch (e) { log = []; }
+    log = log.filter(function (x) { return x && byId[x.m] && VERDICT[x.v]; });
+    function saveLog() { try { localStorage.setItem(LOG_KEY, JSON.stringify(log)); } catch (e) { /* storage unavailable */ } }
+    function drawLog() {
+      var body = document.querySelector('#log tbody');
+      if (!log.length) {
+        body.innerHTML = '<tr><td colspan="6" class="muted">아직 기록이 없습니다. 계산기에서 판정한 뒤 「기록에 추가」를 누르세요.</td></tr>';
+      } else {
+        body.innerHTML = log.slice().reverse().map(function (x) {
+          var m = byId[x.m], v = VERDICT[x.v];
+          return '<tr><td class="mono">' + esc(x.t.slice(0, 10)) + '</td><td><a class="logc" href="#' + m.h + '">' + m.id + '</a> ' + esc(m.name) + '</td><td class="mono">' + esc(x.s) + '</td>' +
+            '<td><span class="vd ' + x.v + '"><span aria-hidden="true">' + v[0] + '</span>' + v[1] + '</span></td><td>' + esc(x.note || '') + '</td>' +
+            '<td class="no-print"><button class="btn ghost" type="button" data-del="' + esc(x.id) + '" aria-label="' + esc(x.t.slice(0, 10) + ' ' + m.id + ' 기록 삭제') + '">삭제</button></td></tr>';
+        }).join('');
+      }
+      // per card: how many records and the latest verdict
+      document.querySelectorAll('.hcard').forEach(function (card) {
+        var h = card.getAttribute('data-h');
+        var mine = log.filter(function (x) { return byId[x.m].h === h; });
+        var meta = card.querySelector('.meta');
+        var a = meta.querySelector('.logc');
+        if (!a) { a = document.createElement('a'); a.className = 'logc'; a.href = '#h-log'; meta.appendChild(a); }
+        a.hidden = !mine.length;
+        if (mine.length) a.textContent = '기록 ' + mine.length + '건 · 최근 ' + VERDICT[mine[mine.length - 1].v][1];
+      });
+      f('log-csv').disabled = !log.length; f('log-clear').disabled = !log.length;
+    }
+    document.querySelector('#log tbody').addEventListener('click', function (e) {
+      var id = e.target && e.target.getAttribute && e.target.getAttribute('data-del');
+      if (!id) return;
+      log = log.filter(function (x) { return x.id !== id; });
+      saveLog(); drawLog();
+    });
+    f('calc').addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!current) return;
+      var note = f('calc-note').value.trim().slice(0, 200);
+      log.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: new Date().toISOString(), m: current.m.id, v: current.r.verdict, s: current.r.summary, note: note });
+      saveLog();
+      // a recorded result means the hypothesis is being tested
+      var card = document.getElementById(current.m.h), st = card && card.querySelector('.status');
+      if (st && st.value === 'untested') { st.value = 'testing'; st.dispatchEvent(new Event('change')); }
+      f('calc-note').value = '';
+      drawLog();
+    });
+    f('log-clear').addEventListener('click', function () {
+      if (!log.length || !window.confirm('검증 기록 ' + log.length + '건을 모두 지울까요? 되돌릴 수 없습니다.')) return;
+      log = []; saveLog(); drawLog();
+    });
+    f('log-csv').addEventListener('click', function () {
+      var q = function (t) { t = String(t == null ? '' : t); return /^[=+\-@\t\r]/.test(t) ? '"\'' + t.replace(/"/g, '""') + '"' : '"' + t.replace(/"/g, '""') + '"'; };
+      var rows = [['날짜', '가설', '지표', '결과', '판정', '메모']].concat(log.map(function (x) { var m = byId[x.m]; return [x.t, m.h, m.id + ' ' + m.name, x.s, VERDICT[x.v][1], x.note || '']; }));
+      var csv = '﻿' + rows.map(function (r) { return r.map(q).join(','); }).join('\r\n');
+      var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      var a = document.createElement('a'); a.href = url; a.download = 'tradescope-validation-log-' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    });
+    setup();
+    drawLog();
   })();
 </script>
 </body>
