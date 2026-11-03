@@ -1,7 +1,7 @@
 'use client';
 
-import { BadgeCheck, Check, Copy, Database, FlaskConical, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { BadgeCheck, Check, Copy, Database, FlaskConical, Loader2, ShieldCheck } from 'lucide-react';
+import { forwardRef, useState } from 'react';
 import type { SourceMeta, VerificationLevel } from '@/lib/types';
 import { useI18n } from './I18nProvider';
 
@@ -9,12 +9,63 @@ export function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ');
 }
 
+// ---------------------------------------------------------------------------
+// Buttons — one system for every action (variants × sizes), shared by <button> and <a>
+// ---------------------------------------------------------------------------
+
+export type ButtonVariant = 'primary' | 'brand' | 'ai' | 'secondary' | 'ghost' | 'subtle';
+export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg';
+
+const BTN_BASE =
+  'inline-flex select-none items-center justify-center gap-1.5 whitespace-nowrap font-semibold transition-[background-color,border-color,color,box-shadow,transform,filter] duration-150 ease-out active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50';
+const BTN_VARIANT: Record<ButtonVariant, string> = {
+  primary:
+    'bg-ink-900 text-white shadow-ink hover:bg-ink-800 dark:bg-white dark:text-ink-900 dark:shadow-hairline dark:hover:bg-slate-100',
+  brand: 'bg-gradient-to-b from-brand-500 to-brand-700 text-white shadow-brand hover:brightness-[1.08]',
+  ai: 'bg-gradient-to-br from-violet-500 via-brand-600 to-brand-700 text-white shadow-brand hover:brightness-[1.08]',
+  secondary:
+    'border border-slate-200 bg-white text-slate-700 shadow-hairline hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200 dark:hover:border-white/20 dark:hover:bg-white/[0.08] dark:hover:text-white',
+  ghost: 'text-slate-600 hover:bg-slate-900/[0.05] hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/[0.07] dark:hover:text-white',
+  subtle:
+    'bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-100 hover:bg-brand-100/70 dark:bg-brand-400/10 dark:text-brand-300 dark:ring-brand-400/20 dark:hover:bg-brand-400/15',
+};
+const BTN_SIZE: Record<ButtonSize, string> = {
+  xs: 'h-7 rounded-lg px-2.5 text-[11.5px]',
+  sm: 'h-8 rounded-lg px-3 text-xs',
+  md: 'h-9 rounded-xl px-3.5 text-[13px]',
+  lg: 'h-12 rounded-xl px-6 text-sm',
+};
+const ICON_SIZE: Record<ButtonSize, string> = { xs: 'size-7 rounded-lg', sm: 'size-8 rounded-lg', md: 'size-9 rounded-xl', lg: 'size-12 rounded-xl' };
+
+/**
+ * Class string for anything that should look like a button (also used on links).
+ * The base sets `display: inline-flex`, so toggle visibility on a wrapper — not with `hidden` here.
+ */
+export function buttonClass({ variant = 'secondary', size = 'md', block, icon, className }: { variant?: ButtonVariant; size?: ButtonSize; block?: boolean; icon?: boolean; className?: string } = {}): string {
+  return cx(BTN_BASE, BTN_VARIANT[variant], icon ? ICON_SIZE[size] : BTN_SIZE[size], block && 'w-full', className);
+}
+
+type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; block?: boolean; icon?: boolean; loading?: boolean };
+
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button({ variant, size, block, icon, loading, className, children, type = 'button', disabled, ...rest }, ref) {
+  return (
+    <button ref={ref} type={type} disabled={disabled || loading} aria-busy={loading || undefined} className={buttonClass({ variant, size, block, icon, className })} {...rest}>
+      {loading && <Loader2 className="size-4 animate-spin" aria-hidden />}
+      {children}
+    </button>
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Surfaces
+// ---------------------------------------------------------------------------
+
 export function Card({ className, children, id }: { className?: string; children: React.ReactNode; id?: string }) {
   return (
     <section
       id={id}
       className={cx(
-        'print-card rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-200/50 dark:border-slate-800 dark:bg-slate-900 dark:shadow-none',
+        'print-card rounded-[20px] border border-slate-200/80 bg-white shadow-soft dark:border-white/[0.07] dark:bg-[#0c121d] dark:shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]',
         className,
       )}
     >
@@ -25,12 +76,16 @@ export function Card({ className, children, id }: { className?: string; children
 
 export function ModuleHeader({ index, title, icon, right }: { index: number; title: string; icon: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">{icon}</span>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6 dark:border-white/[0.06]">
+      <div className="flex min-w-0 items-center gap-3.5">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-50 to-white text-brand-700 shadow-hairline ring-1 ring-inset ring-brand-100 dark:from-brand-400/15 dark:to-brand-400/5 dark:text-brand-300 dark:ring-brand-400/20">
+          {icon}
+        </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Module {index}</p>
-          <h2 className="truncate text-base font-bold text-slate-900 sm:text-lg dark:text-white">{title}</h2>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+            Module <span className="tabular-nums text-brand-600 dark:text-brand-400">{String(index).padStart(2, '0')}</span>
+          </p>
+          <h2 className="truncate text-[17px] font-bold text-slate-900 sm:text-lg dark:text-white">{title}</h2>
         </div>
       </div>
       {right}
@@ -40,8 +95,8 @@ export function ModuleHeader({ index, title, icon, right }: { index: number; tit
 
 export function Badge({ tone = 'slate', children, className, title }: { tone?: 'slate' | 'brand' | 'green' | 'amber' | 'red' | 'violet'; children: React.ReactNode; className?: string; title?: string }) {
   const tones: Record<string, string> = {
-    slate: 'bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700',
-    brand: 'bg-brand-50 text-brand-700 ring-brand-100 dark:bg-brand-500/10 dark:text-brand-400 dark:ring-brand-500/20',
+    slate: 'bg-slate-100/80 text-slate-600 ring-slate-200/80 dark:bg-white/[0.06] dark:text-slate-300 dark:ring-white/10',
+    brand: 'bg-brand-50 text-brand-700 ring-brand-100 dark:bg-brand-400/10 dark:text-brand-300 dark:ring-brand-400/20',
     green: 'bg-emerald-50 text-emerald-700 ring-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-emerald-500/20',
     amber: 'bg-amber-50 text-amber-700 ring-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:ring-amber-500/20',
     red: 'bg-rose-50 text-rose-700 ring-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:ring-rose-500/20',
@@ -75,11 +130,11 @@ export function SourceTag({ meta, className }: { meta: SourceMeta; className?: s
 export function ScoreRing({ value, size = 56, label }: { value: number; size?: number; label?: string }) {
   const r = (size - 8) / 2;
   const c = 2 * Math.PI * r;
-  const color = value >= 90 ? '#10b981' : value >= 80 ? '#06b6d4' : value >= 70 ? '#f59e0b' : '#94a3b8';
+  const color = value >= 90 ? '#10b981' : value >= 80 ? '#2a85a6' : value >= 70 ? '#f59e0b' : '#94a3b8';
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }} aria-label={`${value}% ${label ?? ''}`}>
       <svg viewBox={`0 0 ${size} ${size}`} className="-rotate-90" width={size} height={size} aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={6} className="stroke-slate-100 dark:stroke-slate-800" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={6} className="stroke-slate-100 dark:stroke-white/10" />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={6} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - value / 100)} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center leading-none">
@@ -91,9 +146,9 @@ export function ScoreRing({ value, size = 56, label }: { value: number; size?: n
 }
 
 export function ProgressBar({ value, tone = 'brand' }: { value: number; tone?: 'brand' | 'green' | 'amber' }) {
-  const color = tone === 'green' ? 'bg-emerald-500' : tone === 'amber' ? 'bg-amber-500' : 'bg-brand-500';
+  const color = tone === 'green' ? 'bg-gradient-to-r from-emerald-400 to-emerald-600' : tone === 'amber' ? 'bg-gradient-to-r from-amber-300 to-amber-500' : 'bg-gradient-to-r from-brand-400 to-brand-600';
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.07]">
       <div className={cx('h-full rounded-full transition-all duration-700', color)} style={{ width: `${Math.max(2, Math.min(100, value))}%` }} />
     </div>
   );
@@ -124,28 +179,49 @@ export function CopyButton({ text, label, className }: { text: string; label?: s
   const { t } = useI18n();
   const [done, setDone] = useState(false);
   return (
-    <button
-      type="button"
+    <Button
+      size="sm"
       onClick={async () => {
         if (await copyText(text)) {
           setDone(true);
           setTimeout(() => setDone(false), 1600);
         }
       }}
-      className={cx(
-        'inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-brand-500 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:text-brand-400',
-        className,
-      )}
+      className={className}
     >
       {done ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5" />}
-      {done ? t('copied') : (label ?? t('copy'))}
-    </button>
+      <span aria-live="polite">{done ? t('copied') : (label ?? t('copy'))}</span>
+    </Button>
   );
 }
 
-export function Segmented<T extends string>({ value, options, onChange, size = 'md', className }: { value: T; options: Array<{ value: T; label: React.ReactNode }>; onChange: (v: T) => void; size?: 'sm' | 'md'; className?: string }) {
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  size = 'md',
+  className,
+  ariaLabel,
+  block,
+}: {
+  value: T;
+  options: Array<{ value: T; label: React.ReactNode }>;
+  onChange: (v: T) => void;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  ariaLabel?: string;
+  block?: boolean;
+}) {
   return (
-    <div role="group" className={cx('inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800', className)}>
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      className={cx(
+        'inline-flex gap-0.5 rounded-xl bg-slate-900/[0.05] p-1 ring-1 ring-inset ring-slate-900/[0.04] dark:bg-white/[0.05] dark:ring-white/[0.06]',
+        block && 'flex w-full',
+        className,
+      )}
+    >
       {options.map((o) => (
         <button
           key={o.value}
@@ -153,9 +229,12 @@ export function Segmented<T extends string>({ value, options, onChange, size = '
           aria-pressed={value === o.value}
           onClick={() => onChange(o.value)}
           className={cx(
-            'rounded-lg font-semibold transition',
-            size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm',
-            value === o.value ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-950 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200',
+            'inline-flex items-center justify-center gap-1.5 whitespace-nowrap font-semibold transition-[background-color,color,box-shadow] duration-150',
+            block && 'flex-1',
+            size === 'sm' ? 'h-7 rounded-lg px-2.5 text-xs' : size === 'lg' ? 'h-10 rounded-[10px] px-4 text-sm' : 'h-8 rounded-lg px-3 text-[13px]',
+            value === o.value
+              ? 'bg-white text-slate-900 shadow-[0_1px_2px_rgb(15_23_42/0.08),0_1px_1px_rgb(15_23_42/0.04)] ring-1 ring-slate-900/[0.06] dark:bg-white/[0.12] dark:text-white dark:ring-white/10'
+              : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white',
           )}
         >
           {o.label}
@@ -165,19 +244,22 @@ export function Segmented<T extends string>({ value, options, onChange, size = '
   );
 }
 
-export function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+/** Toggle chip for filters. The active state also shows a check mark, so it does not rely on colour alone. */
+export function Chip({ active, onClick, children, className }: { active: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
       className={cx(
-        'rounded-full border px-3 py-1 text-xs font-semibold transition',
+        'inline-flex h-7 items-center gap-1 rounded-full border px-3 text-xs font-semibold transition-[background-color,border-color,color] duration-150',
         active
-          ? 'border-brand-500 bg-brand-500 text-white'
-          : 'border-slate-200 bg-white text-slate-600 hover:border-brand-500 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-brand-400',
+          ? 'border-ink-900 bg-ink-900 text-white dark:border-white dark:bg-white dark:text-ink-900'
+          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white',
+        className,
       )}
     >
+      {active && <Check className="-ml-0.5 size-3" aria-hidden />}
       {children}
     </button>
   );

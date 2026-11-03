@@ -22,7 +22,7 @@ export default function BriefingModule({ report, product, onOpenTrust }: { repor
   };
 
   return (
-    <Card id="m-brief" className="rise-in scroll-mt-28">
+    <Card id="m-brief" className="rise-in scroll-mt-36">
       <ModuleHeader
         index={1}
         title={t('m1Title')}
@@ -61,7 +61,7 @@ export default function BriefingModule({ report, product, onOpenTrust }: { repor
             <p className="mt-2 text-pretty text-sm leading-relaxed text-slate-600 dark:text-slate-300">{briefing.summary}</p>
           </div>
 
-          <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 dark:border-slate-800 dark:bg-slate-800/40">
+          <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 dark:border-white/[0.07] dark:bg-slate-800/40">
             <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
               <Target className="size-3.5" />
               {t('intent')}
@@ -126,7 +126,7 @@ export default function BriefingModule({ report, product, onOpenTrust }: { repor
                   key={h.code}
                   className={cx(
                     'rounded-xl border p-3',
-                    i === 0 ? 'border-brand-500/60 bg-brand-50/60 dark:border-brand-500/40 dark:bg-brand-500/5' : 'border-slate-200 dark:border-slate-800',
+                    i === 0 ? 'border-brand-500/60 bg-brand-50/60 dark:border-brand-500/40 dark:bg-brand-500/5' : 'border-slate-200 dark:border-white/[0.07]',
                   )}
                 >
                   <div className="flex items-center justify-between gap-2">

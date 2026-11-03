@@ -100,8 +100,9 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
     return { entry: JSON.stringify(e, null, 2), missing: need, invalid: bad };
   }, [f, type, productId, product]);
 
-  const input = 'h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-[13px] text-slate-900 outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white';
-  const label = 'mb-1 block text-[10.5px] font-bold uppercase tracking-wide text-slate-400';
+  const input =
+    'h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-900 shadow-hairline outline-none transition-[border-color,box-shadow] focus:border-brand-400 focus:shadow-[0_0_0_4px_rgb(42_133_166/0.12)] dark:border-white/10 dark:bg-white/[0.03] dark:text-white';
+  const label = 'mb-1.5 block text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-400';
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -123,7 +124,12 @@ export default function OverrideHelper({ defaultProductId }: { defaultProductId?
               type="button"
               aria-pressed={type === ty}
               onClick={() => setType(ty)}
-              className={cx('rounded-full border px-2.5 py-1 text-[11px] font-bold', type === ty ? 'border-violet-500 bg-violet-500 text-white' : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300')}
+              className={cx(
+                'inline-flex h-7 items-center gap-1 rounded-full border px-3 text-[11.5px] font-semibold transition-[background-color,border-color,color] duration-150',
+                type === ty
+                  ? 'border-violet-600 bg-violet-600 text-white shadow-[0_1px_2px_rgb(76_29_149/0.3)] dark:border-violet-400 dark:bg-violet-400 dark:text-violet-950'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:text-white',
+              )}
             >
               {TYPE_LABEL[ty][lang]}
             </button>

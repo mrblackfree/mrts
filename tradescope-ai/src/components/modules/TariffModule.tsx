@@ -16,7 +16,7 @@ type Tone = 'ok' | 'warn' | 'info';
 const TONE_CLASS: Record<Tone, string> = {
   ok: 'border-emerald-200 bg-emerald-50/70 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200',
   warn: 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200',
-  info: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-200',
+  info: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200',
 };
 
 /** One official cross-check (MFN or preferential) — shared layout, tone by status. */
@@ -87,7 +87,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
   const seedToApplied = (seed: number, applied: number) => t('seedToApplied').replace('{seed}', String(seed)).replace('{applied}', String(applied));
 
   return (
-    <Card id="m-tariff" className="rise-in scroll-mt-28" >
+    <Card id="m-tariff" className="rise-in scroll-mt-36" >
       <ModuleHeader index={2} title={t('m2Title')} icon={<BadgePercent className="size-5" />} />
       <div className="grid gap-5 p-5 xl:grid-cols-5">
         <div className="min-w-0 space-y-5 xl:col-span-3">
@@ -102,11 +102,14 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                     aria-pressed={x.key === table.key}
                     onClick={() => setTableKey(x.key)}
                     className={cx(
-                      'rounded-lg border px-2.5 py-1 text-left text-xs font-semibold transition',
-                      x.key === table.key ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' : 'border-slate-200 text-slate-500 hover:border-brand-500 dark:border-slate-700 dark:text-slate-400',
+                      'inline-flex min-h-9 items-center gap-1.5 rounded-xl border px-3 py-1.5 text-left text-xs font-semibold transition-[background-color,border-color,color] duration-150',
+                      x.key === table.key
+                        ? 'border-ink-900 bg-ink-900 text-white shadow-ink dark:border-white dark:bg-white dark:text-ink-900'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:text-white',
                     )}
                   >
-                    {i === 0 && <span className="mr-1 text-[10px] uppercase tracking-wide opacity-70">{t('hsPrimary')}</span>}
+                    {x.key === table.key && <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />}
+                    {i === 0 && <span className="rounded bg-current/10 px-1 text-[9.5px] font-bold uppercase tracking-wide opacity-70">{t('hsPrimary')}</span>}
                     {p(x.label)}
                   </button>
                 ))}
@@ -135,7 +138,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                       {rate.note && <span className="mt-0.5 hidden text-[10.5px] leading-tight text-slate-400 sm:block">{p(rate.note)}</span>}
                       <LevelBadge level={rate.level ?? 'seed'} className="mt-1 !px-1.5 !py-0 !text-[10px]" title={rate.verifiedNote} />
                     </span>
-                    <span className="relative h-7 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800" title={rate.note ? p(rate.note) : undefined}>
+                    <span className="relative h-7 overflow-hidden rounded-lg bg-slate-100 dark:bg-white/[0.07]" title={rate.note ? p(rate.note) : undefined}>
                       <span
                         className={cx(
                           'absolute inset-y-0 left-0 rounded-lg transition-all duration-700',
@@ -186,7 +189,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
           )}
 
           {/* Calculator */}
-          <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+          <div className="rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 sm:p-5 dark:border-white/[0.07] dark:bg-white/[0.015]">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <label className="block">
                 <span className="mb-1 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-slate-100">
@@ -194,7 +197,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                   {t('calculator')}
                 </span>
                 <span className="text-xs text-slate-500">{t('customsValue')}</span>
-                <span className="mt-1 flex items-center rounded-xl border border-slate-300 bg-white px-3 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950">
+                <span className="mt-1.5 flex items-center rounded-xl border border-slate-200 bg-white px-3 shadow-hairline transition-[border-color,box-shadow] focus-within:border-brand-400 focus-within:shadow-[0_0_0_4px_rgb(42_133_166/0.12)] dark:border-white/10 dark:bg-white/[0.03]">
                   <span className="text-sm font-bold text-slate-400">$</span>
                   <input
                     type="number"
@@ -208,15 +211,18 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
                   />
                 </span>
               </label>
-              <div className="flex flex-wrap gap-1.5">
+              <div role="group" aria-label={t('customsValue')} className="no-print inline-flex gap-0.5 rounded-xl bg-slate-900/[0.05] p-1 ring-1 ring-inset ring-slate-900/[0.04] dark:bg-white/[0.05] dark:ring-white/[0.06]">
                 {[10_000, 50_000, 100_000, 500_000].map((v) => (
                   <button
                     key={v}
                     type="button"
+                    aria-pressed={amount === v}
                     onClick={() => setAmount(v)}
                     className={cx(
-                      'no-print rounded-lg border px-2.5 py-1 text-xs font-semibold transition',
-                      amount === v ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400' : 'border-slate-200 text-slate-500 hover:border-brand-500 dark:border-slate-700',
+                      'h-7 rounded-lg px-2.5 text-xs font-semibold tabular-nums transition-[background-color,color,box-shadow] duration-150',
+                      amount === v
+                        ? 'bg-white text-slate-900 shadow-[0_1px_2px_rgb(15_23_42/0.08)] ring-1 ring-slate-900/[0.06] dark:bg-white/[0.12] dark:text-white dark:ring-white/10'
+                        : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white',
                     )}
                   >
                     {formatUsd(v, { compact: true })}
@@ -225,11 +231,13 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl bg-emerald-50 p-4 dark:bg-emerald-500/10">
-              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+            <div className="relative mt-4 overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 via-emerald-50/60 to-white p-4 ring-1 ring-inset ring-emerald-200/70 sm:p-5 dark:from-emerald-400/[0.12] dark:via-emerald-400/[0.06] dark:to-transparent dark:ring-emerald-400/20">
+              <div aria-hidden className="pointer-events-none absolute -right-10 -top-12 size-40 rounded-full bg-emerald-300/20 blur-2xl dark:bg-emerald-400/10" />
+              <p className="relative inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                <Sparkles className="size-3.5" aria-hidden />
                 {SCHEME_LABEL[best][lang]} · {t('saving')}
               </p>
-              <p className="mt-0.5 text-3xl font-extrabold tracking-tight text-emerald-700 tabular-nums dark:text-emerald-300">{formatUsd(bestLine.savingVsMfn)}</p>
+              <p className="relative mt-1 text-[34px] font-bold leading-none tracking-[-0.03em] text-emerald-700 tabular-nums dark:text-emerald-300">{formatUsd(bestLine.savingVsMfn)}</p>
               <p className="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/80">
                 {t('duty')} {formatUsd(mfnLine.duty)} → {formatUsd(bestLine.duty)} · {t('importVat')} {importVat(product.direction)}%
               </p>
@@ -246,7 +254,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
             <div className="thin-scroll mt-4 overflow-x-auto">
               <table className="w-full min-w-[520px] text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-400 dark:border-slate-800">
+                  <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wide text-slate-400 dark:border-white/[0.07]">
                     <th className="py-2 font-semibold">FTA</th>
                     <th className="py-2 text-right font-semibold">{t('duty')}</th>
                     <th className="py-2 text-right font-semibold">{t('vat')}</th>
@@ -282,7 +290,7 @@ export default function TariffModule({ product, initialAmount }: { product: Trad
               {table.tariffs
                 .filter((r) => r.scheme !== 'MFN')
                 .map((r) => (
-                  <div key={r.scheme} className={cx('rounded-xl border p-3', r.scheme === best ? 'border-emerald-400/60 dark:border-emerald-500/40' : 'border-slate-200 dark:border-slate-800')}>
+                  <div key={r.scheme} className={cx('rounded-xl border p-3', r.scheme === best ? 'border-emerald-400/60 dark:border-emerald-500/40' : 'border-slate-200 dark:border-white/[0.07]')}>
                     <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
                       {SCHEME_LABEL[r.scheme][lang]} · {r.rate}%
                     </p>

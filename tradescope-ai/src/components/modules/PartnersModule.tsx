@@ -7,7 +7,7 @@ import { PARTNER_TYPE_LABEL } from '@/lib/i18n';
 import { rankPartners } from '@/lib/engine/simulate';
 import type { PartnerRole, PartnerType, QueryIntent, TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
-import { Badge, Card, Chip, ModuleHeader, ScoreRing } from '../ui';
+import { Badge, Button, Card, Chip, ModuleHeader, ScoreRing } from '../ui';
 
 export default function PartnersModule({ product, intent, onOpen }: { product: TradeProduct; intent: QueryIntent; onOpen: (partnerId: string, tab: 'analysis' | 'email') => void }) {
   const { t, p, lang } = useI18n();
@@ -28,12 +28,12 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
   const list = ranked.filter((r) => (role === 'all' || r.role === role) && (type === 'all' || r.type === type) && (region === 'all' || r.region === region));
 
   return (
-    <Card id="m-partners" className="rise-in scroll-mt-28">
+    <Card id="m-partners" className="rise-in scroll-mt-36">
       <ModuleHeader index={4} title={t('m4Title')} icon={<Users className="size-5" />} right={<Badge tone="brand">{list.length} / {ranked.length}</Badge>} />
-      <div className="no-print space-y-2.5 border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">
+      <div className="no-print space-y-2.5 border-b border-slate-100 bg-slate-50/50 px-5 py-3.5 sm:px-6 dark:border-white/[0.06] dark:bg-white/[0.015]">
         {roles.length > 1 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="w-14 text-[11px] font-bold uppercase text-slate-400">{t('filterRole')}</span>
+            <span className="w-14 shrink-0 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-400">{t('filterRole')}</span>
             <Chip active={role === 'all'} onClick={() => setRole('all')}>
               {t('all')}
             </Chip>
@@ -45,7 +45,7 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
           </div>
         )}
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="w-14 text-[11px] font-bold uppercase text-slate-400">{t('filterType')}</span>
+          <span className="w-14 shrink-0 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-400">{t('filterType')}</span>
           <Chip active={type === 'all'} onClick={() => setType('all')}>
             {t('all')}
           </Chip>
@@ -56,7 +56,7 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="w-14 text-[11px] font-bold uppercase text-slate-400">{t('filterRegion')}</span>
+          <span className="w-14 shrink-0 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-400">{t('filterRegion')}</span>
           <Chip active={region === 'all'} onClick={() => setRegion('all')}>
             {t('all')}
           </Chip>
@@ -74,12 +74,15 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
         ) : (
           <ol className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {list.map((c, i) => (
-              <li key={c.id} className="print-card flex flex-col rounded-2xl border border-slate-200 p-4 transition hover:border-brand-500/60 hover:shadow-md dark:border-slate-800">
+              <li
+                key={c.id}
+                className="print-card group/card flex flex-col rounded-[18px] border border-slate-200/80 bg-white p-4 shadow-hairline transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-elevated dark:border-white/[0.08] dark:bg-white/[0.02] dark:hover:border-white/15"
+              >
                 <div className="flex items-start gap-3">
                   <ScoreRing value={c.score} label={t('match')} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] font-bold text-slate-400">#{i + 1}</span>
+                      <span className="grid h-5 min-w-5 place-items-center rounded-md bg-slate-100 px-1 text-[10.5px] font-bold tabular-nums text-slate-500 dark:bg-white/[0.07] dark:text-slate-400">{i + 1}</span>
                       <span aria-hidden>{c.country === 'KR' ? '🇰🇷' : '🇵🇭'}</span>
                       <Badge tone={c.role === 'buyer' ? 'brand' : 'violet'}>{c.role === 'buyer' ? t('roleBuyer') : t('roleSeller')}</Badge>
                       {c.regionMatch && <Badge tone="amber">{t('regionMatch')}</Badge>}
@@ -113,8 +116,8 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
                 </div>
                 <p className="mt-2 text-[13px] font-medium text-slate-700 dark:text-slate-200">{p(c.products)}</p>
                 <p className="mt-2 flex-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{p(c.comment)}</p>
-                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-                  <a href={c.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-400">
+                <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1">
+                  <a href={c.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">
                     {c.linkType === 'official' ? t('linkOfficial') : t('linkListing')} <ExternalLink className="size-3" />
                   </a>
                   {c.country === 'PH' && !c.license && c.role === 'buyer' && c.type !== 'developer' && (
@@ -124,23 +127,15 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
                   )}
                 </div>
                 {c.license && <p className="mt-1 text-[11px] text-violet-700 dark:text-violet-300">{c.license.text}{c.license.validUntil ? ` · ~${c.license.validUntil}` : ''}</p>}
-                <div className="no-print mt-3 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => onOpen(c.id, 'analysis')}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 px-2 py-2 text-xs font-bold text-slate-700 transition hover:border-brand-500 hover:text-brand-700 dark:border-slate-700 dark:text-slate-200 dark:hover:text-brand-400"
-                  >
-                    <ScanSearch className="size-3.5" />
+                <div className="no-print mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 dark:border-white/[0.06]">
+                  <Button size="md" onClick={() => onOpen(c.id, 'analysis')} className="px-2">
+                    <ScanSearch className="size-3.5" aria-hidden />
                     {t('aiDetail')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onOpen(c.id, 'email')}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-2 py-2 text-xs font-bold text-white transition hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
-                  >
-                    <Mail className="size-3.5" />
+                  </Button>
+                  <Button variant="primary" size="md" onClick={() => onOpen(c.id, 'email')} className="px-2">
+                    <Mail className="size-3.5" aria-hidden />
                     {t('makeEmail')}
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}

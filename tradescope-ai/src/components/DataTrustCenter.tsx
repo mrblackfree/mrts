@@ -11,7 +11,7 @@ import type { DictKey } from '@/lib/i18n';
 import type { VerificationLevel } from '@/lib/types';
 import { useI18n } from './I18nProvider';
 import OverrideHelper from './OverrideHelper';
-import { Badge, cx, LevelBadge, ProgressBar, ScoreRing } from './ui';
+import { Badge, Button, cx, LevelBadge, ProgressBar, ScoreRing } from './ui';
 
 const CHANGELOG = (changelogJson as { entries: Array<{ date: string; productId: string; field: string; from: string; to: string; source: string }> }).entries;
 
@@ -68,14 +68,14 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
   const conflicts = PRODUCTS.flatMap((prod) => (prod.verification?.items ?? []).filter((i) => i.conflict).map((i) => ({ prod, item: i })));
 
   return (
-    <div ref={dialogRef} className="no-print fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-3 backdrop-blur-[2px] sm:p-6" role="dialog" aria-modal="true" aria-label={t('trustTitle')}>
+    <div ref={dialogRef} className="no-print fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/40 p-3 backdrop-blur-sm sm:p-6" role="dialog" aria-modal="true" aria-label={t('trustTitle')}>
       <button type="button" aria-label={t('close')} className="fixed inset-0 cursor-default" onClick={onClose} />
-      <div className="rise-in relative w-full min-w-0 max-w-5xl rounded-3xl bg-white shadow-2xl dark:bg-slate-900">
+      <div className="rise-in relative w-full min-w-0 max-w-5xl rounded-[28px] bg-white shadow-float ring-1 ring-slate-900/5 dark:bg-[#0b111c] dark:ring-white/10">
         {/* header */}
-        <div className="flex items-start gap-4 border-b border-slate-100 p-5 sm:p-6 dark:border-slate-800">
+        <div className="flex items-start gap-4 border-b border-slate-100 p-5 sm:p-6 dark:border-white/[0.07]">
           <ScoreRing value={overall} size={72} label={t('trustScore')} />
           <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+            <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-emerald-600 dark:text-emerald-400">
               <ShieldCheck className="size-4" />
               {t('trustTitle')}
             </p>
@@ -83,9 +83,9 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
             <p className="mt-1.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">{t('trustDefinition')}</p>
             <p className="mt-1 text-[11px] text-slate-400">{t('trustFormula')}</p>
           </div>
-          <button ref={closeRef} type="button" onClick={onClose} className="grid size-8 shrink-0 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label={t('close')}>
+          <Button ref={closeRef} variant="ghost" size="md" icon onClick={onClose} aria-label={t('close')} className="-mr-1 -mt-1 shrink-0 rounded-full">
             <X className="size-5" />
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-6 p-5 sm:p-6">
@@ -100,7 +100,7 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
             </h3>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
               {sourceCards.map((c) => (
-                <div key={c.id} className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+                <div key={c.id} className="rounded-xl border border-slate-200 p-3 dark:border-white/[0.07]">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[13px] font-bold text-slate-800 dark:text-slate-100">{c.name}</span>
                     {c.st && <Badge tone={STATUS_TONE[c.st.status]} className="shrink-0 whitespace-nowrap">{t(STATUS_KEY[c.st.status])}</Badge>}
@@ -119,7 +119,7 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
 
           {/* conflicts + changelog */}
           <section className="grid items-start gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-white/[0.07]">
               <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-slate-100">
                 <TriangleAlert className="size-4 text-amber-500" />
                 {t('conflicts')}
@@ -136,7 +136,7 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                 </ul>
               )}
             </div>
-            <div className="rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+            <div className="rounded-2xl border border-slate-200 p-4 dark:border-white/[0.07]">
               <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-slate-100">
                 <History className="size-4 text-violet-500" />
                 {lang === 'ko' ? '공식 데이터 기반 보정 이력' : 'Corrections from official data'}
@@ -148,7 +148,7 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                 {CHANGELOG.map((c, i) => {
                   const prod = PRODUCTS.find((x) => x.id === c.productId);
                   return (
-                    <li key={i} className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
+                    <li key={i} className="rounded-lg bg-slate-50 px-2.5 py-1.5 text-slate-600 dark:bg-white/[0.04] dark:text-slate-300">
                       <span className="font-semibold text-slate-800 dark:text-slate-100">
                         {prod?.emoji} {prod ? p(prod.name) : c.productId} · {c.field}
                       </span>{' '}
@@ -182,14 +182,14 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                 const total = LEVELS.reduce((s, l) => s + v.counts[l], 0);
                 const isOpen = open === prod.id;
                 return (
-                  <li key={prod.id} className={cx('rounded-2xl border transition', isOpen ? 'border-brand-500/60' : 'border-slate-200 dark:border-slate-800')}>
+                  <li key={prod.id} className={cx('rounded-2xl border transition', isOpen ? 'border-brand-500/60' : 'border-slate-200 dark:border-white/[0.07]')}>
                     <button type="button" onClick={() => setOpen(isOpen ? null : prod.id)} className="flex w-full items-center gap-3 p-3 text-left" aria-expanded={isOpen}>
                       <span className="text-xl" aria-hidden>
                         {prod.emoji}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-bold text-slate-800 dark:text-slate-100">{p(prod.name)}</span>
-                        <span className="mt-1 flex h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                        <span className="mt-1 flex h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.07]">
                           {LEVELS.map((lv) => (
                             <span key={lv} className={LEVEL_BAR[lv]} style={{ width: `${(v.counts[lv] / total) * 100}%` }} title={`${lv}: ${v.counts[lv]}`} />
                           ))}
@@ -199,7 +199,7 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
                       <ChevronDown className={cx('size-4 shrink-0 text-slate-400 transition', isOpen && 'rotate-180')} />
                     </button>
                     {isOpen && (
-                      <div className="space-y-3 border-t border-slate-100 p-3 dark:border-slate-800">
+                      <div className="space-y-3 border-t border-slate-100 p-3 dark:border-white/[0.07]">
                         {(() => {
                           const cats = categoryBreakdown(prod);
                           // one line per roadmap item: several categories (e.g. MFN/FTA/ROO) close with the same step
@@ -268,7 +268,7 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
               {ROADMAP.map((r) => {
                 const meta = RM_META[r.status];
                 return (
-                  <div key={r.id} className="flex flex-col rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+                  <div key={r.id} className="flex flex-col rounded-2xl border border-slate-200 p-4 dark:border-white/[0.07]">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <Badge tone={meta.tone}>
                         {meta.icon}
@@ -314,7 +314,7 @@ export default function DataTrustCenter({ focusProductId, onClose }: { focusProd
           </section>
 
           {feedbackUrl && (
-            <a href={feedbackUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:border-brand-500 dark:border-slate-700 dark:text-slate-200">
+            <a href={feedbackUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:border-brand-500 dark:border-white/10 dark:text-slate-200">
               <Link2 className="size-3.5" />
               {t('reportIssue')}
             </a>

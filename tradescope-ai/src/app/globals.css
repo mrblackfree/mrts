@@ -7,16 +7,31 @@
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR',
     'Malgun Gothic', 'Segoe UI', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  --color-brand-50: #ecfeff;
-  --color-brand-100: #cffafe;
-  --color-brand-200: #a5f3fc;
-  --color-brand-300: #67e8f9;
-  --color-brand-400: #22d3ee;
-  --color-brand-500: #06b6d4;
-  --color-brand-600: #0891b2;
-  --color-brand-700: #0e7490;
-  --color-brand-800: #155e75;
-  --color-brand-900: #164e63;
+  /* "Harbor" — a deep sea blue-teal: calmer and more premium than pure cyan */
+  --color-brand-50: #f0f7fa;
+  --color-brand-100: #dbeef4;
+  --color-brand-200: #b8dce8;
+  --color-brand-300: #86c2d7;
+  --color-brand-400: #4ea2bf;
+  --color-brand-500: #2a85a6;
+  --color-brand-600: #1d6c8c;
+  --color-brand-700: #195873;
+  --color-brand-800: #194a60;
+  --color-brand-900: #183e51;
+  --color-brand-950: #0c2735;
+  /* ink — primary text and primary buttons */
+  --color-ink-900: #0b1220;
+  --color-ink-800: #141c2e;
+
+  /* layered, low-contrast elevation */
+  --shadow-hairline: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 16px -8px rgb(15 23 42 / 0.08);
+  --shadow-elevated: 0 1px 2px rgb(15 23 42 / 0.05), 0 12px 32px -12px rgb(15 23 42 / 0.18);
+  --shadow-float: 0 2px 6px rgb(15 23 42 / 0.06), 0 24px 56px -20px rgb(15 23 42 / 0.28);
+  --shadow-brand: 0 1px 2px rgb(12 39 53 / 0.3), 0 8px 20px -8px rgb(29 108 140 / 0.6), inset 0 1px 0 rgb(255 255 255 / 0.2);
+  --shadow-ink: 0 1px 2px rgb(11 18 32 / 0.3), 0 6px 16px -8px rgb(11 18 32 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.12);
+
+  --ease-out-soft: cubic-bezier(0.2, 0.7, 0.2, 1);
   --color-kr: #cd2e3a;
   --color-ph: #0038a8;
   --color-ph-sun: #fcd116;
@@ -35,8 +50,66 @@ html {
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
-  font-feature-settings: 'tnum' 1;
+  @apply bg-[#f5f7fa] text-slate-900 antialiased dark:bg-[#060a12] dark:text-slate-100;
+  font-feature-settings: 'tnum' 1, 'ss06' 1;
+  letter-spacing: -0.006em;
+  /* a faint harbor glow behind the hero */
+  background-image: radial-gradient(1100px 520px at 50% -180px, rgb(184 220 232 / 0.55), transparent 70%);
+  background-repeat: no-repeat;
+}
+:root.dark body {
+  background-image: radial-gradient(1100px 520px at 50% -200px, rgb(42 133 166 / 0.16), transparent 70%);
+}
+
+::selection {
+  background: rgb(78 162 191 / 0.28);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.022em;
+}
+
+/* Keyboard focus that is visible on every surface, never on mouse click */
+:where(a, button, [role='button'], summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 0.6rem;
+}
+
+/* Decorative dot grid (hero) */
+.dot-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgb(15 23 42 / 0.07) 1px, transparent 0);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
+}
+:root.dark .dot-grid {
+  background-image: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.06) 1px, transparent 0);
+}
+
+/* Hairline gradient border for featured surfaces */
+.ring-gradient {
+  position: relative;
+}
+.ring-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgb(78 162 191 / 0.55), rgb(203 213 225 / 0.35) 40%, rgb(203 213 225 / 0.2) 60%, rgb(205 46 58 / 0.25));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+:root.dark .ring-gradient::before {
+  background: linear-gradient(135deg, rgb(78 162 191 / 0.45), rgb(255 255 255 / 0.08) 40%, rgb(255 255 255 / 0.05) 60%, rgb(205 46 58 / 0.25));
+}
+
+kbd {
+  font-family: var(--font-sans);
 }
 
 /* Smooth module reveal */
@@ -55,18 +128,50 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .rise-in,
+  .skeleton,
   .animate-pulse,
+  .animate-ping,
   .animate-spin {
     animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
   }
   html {
     scroll-behavior: auto;
   }
 }
 
+/* Loading skeleton with a soft sheen */
+.skeleton {
+  background: linear-gradient(100deg, rgb(241 245 249) 30%, rgb(248 250 252) 50%, rgb(241 245 249) 70%);
+  background-size: 300% 100%;
+  animation: sheen 1.6s ease-in-out infinite;
+}
+:root.dark .skeleton {
+  background-image: linear-gradient(100deg, rgb(255 255 255 / 0.04) 30%, rgb(255 255 255 / 0.08) 50%, rgb(255 255 255 / 0.04) 70%);
+}
+@keyframes sheen {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
 /* Thin scrollbars for in-card scroll areas */
 .thin-scroll {
   scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184 / 0.45) transparent;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* ---------- Print / PDF report ---------- */
@@ -78,6 +183,7 @@ body {
   html,
   body {
     background: #fff !important;
+    background-image: none !important;
     color: #0f172a !important;
   }
   .no-print {
@@ -100,7 +206,7 @@ body {
     print-color-adjust: exact;
   }
   a {
-    color: #0e7490 !important;
+    color: #195873 !important;
     text-decoration: none !important;
   }
 }

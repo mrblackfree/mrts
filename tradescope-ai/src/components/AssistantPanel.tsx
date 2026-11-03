@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Bot, ExternalLink, FileText, Loader2, Mail, MapPin, Send, Sparkles, Star, Target, Wand2, X } from 'lucide-react';
+import { AlertTriangle, Bot, ExternalLink, FileText, Mail, MapPin, Send, Sparkles, Star, Target, Wand2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog';
 import { formatNumber, formatUsd } from '@/lib/format';
@@ -8,7 +8,7 @@ import { PARTNER_TYPE_LABEL, type DictKey } from '@/lib/i18n';
 import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, partnerFactors, priceForIncoterm, priceOnBasis, proformaToText } from '@/lib/engine/simulate';
 import type { DraftOptions, EmailDraft, Lang, Partner, QueryIntent, TradeProduct } from '@/lib/types';
 import { useI18n } from './I18nProvider';
-import { Badge, CopyButton, cx, ProgressBar, ScoreRing, Segmented } from './ui';
+import { Badge, Button, buttonClass, CopyButton, cx, ProgressBar, ScoreRing, Segmented } from './ui';
 
 interface Props {
   product: TradeProduct;
@@ -100,22 +100,22 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
     );
   };
   const inputCls =
-    'h-9 w-full rounded-lg border border-slate-300 bg-white px-2.5 text-sm font-semibold text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white';
-  const labelCls = 'mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-400';
+    'h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-hairline outline-none transition-[border-color,box-shadow] focus:border-brand-400 focus:shadow-[0_0_0_4px_rgb(42_133_166/0.12)] dark:border-white/10 dark:bg-white/[0.03] dark:text-white';
+  const labelCls = 'mb-1.5 block text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate-400';
 
   return (
     <div ref={dialogRef} className="no-print fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={t('m5Title')}>
-      <button type="button" aria-label={t('close')} className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px]" onClick={onClose} />
-      <aside className="rise-in relative flex h-full w-full min-w-0 max-w-2xl flex-col bg-white shadow-2xl dark:bg-slate-900">
+      <button type="button" aria-label={t('close')} className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={onClose} />
+      <aside className="rise-in relative flex h-full w-full min-w-0 max-w-2xl flex-col bg-white shadow-float ring-1 ring-slate-900/5 sm:rounded-l-[24px] dark:bg-[#0b111c] dark:ring-white/10">
         {/* Header */}
-        <div className="border-b border-slate-200 px-5 pb-0 pt-4 dark:border-slate-800">
+        <div className="border-b border-slate-200/80 px-5 pb-0 pt-5 dark:border-white/[0.07]">
           <div className="flex items-start gap-3">
             <ScoreRing value={partner.score} size={60} label={t('match')} />
             <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400">
+              <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-brand-600 dark:text-brand-400">
                 <Bot className="size-3.5" /> Module 5 · {t('m5Title')}
               </p>
-              <h2 className="mt-0.5 text-lg font-extrabold leading-snug text-slate-900 dark:text-white">{partner.name}</h2>
+              <h2 className="mt-1 text-xl font-bold leading-snug text-slate-900 dark:text-white">{partner.name}</h2>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
                 <span className="inline-flex items-center gap-1">
                   <MapPin className="size-3" />
@@ -127,11 +127,11 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                 </a>
               </p>
             </div>
-            <button ref={closeRef} type="button" onClick={onClose} className="grid size-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label={t('close')}>
+            <Button ref={closeRef} variant="ghost" size="md" icon onClick={onClose} aria-label={t('close')} className="-mr-1 -mt-1 rounded-full">
               <X className="size-5" />
-            </button>
+            </Button>
           </div>
-          <div className="mt-4 flex gap-1" role="tablist">
+          <div className="mt-4 flex gap-5" role="tablist">
             {(['analysis', 'email'] as const).map((k) => (
               <button
                 key={k}
@@ -140,8 +140,8 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                 aria-selected={tab === k}
                 onClick={() => setTab(k)}
                 className={cx(
-                  'inline-flex items-center gap-1.5 rounded-t-lg border-b-2 px-3 py-2 text-sm font-bold transition',
-                  tab === k ? 'border-brand-500 text-brand-700 dark:text-brand-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200',
+                  '-mb-px inline-flex items-center gap-1.5 border-b-2 pb-3 pt-1 text-sm font-semibold transition-colors',
+                  tab === k ? 'border-ink-900 text-slate-900 dark:border-white dark:text-white' : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white',
                 )}
               >
                 {k === 'analysis' ? <Target className="size-4" /> : <Mail className="size-4" />}
@@ -154,7 +154,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
         <div className="thin-scroll min-w-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
           {tab === 'analysis' ? (
             <div className="space-y-5">
-              <p className="rounded-xl bg-slate-50 p-3.5 text-sm leading-relaxed text-slate-700 dark:bg-slate-800/60 dark:text-slate-200">{p(partner.comment)}</p>
+              <p className="rounded-2xl bg-gradient-to-b from-slate-50 to-white p-4 text-sm leading-relaxed text-slate-700 ring-1 ring-inset ring-slate-200/70 dark:from-white/[0.04] dark:to-transparent dark:text-slate-200 dark:ring-white/[0.07]">{p(partner.comment)}</p>
 
               <div>
                 <p className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-100">{t('factors')}</p>
@@ -185,8 +185,8 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                 <p className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-100">{t('appeal')}</p>
                 <ol className="space-y-2">
                   {partner.appeal.map((a, i) => (
-                    <li key={i} className="flex gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                      <span className="grid size-6 shrink-0 place-items-center rounded-full bg-brand-500 text-xs font-bold text-white">{i + 1}</span>
+                    <li key={i} className="flex gap-3 rounded-xl border border-slate-200/80 bg-white p-3 shadow-hairline dark:border-white/[0.07] dark:bg-white/[0.02]">
+                      <span className="grid size-6 shrink-0 place-items-center rounded-full bg-gradient-to-b from-brand-500 to-brand-700 text-xs font-bold text-white">{i + 1}</span>
                       <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{p(a)}</span>
                     </li>
                   ))}
@@ -227,7 +227,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
             email && (
               <div className="space-y-5">
                 {/* Options */}
-                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 p-4 sm:grid-cols-4 dark:border-slate-800">
+                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-slate-200 p-4 sm:grid-cols-4 dark:border-white/[0.07]">
                   <label className="col-span-2">
                     <span className={labelCls}>{t('incoterm')}</span>
                     <select className={inputCls} value={options.incoterm} onChange={(e) => update({ incoterm: e.target.value, unitPrice: priceForIncoterm(product, e.target.value) })}>
@@ -300,24 +300,24 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                           ['none', t('sampleNone')],
                         ] as const
                       ).map(([v, label]) => (
-                        <label key={v} className={cx('cursor-pointer rounded-lg border px-2.5 py-1.5 text-xs font-semibold focus-within:ring-2 focus-within:ring-brand-500/40', options.sample === v ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300' : 'border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300')}>
+                        <label key={v} className={cx('inline-flex h-8 cursor-pointer items-center rounded-full border px-3 text-xs font-semibold transition-[background-color,border-color,color] duration-150 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand-500', options.sample === v ? 'border-ink-900 bg-ink-900 text-white dark:border-white dark:bg-white dark:text-ink-900' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300')}>
                           <input type="radio" name="sample" className="sr-only" checked={options.sample === v} onChange={() => update({ sample: v })} />
                           {label}
                         </label>
                       ))}
                       <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        <input type="checkbox" className="size-4 accent-cyan-600" checked={options.sampleCourierByBuyer} onChange={(e) => update({ sampleCourierByBuyer: e.target.checked })} disabled={options.sample === 'none'} />
+                        <input type="checkbox" className="size-4 accent-[#1d6c8c]" checked={options.sampleCourierByBuyer} onChange={(e) => update({ sampleCourierByBuyer: e.target.checked })} disabled={options.sample === 'none'} />
                         {t('courierBuyer')}
                       </label>
                     </div>
                   </fieldset>
                   <div className="col-span-2 flex flex-wrap gap-x-4 gap-y-2 sm:col-span-4">
                     <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      <input type="checkbox" className="size-4 accent-cyan-600" checked={options.includeFtaNote} onChange={(e) => update({ includeFtaNote: e.target.checked })} />
+                      <input type="checkbox" className="size-4 accent-[#1d6c8c]" checked={options.includeFtaNote} onChange={(e) => update({ includeFtaNote: e.target.checked })} />
                       {t('ftaNote')}
                     </label>
                     <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      <input type="checkbox" className="size-4 accent-cyan-600" checked={options.includeCertNote} onChange={(e) => update({ includeCertNote: e.target.checked })} />
+                      <input type="checkbox" className="size-4 accent-[#1d6c8c]" checked={options.includeCertNote} onChange={(e) => update({ includeCertNote: e.target.checked })} />
                       {t('certNote')}
                     </label>
                   </div>
@@ -332,8 +332,8 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                 </div>
 
                 {/* Email */}
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-800">
+                <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-hairline dark:border-white/[0.07] dark:bg-white/[0.02]">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-2.5 dark:border-white/[0.06] dark:bg-white/[0.02]">
                     <div className="flex items-center gap-2">
                       <Send className="size-4 text-brand-500" />
                       <span className="text-sm font-bold text-slate-800 dark:text-slate-100">{t('emailLang')}</span>
@@ -353,32 +353,26 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                   </div>
                   <div className="space-y-2 p-4">
                     <p className="text-xs text-slate-400">{t('subject')}</p>
-                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900 dark:bg-slate-800/60 dark:text-white">{email.subject}</p>
-                    <pre className="thin-scroll max-h-[22rem] overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-3 font-sans text-[13px] leading-relaxed text-slate-700 dark:bg-slate-800/60 dark:text-slate-200">{email.body}</pre>
+                    <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm font-bold text-slate-900 dark:bg-white/[0.04] dark:text-white">{email.subject}</p>
+                    <pre className="thin-scroll max-h-[22rem] overflow-y-auto whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-3 font-sans text-[13px] leading-relaxed text-slate-700 dark:bg-white/[0.04] dark:text-slate-200">{email.body}</pre>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-4 py-3 dark:border-slate-800">
+                  <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-4 py-3 dark:border-white/[0.07]">
                     <CopyButton text={`${email.subject}\n\n${email.body}`} />
-                    <a href={mailto} onClick={onMailto} title={mailtoTooLong ? t('mailtoCopied') : undefined} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-brand-500 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                      <Mail className="size-3.5" />
+                    <a href={mailto} onClick={onMailto} title={mailtoTooLong ? t('mailtoCopied') : undefined} className={buttonClass({ size: 'sm' })}>
+                      <Mail className="size-3.5" aria-hidden />
                       {t('openMail')}
                     </a>
-                    <button
-                      type="button"
-                      onClick={polish}
-                      disabled={polishing}
-                      title={aiEnabled ? undefined : t('polishNoKey')}
-                      className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-violet-500 to-brand-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:brightness-110 disabled:opacity-60"
-                    >
-                      {polishing ? <Loader2 className="size-3.5 animate-spin" /> : aiEnabled ? <Sparkles className="size-3.5" /> : <Wand2 className="size-3.5" />}
+                    <Button variant="ai" size="sm" onClick={polish} loading={polishing} title={aiEnabled ? undefined : t('polishNoKey')} className="ml-auto">
+                      {!polishing && (aiEnabled ? <Sparkles className="size-3.5" aria-hidden /> : <Wand2 className="size-3.5" aria-hidden />)}
                       {polishing ? t('polishing') : t('polish')}
-                    </button>
+                    </Button>
                   </div>
                   {notice && <p className="px-4 pb-3 text-xs font-medium text-amber-600 dark:text-amber-400">{notice}</p>}
                 </div>
 
                 {/* Proforma invoice */}
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800">
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-800">
+                <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-hairline dark:border-white/[0.07] dark:bg-white/[0.02]">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-2.5 dark:border-white/[0.06] dark:bg-white/[0.02]">
                     <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
                       <FileText className="size-4 text-brand-500" />
                       {t('piTitle')}
@@ -410,7 +404,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                     <div className="thin-scroll overflow-x-auto">
                       <table className="w-full min-w-[460px] text-left">
                         <thead>
-                          <tr className="border-y border-slate-200 text-[10px] uppercase tracking-wide text-slate-400 dark:border-slate-700">
+                          <tr className="border-y border-slate-200 text-[10px] uppercase tracking-wide text-slate-400 dark:border-white/10">
                             <th className="py-1.5">Description</th>
                             <th className="py-1.5">HS</th>
                             <th className="py-1.5 text-right">Qty</th>
@@ -420,7 +414,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                         </thead>
                         <tbody>
                           {draft.pi.lines.map((l, i) => (
-                            <tr key={i} className="border-b border-slate-100 dark:border-slate-800">
+                            <tr key={i} className="border-b border-slate-100 dark:border-white/[0.07]">
                               <td className="py-1.5 pr-2 font-medium text-slate-700 dark:text-slate-200">{l.description}</td>
                               <td className="py-1.5 font-mono text-slate-500">{l.hsCode}</td>
                               <td className="py-1.5 text-right tabular-nums">

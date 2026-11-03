@@ -25,20 +25,25 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
   return (
     <div className="rise-in grid gap-5 lg:grid-cols-5">
       <Card className="lg:col-span-2">
-        <div className="px-5 pt-5">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white">{t('overviewTitle')}</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{t('overviewSub')}</p>
+        <div className="px-5 pt-5 sm:px-6">
+          <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">{t('overviewTitle')}</h2>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t('overviewSub')}</p>
         </div>
-        <div className="grid grid-cols-2 gap-2 px-5 pt-4">
+        <div className="grid grid-cols-2 gap-2.5 px-5 pt-4 sm:px-6">
           {kpis.map((k) => (
-            <div key={k.label} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                {k.icon}
+            <div key={k.label} className="rounded-2xl bg-gradient-to-b from-slate-50 to-white p-3.5 ring-1 ring-inset ring-slate-200/70 dark:from-white/[0.04] dark:to-white/[0.01] dark:ring-white/[0.07]">
+              <p className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                <span className="grid size-5 place-items-center rounded-md bg-white text-slate-500 shadow-hairline ring-1 ring-slate-200/70 dark:bg-white/[0.06] dark:text-slate-300 dark:ring-white/10 [&>svg]:size-3">{k.icon}</span>
                 {k.label} · {ex[last].year}
               </p>
-              <p className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">{k.value}</p>
+              <p className="mt-2 text-[22px] font-bold leading-none tracking-[-0.02em] text-slate-900 tabular-nums dark:text-white">{k.value}</p>
               {k.delta !== null && (
-                <p className={cx('text-xs font-bold', { up: 'text-emerald-600 dark:text-emerald-400', down: 'text-rose-600 dark:text-rose-400', flat: 'text-slate-500' }[trend(k.delta)])}>
+                <p
+                  className={cx(
+                    'mt-2 inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
+                    { up: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400', down: 'bg-rose-50 text-rose-700 dark:bg-rose-400/10 dark:text-rose-400', flat: 'bg-slate-100 text-slate-500 dark:bg-white/[0.06]' }[trend(k.delta)],
+                  )}
+                >
                   {t('yoyLabel')} {formatPct(k.delta, 1, true)}
                 </p>
               )}
@@ -59,7 +64,7 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
           </span>
         </div>
         <div className="px-5 pb-5">
-          <p className="mt-2 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+          <p className="mt-2 flex items-start gap-2 rounded-xl bg-amber-50/80 p-3 text-xs font-medium text-amber-900 ring-1 ring-inset ring-amber-200/60 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/20">
             <Handshake className="mt-0.5 size-4 shrink-0" />
             {p(KR_PH_OVERVIEW.ftaInForce)}
           </p>
@@ -68,16 +73,16 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
       </Card>
 
       <Card className="lg:col-span-3">
-        <div className="flex items-end justify-between gap-3 px-5 pt-5">
+        <div className="flex items-end justify-between gap-3 px-5 pt-5 sm:px-6">
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">{t('catalogTitle')}</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{t('catalogSub')}</p>
+            <h2 className="text-[17px] font-bold text-slate-900 dark:text-white">{t('catalogTitle')}</h2>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{t('catalogSub')}</p>
           </div>
           <Badge tone="brand">
             {t('itemsUnit').replace('{n}', String(PRODUCTS.length))} · {t('partnersUnit').replace('{n}', String(PRODUCTS.reduce((n, x) => n + x.partners.length, 0)))}
           </Badge>
         </div>
-        <ul className="grid gap-2.5 p-5 sm:grid-cols-2">
+        <ul className="grid gap-2.5 p-5 sm:grid-cols-2 sm:px-6 sm:pb-6">
           {PRODUCTS.map((prod) => {
             const best = bestTariff(prod);
             const mfn = mfnTariff(prod);
@@ -88,17 +93,19 @@ export default function Overview({ onPick }: { onPick: (productId: string) => vo
                 <button
                   type="button"
                   onClick={() => onPick(prod.id)}
-                  className="group flex h-full w-full flex-col gap-2 rounded-xl border border-slate-200 p-3.5 text-left transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md dark:border-slate-700 dark:hover:border-brand-500"
+                  className="group flex h-full w-full flex-col gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3.5 text-left transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-elevated dark:border-white/[0.08] dark:bg-white/[0.02] dark:hover:border-white/15"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-xl dark:bg-slate-800" aria-hidden>
+                    <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 text-xl ring-1 ring-inset ring-slate-200/70 dark:from-white/[0.06] dark:to-white/[0.02] dark:ring-white/10" aria-hidden>
                       {prod.emoji}
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold leading-snug text-slate-900 dark:text-white">{p(prod.name)}</p>
-                      <p className="mt-0.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400">{DIRECTION_LABEL[prod.direction][lang]}</p>
+                      <p className="text-[14px] font-semibold leading-snug text-slate-900 dark:text-white">{p(prod.name)}</p>
+                      <p className="mt-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400">{DIRECTION_LABEL[prod.direction][lang]}</p>
                     </div>
-                    <ArrowRight className="size-4 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-600" />
+                    <span aria-hidden className="grid size-7 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400 transition-colors group-hover:bg-ink-900 group-hover:text-white dark:bg-white/[0.06] dark:group-hover:bg-white dark:group-hover:text-ink-900">
+                      <ArrowRight className="size-3.5" />
+                    </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     <Badge>HS {prod.hs[0].code}</Badge>

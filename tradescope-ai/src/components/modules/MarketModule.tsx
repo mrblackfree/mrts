@@ -31,13 +31,13 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
   ];
 
   return (
-    <Card id="m-market" className="rise-in scroll-mt-28">
+    <Card id="m-market" className="rise-in scroll-mt-36">
       <ModuleHeader index={3} title={t('m3Title')} icon={<TrendingUp className="size-5" />} />
       <div className="grid gap-5 p-5 lg:grid-cols-2">
         <div className="min-w-0">
           <div className={cx('grid gap-2', kpis.length > 3 ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3')}>
             {kpis.map((k) => (
-              <div key={k.label} className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+              <div key={k.label} className="rounded-xl bg-slate-50 p-3 dark:bg-white/[0.04]">
                 <p className="text-[11px] font-semibold leading-tight text-slate-500 dark:text-slate-400">{k.label}</p>
                 <p className="mt-1 text-lg font-extrabold tabular-nums text-slate-900 sm:text-xl dark:text-white">{k.value}</p>
                 <p
@@ -89,20 +89,20 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
       </div>
 
       {/* Logistics lanes */}
-      <div className="border-t border-slate-100 p-5 dark:border-slate-800">
+      <div className="border-t border-slate-100 p-5 dark:border-white/[0.07]">
         <p className="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-slate-100">
           <Ship className="size-4 text-brand-500" />
           {t('logistics')}
         </p>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {product.logistics.map((l, i) => (
-            <div key={`${l.from}-${l.to}-${l.mode}-${i}`} className="rounded-xl border border-slate-200 p-3.5 dark:border-slate-800">
+            <div key={`${l.from}-${l.to}-${l.mode}-${i}`} className="rounded-xl border border-slate-200 p-3.5 dark:border-white/[0.07]">
               <div className="flex items-center justify-between gap-2 text-sm font-bold text-slate-900 dark:text-white">
                 <span>
                   {PORT_FLAG[l.from] ?? ''} {l.from}
                 </span>
                 <span className="relative mx-1 h-px flex-1 bg-gradient-to-r from-slate-300 to-brand-500 dark:from-slate-600">
-                  <Anchor className="absolute -top-2 left-1/2 size-4 -translate-x-1/2 rounded-full bg-white p-0.5 text-brand-500 dark:bg-slate-900" />
+                  <Anchor className="absolute -top-2 left-1/2 size-4 -translate-x-1/2 rounded-full bg-white p-0.5 text-brand-500 dark:bg-[#0c121d]" />
                 </span>
                 <span>
                   {l.to} {PORT_FLAG[l.to] ?? ''}
@@ -123,7 +123,7 @@ export default function MarketModule({ product }: { product: TradeProduct }) {
                 <dt className="text-slate-400">{t('frequency')}</dt>
                 <dd className="text-right text-slate-600 dark:text-slate-300">{p(l.frequency)}</dd>
               </dl>
-              {l.note && <p className="mt-2 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">{p(l.note)}</p>}
+              {l.note && <p className="mt-2 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-500 dark:bg-white/[0.04] dark:text-slate-400">{p(l.note)}</p>}
             </div>
           ))}
         </div>

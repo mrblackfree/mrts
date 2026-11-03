@@ -5,7 +5,7 @@ import type { CompetitorShare, YearValue } from '@/lib/types';
 import { cx } from './ui';
 
 /** 3-year column chart in pure SVG with value + YoY labels. */
-export function TrendColumns({ series, ariaLabel, accent = '#06b6d4' }: { series: YearValue[]; ariaLabel: string; accent?: string }) {
+export function TrendColumns({ series, ariaLabel, accent = '#2a85a6' }: { series: YearValue[]; ariaLabel: string; accent?: string }) {
   const W = 360;
   const H = 190;
   const padX = 28;
@@ -101,7 +101,7 @@ export function ShareBars({ rows, label }: { rows: Array<CompetitorShare & { nam
             <span aria-hidden>{r.flag}</span>
             <span className="truncate">{r.name}</span>
           </span>
-          <span className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+          <span className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.07]">
             <span
               className={cx('block h-full rounded-full transition-all duration-700', r.highlight ? 'bg-brand-500' : 'bg-slate-300 dark:bg-slate-600')}
               style={{ width: `${Math.max(1.5, (r.share / max) * 100)}%` }}

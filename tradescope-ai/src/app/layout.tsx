@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from 'next';
+// Pretendard (SIL OFL 1.1), self-hosted as a dynamic subset: the browser only downloads the glyph ranges it needs.
+import './fonts/pretendard/pretendardvariable-dynamic-subset.css';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -18,8 +20,8 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f8fafc' },
-    { media: '(prefers-color-scheme: dark)', color: '#020617' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f7fa' },
+    { media: '(prefers-color-scheme: dark)', color: '#060a12' },
   ],
 };
 

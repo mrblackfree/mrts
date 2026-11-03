@@ -248,9 +248,10 @@ tradescope-ai/
 └─ src/
    ├─ app/
    │  ├─ page.tsx             Zero-Login 워크스페이스 (/)
-   │  ├─ layout.tsx · globals.css (다크/라이트 · 인쇄 스타일)
+   │  ├─ layout.tsx · globals.css (디자인 토큰 · 다크/라이트 · 인쇄 스타일)
+   │  ├─ fonts/pretendard/    Pretendard 가변 폰트 dynamic subset (SIL OFL 1.1, 자체 호스팅)
    │  └─ api/ analyze · draft · health
-   ├─ components/             Header · HeroSearch · Overview · AssistantPanel · charts · ui
+   ├─ components/             Header · HeroSearch · Overview · AssistantPanel · charts · ui(Button·Card·Segmented·Chip 등)
    │  └─ modules/             Briefing · Tariff(+Checklist) · Market · Partners
    ├─ data/kr-ph-trade-db.ts  한-필 RAG 시드 데이터베이스 (공식 레이어 병합 후 export)
    ├─ data/official/          snapshot.json(공식 API 스냅샷) · index.ts(병합·검증 등급) · roadmap.ts · changelog.json
@@ -262,6 +263,24 @@ tradescope-ai/
       ├─ engine/llm.ts        RAG 프롬프트 (숫자는 컨텍스트만 사용하도록 제약)
       ├─ i18n.ts · format.ts · types.ts
 ```
+
+### 디자인 시스템
+- **토큰 (`globals.css` `@theme`)**
+  - 브랜드 색 `brand-50…950`: 딥 블루-틸 "Harbor" 계열
+  - 잉크 색 `ink-900`: 주 버튼·텍스트용
+  - 그림자: `shadow-hairline` · `soft` · `elevated` · `float` · `brand` · `ink`
+- **버튼 (`components/ui.tsx`)**
+  - 모든 버튼은 `Button` 또는 `buttonClass()`(링크용)를 씁니다.
+  - variant 6종: `primary`(잉크) · `brand` · `ai` · `secondary` · `ghost` · `subtle`
+  - size 4종: `xs` · `sm` · `md` · `lg`. `icon`은 정사각 버튼, `loading`은 스피너를 표시합니다.
+  - 기본 스타일에 `display: inline-flex`가 들어 있으므로, 반응형으로 숨길 때는 래퍼 요소에 `hidden md:inline-flex`를 지정합니다.
+- **선택 UI**
+  - `Segmented`와 `Chip`은 `aria-pressed`로 상태를 알립니다.
+  - `Chip`은 선택 시 체크 표시를 함께 보여 줘 색에만 의존하지 않습니다.
+  - 키보드 포커스는 `:focus-visible` 외곽선으로 통일했습니다.
+- **폰트**
+  - Pretendard는 외부 CDN 없이 번들됩니다(dynamic subset이라 필요한 글리프 구간만 내려받음).
+  - 라이선스는 `src/app/fonts/pretendard/OFL.txt`에 있습니다.
 
 ---
 

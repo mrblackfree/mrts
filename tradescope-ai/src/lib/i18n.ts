@@ -16,6 +16,10 @@ const ko = {
 
   heroEyebrow: 'All-in-One AI Trade Intelligence',
   heroTitle: '한국 ↔ 필리핀 무역, 질문 하나로 끝내세요',
+  heroTitleLead: '한국 ↔ 필리핀 무역,',
+  heroTitleAccent: '질문 하나로 끝내세요',
+  kbdSubmit: '분석',
+  kbdNewline: '줄바꿈',
   heroSub: 'HS Code 분류 · FTA 절세 · 통관/인증 · 시장·물류 · 바이어 매칭 · 거래 제안서까지 한 화면에서.',
   searchPlaceholder: '수출입할 상품명, HS Code, 또는 자연어로 질문하세요 (예: 필리핀 세부에서 생산한 바나나칩을 한국에 수입할 때 관세와 절차는?)',
   analyze: '분석하기',
@@ -259,6 +263,10 @@ const en: Record<DictKey, string> = {
 
   heroEyebrow: 'All-in-One AI Trade Intelligence',
   heroTitle: 'Korea ↔ Philippines trade, answered in one question',
+  heroTitleLead: 'Korea ↔ Philippines trade,',
+  heroTitleAccent: 'answered in one question',
+  kbdSubmit: 'to analyze',
+  kbdNewline: 'for a new line',
   heroSub: 'HS classification · FTA savings · customs & certification · market & logistics · buyer matching · proposals — on one screen.',
   searchPlaceholder: 'Ask with a product, HS code or plain language (e.g. What duties and procedures apply to importing Cebu banana chips into Korea?)',
   analyze: 'Analyze',

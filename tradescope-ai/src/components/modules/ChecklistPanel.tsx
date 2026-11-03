@@ -31,7 +31,7 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
     });
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-slate-200 p-4 dark:border-slate-800">
+    <div className="flex h-full flex-col rounded-2xl border border-slate-200 p-4 dark:border-white/[0.07]">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{t('checklistTitle')}</p>
         <span className="text-xs font-bold text-slate-500">
@@ -54,7 +54,7 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
                   const isOpen = open === r.id;
                   const isDone = checked.has(r.id);
                   return (
-                    <li key={r.id} className={cx('rounded-xl border transition', isOpen ? 'border-brand-500/60 bg-brand-50/40 dark:bg-brand-500/5' : 'border-slate-200 dark:border-slate-800')}>
+                    <li key={r.id} className={cx('rounded-xl border transition', isOpen ? 'border-brand-500/60 bg-brand-50/40 dark:bg-brand-500/5' : 'border-slate-200 dark:border-white/[0.07]')}>
                       <div className="flex items-start gap-2 p-2.5">
                         <button type="button" onClick={() => toggle(r.id)} className="mt-0.5 shrink-0 text-slate-400 hover:text-emerald-600" aria-label={p(r.title)} aria-pressed={isDone}>
                           {isDone ? <CheckSquare className="size-[18px] text-emerald-500" /> : <Square className="size-[18px]" />}
@@ -78,7 +78,7 @@ export default function ChecklistPanel({ product }: { product: TradeProduct }) {
                         </button>
                       </div>
                       {/* Detailed guide (always expanded in print) */}
-                      <div className={cx('border-t border-slate-100 px-3 pb-3 pt-2 text-xs leading-relaxed text-slate-600 dark:border-slate-800 dark:text-slate-300', isOpen ? 'block' : 'hidden print:block')}>
+                      <div className={cx('border-t border-slate-100 px-3 pb-3 pt-2 text-xs leading-relaxed text-slate-600 dark:border-white/[0.07] dark:text-slate-300', isOpen ? 'block' : 'hidden print:block')}>
                         <p className="mb-1 font-bold text-slate-500">{t('detailGuide')}</p>
                         <p>{p(r.detail)}</p>
                         <a href={r.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline dark:text-brand-400">
