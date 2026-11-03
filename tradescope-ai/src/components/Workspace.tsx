@@ -3,7 +3,7 @@
 import { Container, FileDown, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DEMO_SCENARIOS, getProduct } from '@/data/kr-ph-trade-db';
-import { analyzeLocal, DIRECTION_LABEL, rankPartners } from '@/lib/engine/simulate';
+import { analyzeLocal, cifAdjustment, DIRECTION_LABEL, rankPartners } from '@/lib/engine/simulate';
 import type { AnalysisReport, Direction, Lang } from '@/lib/types';
 import AnalysisProgress, { PIPELINE_STEPS } from './AnalysisProgress';
 import AssistantPanel from './AssistantPanel';
@@ -19,6 +19,14 @@ import Overview from './Overview';
 import UnsupportedNotice from './UnsupportedNotice';
 import { Button, cx } from './ui';
 import { useBusinessDay } from './useBusinessDay';
+
+/** The query's own amount and incoterm when the tariff calculator starts from a value converted to CIF. */
+function cifSource(report: AnalysisReport) {
+  const term = report.intent.incoterm?.split(' ')[0].toUpperCase();
+  const adjustment = term ? cifAdjustment(term) : undefined;
+  if (report.intent.customsValueUsd === undefined || !term || !adjustment) return undefined;
+  return { term, amount: report.intent.amountUsd ?? 0, adjustment };
+}
 
 export default function Workspace() {
   return (
@@ -203,7 +211,8 @@ function WorkspaceInner() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [status, report?.id]);
+    // the example report of an unsupported query mounts its sections only when it is opened
+  }, [status, report?.id, showExample]);
 
   return (
     <>
@@ -271,7 +280,8 @@ function WorkspaceInner() {
                 key={`t-${report.id}`}
                 product={product}
                 initialAmount={report.intent.customsValueUsd ?? report.intent.amountUsd}
-                convertedFrom={report.intent.customsValueUsd !== undefined && report.intent.incoterm ? { term: report.intent.incoterm.split(' ')[0], amount: report.intent.amountUsd ?? 0 } : undefined}
+                convertedFrom={cifSource(report)}
+                assumedCif={report.intent.amountUsd !== undefined && !report.intent.incoterm}
               />
               <MarketModule key={`m-${report.id}`} product={product} />
               <div className="print-break" />

@@ -163,7 +163,8 @@ export function retrieveProduct(query: string, direction: Direction): RetrievalR
     }
     if (p.direction === direction) score += 4;
     if (inferred && p.direction === inferred) score += 3;
-    return { p, score, matched: Array.from(new Set(matched)), evidence: aliasHit || hsHit, otherForm, headingOnly };
+    // a different form is never this product, whatever else matched ("생바나나 0803.90" is not banana chips)
+    return { p, score, matched: Array.from(new Set(matched)), evidence: !otherForm && (aliasHit || hsHit), otherForm, headingOnly };
   }).sort((a, b) => Number(b.evidence) - Number(a.evidence) || b.score - a.score);
 
   const best = scored[0];

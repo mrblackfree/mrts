@@ -162,11 +162,22 @@ export function buildBriefing(
   // duty is assessed on the CIF value; a stated FOB/EXW/DDP amount is converted first (see customsValueFromAmount)
   const amount = intent.customsValueUsd ?? intent.amountUsd ?? 50_000;
   const saving = ((mfn.rate - best.rate) / 100) * amount;
-  const basisTerm = intent.customsValueUsd !== undefined && intent.incoterm ? intent.incoterm.split(' ')[0] : undefined;
-  const basisKo = basisTerm ? `과세가격(CIF 환산, ${basisTerm} ${formatUsd(intent.amountUsd ?? 0)}에 운임·보험료 추정 반영) ${formatUsd(amount)}` : `과세가격(CIF) ${formatUsd(amount)}`;
-  const basisEn = basisTerm
-    ? `${formatUsd(amount)} CIF customs value (${basisTerm} ${formatUsd(intent.amountUsd ?? 0)} plus estimated freight and insurance)`
-    : `${formatUsd(amount)} CIF customs value`;
+  const basisTerm = intent.customsValueUsd !== undefined && intent.incoterm ? intent.incoterm.split(' ')[0].toUpperCase() : undefined;
+  const adj = basisTerm ? cifAdjustment(basisTerm) : undefined;
+  const stated = formatUsd(intent.amountUsd ?? 0);
+  const howKo = { 'add-freight-insurance': '에 운임·보험료 추정분을 더함', 'add-insurance': '에 보험료 추정분을 더함', 'remove-delivery': '에서 도착지 운송 추정분을 뺌', 'remove-duty-vat-delivery': '에서 관세·부가세·도착지 운송 추정분을 뺌' };
+  const howEn = { 'add-freight-insurance': 'plus estimated freight and insurance', 'add-insurance': 'plus estimated insurance', 'remove-delivery': 'less estimated destination delivery', 'remove-duty-vat-delivery': 'less estimated duty, VAT and destination delivery' };
+  // no incoterm in the question: the figure is used as the CIF value, and said to be an assumption
+  const basisKo = adj
+    ? `과세가격(CIF 환산: ${basisTerm} ${stated}${howKo[adj]}) ${formatUsd(amount)}`
+    : intent.amountUsd !== undefined
+      ? `과세가격 ${formatUsd(amount)}(인코텀즈가 없어 CIF로 가정)`
+      : `예시 과세가격 ${formatUsd(amount)}(CIF 가정)`;
+  const basisEn = adj
+    ? `${formatUsd(amount)} CIF customs value (${basisTerm} ${stated} ${howEn[adj]})`
+    : intent.amountUsd !== undefined
+      ? `${formatUsd(amount)} customs value (no incoterm given — assumed CIF)`
+      : `${formatUsd(amount)} example customs value (assumed CIF)`;
   const hs0 = product.hs[0];
   const hs1 = product.hs[1];
   const partners = rankPartners(product, intent);
@@ -321,6 +332,28 @@ function incotermFactor(product: TradeProduct, incoterm: string): number | undef
   const f = INCOTERM_UPLIFT[term];
   if (f === undefined) return undefined;
   return term === 'DDP' ? f * (1 + bestTariff(product).rate / 100) * (1 + importVat(product.direction) / 100) : f;
+}
+
+export type CifAdjustment = 'add-freight-insurance' | 'add-insurance' | 'remove-delivery' | 'remove-duty-vat-delivery';
+
+/** What converting a quote on `term` to CIF does (for the explanation shown next to the converted value). */
+export function cifAdjustment(term: string): CifAdjustment | undefined {
+  switch (term.toUpperCase()) {
+    case 'EXW':
+    case 'FCA':
+    case 'FOB':
+      return 'add-freight-insurance';
+    case 'CFR':
+    case 'CPT':
+      return 'add-insurance';
+    case 'DAP':
+    case 'DPU':
+      return 'remove-delivery';
+    case 'DDP':
+      return 'remove-duty-vat-delivery';
+    default:
+      return undefined;
+  }
 }
 
 /**

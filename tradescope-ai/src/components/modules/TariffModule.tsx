@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 import { AGENCY_LINKS } from '@/data/kr-ph-trade-db';
 import { OFFICIAL } from '@/data/official';
 import { formatUsd } from '@/lib/format';
-import { computeDuties, importVat, SCHEME_LABEL } from '@/lib/engine/simulate';
+import { computeDuties, importVat, SCHEME_LABEL, type CifAdjustment } from '@/lib/engine/simulate';
 import type { Bilingual, FtaScheme, MfnCheck, PrefCheck, TariffRate, TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
 import { Badge, Card, cx, LevelBadge, ModuleHeader, SourceTag } from '../ui';
@@ -54,11 +54,14 @@ export default function TariffModule({
   product,
   initialAmount,
   convertedFrom,
+  assumedCif,
 }: {
   product: TradeProduct;
   initialAmount?: number;
   /** the query's amount when it was quoted on another incoterm and converted to CIF for `initialAmount` */
-  convertedFrom?: { term: string; amount: number };
+  convertedFrom?: { term: string; amount: number; adjustment: CifAdjustment };
+  /** the query stated an amount without an incoterm: `initialAmount` is that figure, assumed to be CIF */
+  assumedCif?: boolean;
 }) {
   const { t, p, lang } = useI18n();
   const [amount, setAmount] = useState<number>(initialAmount ?? 50_000);
@@ -210,9 +213,13 @@ export default function TariffModule({
                 <span className="text-xs text-slate-500">{t('customsValue')}</span>
                 {convertedFrom && amount === initialAmount && (
                   <span className="mt-0.5 block text-[11px] font-medium text-amber-700 dark:text-amber-300">
-                    {t('cifConverted').replace('{term}', convertedFrom.term).replace('{amount}', formatUsd(convertedFrom.amount))}
+                    {t('cifConverted')
+                      .replace('{term}', convertedFrom.term)
+                      .replace('{amount}', formatUsd(convertedFrom.amount))
+                      .replace('{how}', t(`cifHow.${convertedFrom.adjustment}`))}
                   </span>
                 )}
+                {assumedCif && !convertedFrom && amount === initialAmount && <span className="mt-0.5 block text-[11px] font-medium text-slate-500 dark:text-slate-400">{t('cifAssumed')}</span>}
                 <span className="mt-1.5 flex items-center rounded-xl border border-slate-200 bg-white px-3 shadow-hairline transition-[border-color,box-shadow] focus-within:border-brand-400 focus-within:shadow-[0_0_0_4px_rgb(42_133_166/0.12)] dark:border-white/10 dark:bg-white/[0.03]">
                   <span className="text-sm font-bold text-slate-400">$</span>
                   <input

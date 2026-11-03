@@ -26,7 +26,7 @@ export default function UnsupportedNotice({
   const { t, p } = useI18n();
   const reason = report.match.unsupportedReason ?? 'no-match';
   const name = p(example.name);
-  const body = reason === 'other-form' ? t('unsupportedOtherForm').replace('{name}', name) : reason === 'heading-only' ? t('unsupportedHeading') : t('unsupportedBody');
+  const body = reason === 'other-form' ? t('unsupportedOtherForm').replaceAll('{name}', name) : reason === 'heading-only' ? t('unsupportedHeading') : t('unsupportedBody');
 
   return (
     <Card className="rise-in p-5 sm:p-6">

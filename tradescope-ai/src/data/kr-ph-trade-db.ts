@@ -855,7 +855,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     name: b('필리핀산 코코넛 오일 (VCO·정제유)', 'Philippine coconut oil (VCO / refined)'),
     category: b('식물성 유지', 'Vegetable oils'),
     aliases: ['코코넛오일', '코코넛 오일', '코코넛유', '버진코코넛오일', 'vco', 'coconut oil', 'virgin coconut oil', 'coconut', '코코넛', '1513', '1513.19', '1513.11'],
-    excludeTerms: ['코코넛워터', '코코넛 워터', 'coconut water', '코코넛밀크', '코코넛 밀크', 'coconut milk', '코코넛칩', '코코넛 칩', 'coconut chips', '건조코코넛', '코코넛 가루', 'desiccated coconut', '코프라', 'copra', '코코넛 슈가', 'coconut sugar', '코코피트', 'coco peat', 'coir'],
+    excludeTerms: ['코코넛워터', '코코넛 워터', 'coconut water', '코코넛밀크', '코코넛 밀크', 'coconut milk', '코코넛칩', '코코넛 칩', 'coconut chips', '건조코코넛', '코코넛 가루', 'desiccated coconut', '코코넛 슈가', 'coconut sugar', '코코피트', 'coco peat', 'coir'],
     tagline: b('한국 코코넛유(1513.19) 수입의 53%가 필리핀산 — 3년간 2배 성장한 소싱 품목입니다.', 'PH supplies 53% of Korea’s coconut oil (1513.19) — doubled in 3 years.'),
     hs: [
       {

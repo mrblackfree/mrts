@@ -6,7 +6,7 @@
 import { chatCompletion, extractJson } from '@/lib/ai-adapter';
 import { formatNumber, formatUsd, pick } from '@/lib/format';
 import type { Briefing, DraftOptions, EmailDraft, Lang, Partner, QueryIntent, TradeProduct } from '@/lib/types';
-import { collectHsCodes, collectNumbers, collectPercents, derived, findUngrounded, type Allowed } from './grounding';
+import { collectAmounts, collectHsCodes, collectPercents, derived, findUngrounded, statedFigures, type Allowed } from './grounding';
 import { bestTariff, mfnTariff, rankPartners, SCHEME_LABEL } from './simulate';
 
 function ragContext(product: TradeProduct, intent: QueryIntent, lang: Lang) {
@@ -47,13 +47,14 @@ function briefingAllowed(product: TradeProduct, intent: QueryIntent, query: stri
   const officialMfn = mfnCheck ? [mfnCheck.min, mfnCheck.max, mfnCheck.avg, mfnCheck.seedRate, mfnCheck.appliedRate] : [];
   const rates = product.tariffs.map((t) => t.rate);
   const baseAmounts = [intent.amountUsd ?? 50_000, ...(intent.customsValueUsd ? [intent.customsValueUsd] : [])];
-  const percents = [...collectPercents(context), ...collectPercents(query), ...rates, ...officialMfn, 0, 100]; // 100: "duty-free = 100% saving"
+  const percents = [...collectPercents(context), ...collectPercents(query), ...rates, ...officialMfn, 0];
   const extra = derived({ rates, percents, series: product.market.series.map((x) => x.value), amounts: baseAmounts });
   return {
+    // derived percents include 100 ("duty-free = 100% saving"); a duty *rate* of 100% is not allowed
     percents: [...percents, ...extra.percents],
-    rates: [...extra.rates, ...officialMfn, 0, 100],
-    // prices, costs, market values and the question's own figures
-    amounts: [...collectNumbers(context), ...collectNumbers(query), ...baseAmounts, ...extra.amounts],
+    rates: [...extra.rates, ...officialMfn, 0],
+    // only money: price, cost and market-value fields, dollar amounts written in the context or the question
+    amounts: [...collectAmounts(context), ...collectAmounts(query), ...baseAmounts, ...extra.amounts],
     hsCodes: collectHsCodes(context),
   };
 }
@@ -148,10 +149,14 @@ ${draft.body}`,
   const protectedTerms = [formatUsd(options.unitPrice, { decimals: 2 }), options.incoterm, product.hs[0].code, formatNumber(options.moq)];
   const missing = protectedTerms.filter((term) => !containsToken(body, term));
   if (missing.length) return { error: `altered-terms:${missing.join('|')}`, latencyMs: res.latencyMs };
-  // no new figures either (a discount, a lead time in %, another HS line): only what the draft and options state
-  const source = [draft.subject, draft.body, JSON.stringify(options), product.hs.map((h) => h.code).join(' ')];
-  const sourceNumbers = collectNumbers(source);
-  const added = findUngrounded([parsed.subject, body], { percents: sourceNumbers, rates: sourceNumbers, amounts: sourceNumbers, hsCodes: collectHsCodes(source) });
+  // no new figures either (a discount, another price, another HS line): only the percentages and dollar amounts
+  // the draft itself states, plus the price × quantity / MOQ totals it implies — typed, so a "20-minute call" or a
+  // quantity cannot authorise a price or a discount
+  const source = [draft.subject, draft.body];
+  const stated = statedFigures(source);
+  const amounts = [...stated.amounts, options.unitPrice, options.unitPrice * options.quantity, options.unitPrice * options.moq];
+  const hsCodes = [...collectHsCodes(source), ...product.hs.map((h) => h.code.replace(/\./g, ''))];
+  const added = findUngrounded([parsed.subject, body], { percents: stated.percents, rates: stated.percents, amounts, hsCodes });
   if (added.length) return { error: `ungrounded:${added.slice(0, 3).join('|')}`.slice(0, 120), latencyMs: res.latencyMs };
   return { email: { subject: parsed.subject.trim().slice(0, 200), body }, model: res.model, latencyMs: res.latencyMs };
 }
