@@ -49,27 +49,28 @@ writeFileSync(path.join(out, 'app.css'), css.css);
 cpSync(path.join(root, 'src/app/fonts/pretendard'), path.join(out, 'fonts/pretendard'), { recursive: true });
 
 // ---- page ------------------------------------------------------------------------------------------------------
-const themeScript = `(function(){try{var t=localStorage.getItem('ts-theme');var d=t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',d);}catch(e){}})();`;
-writeFileSync(
-  path.join(out, 'index.html'),
-  `<!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TradeScope AI</title>
-<meta name="description" content="무엇을 어디로 보내는지 적으면 관세·FTA·인허가·거래처·선적까지 7단계로 알려 드립니다. 대한민국 ↔ 필리핀 프로토타입 미리보기.">
+// Theme: a host's explicit choice (data-theme on <html>, as claude.ai sets it) wins, then the saved choice, then the
+// system setting; a later host change is followed too.
+const themeScript = `(function(){var r=document.documentElement;function apply(){var h=r.getAttribute('data-theme'),t=null;try{t=localStorage.getItem('ts-theme')}catch(e){}var d=h?h==='dark':t?t==='dark':window.matchMedia('(prefers-color-scheme: dark)').matches;r.classList.toggle('dark',d)}apply();try{new MutationObserver(apply).observe(r,{attributes:true,attributeFilter:['data-theme']})}catch(e){}})();`;
+// a sticky header clears the phone's status bar when the page runs edge to edge
+const safeArea = `<style>header.sticky{top:env(safe-area-inset-top,0px)}body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:41;background:var(--ts-band,#f5f7fa)}:root.dark body::before{background:#060a12}</style>`;
+const description = '무엇을 어디로 보내는지 적으면 관세·FTA·인허가·거래처·선적까지 7단계로 알려 드립니다. 대한민국 ↔ 필리핀 프로토타입 미리보기.';
+const inner = `<title>TradeScope AI</title>
+<meta name="description" content="${description}">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <script>${themeScript}</script>
+${safeArea}
 <link rel="stylesheet" href="fonts/pretendard/pretendardvariable-dynamic-subset.css">
 <link rel="stylesheet" href="app.css">
-</head>
-<body class="min-h-screen font-sans">
-<div id="root"></div>
+<div id="root" class="min-h-screen font-sans"></div>
 <script type="module" src="app.js"></script>
-</body>
-</html>
-`,
+`;
+// index.html: a complete page for any static host
+writeFileSync(
+  path.join(out, 'index.html'),
+  `<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n${inner.replace('<div id="root"', '</head>\n<body>\n<div id="root"')}</body>\n</html>\n`,
 );
+// page.html: the same content without the document skeleton, for hosts that wrap the page themselves (claude.ai)
+writeFileSync(path.join(out, 'page.html'), inner);
 cpSync(path.join(root, 'src/app/icon.svg'), path.join(out, 'icon.svg'));
 console.log(`preview → ${path.relative(process.cwd(), out)}/`);

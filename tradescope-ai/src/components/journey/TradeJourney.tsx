@@ -32,6 +32,7 @@ import MarketModule, { LogisticsLanes } from '../modules/MarketModule';
 import PartnersModule from '../modules/PartnersModule';
 import TariffModule from '../modules/TariffModule';
 import { firstTime, sendMetric } from '@/lib/metrics/client';
+import { STATIC_PREVIEW } from '@/lib/preview';
 import TrackingPanel from '../tracking/TrackingPanel';
 import { Badge, Button, Card, cx, InStepContext } from '../ui';
 
@@ -241,10 +242,13 @@ export default function TradeJourney({
             </div>
             <div className="flex items-center gap-2">
               <Badge tone={doneCount === STEPS.length ? 'green' : 'slate'}>{L.progress.replace('{n}', String(doneCount))}</Badge>
+{/* the preview host cannot open the print dialog */}
+              {!STATIC_PREVIEW && (
               <Button variant="primary" size="sm" pill onClick={() => window.print()} className="no-print" aria-label={L.pdf}>
                 <FileDown className="size-3.5" aria-hidden />
                 <span className="hidden sm:inline">{L.pdf}</span>
               </Button>
+              )}
             </div>
           </div>
 
