@@ -5,9 +5,8 @@ export {};
 const [id, count, startAt] = process.argv.slice(3);
 const revocation = await import('@/lib/admin/revocation');
 const exp = Math.floor(Date.now() / 1000) + 3600;
-while (Date.now() < Number(startAt)) {
-  /* start together */
-}
+// start together, sleeping until then
+await new Promise((r) => setTimeout(r, Math.max(0, Number(startAt) - Date.now())));
 const where = new Set<string>();
 for (let i = 0; i < Number(count); i++) where.add(revocation.revokeSession(`w${id}-${i}`, exp));
 process.stdout.write(JSON.stringify([...where]));
