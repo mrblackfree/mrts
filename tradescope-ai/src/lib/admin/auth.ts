@@ -3,17 +3,20 @@
  *
  * - Enabled only when ADMIN_PASSWORD (≥ 10 characters) is set in the server environment, and ADMIN_SECRET, when
  *   set, is ≥ 32 characters.
- * - Login issues a stateless session cookie: `<expiry>.<nonce>.<HMAC-SHA256>`, HttpOnly + SameSite=Strict (+ Secure
+ * - Login issues a signed session cookie: `<expiry>.<nonce>.<HMAC-SHA256>`, HttpOnly + SameSite=Strict (+ Secure
  *   over HTTPS). The HMAC key derives from ADMIN_SECRET and ADMIN_PASSWORD, so changing either signs everyone out.
+ * - Signing out revokes the token on the server, and "sign out everywhere" ends every session issued so far
+ *   (`revocation.ts`), so a copied cookie stops working too.
  * - Failed logins are rate-limited per client (when the client can be identified) and globally.
  * - State-changing admin requests must come from the same origin (CSRF defence on top of SameSite).
  */
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { SHARED_CLIENT } from '@/lib/rate-limit';
+import { isRevoked } from './revocation';
 import { masterSecret, MIN_ADMIN_SECRET } from '@/lib/settings/core.mjs';
 
 export const SESSION_COOKIE = 'ts_admin';
-const SESSION_TTL_S = 8 * 60 * 60;
+export const SESSION_TTL_S = 8 * 60 * 60;
 const MIN_PASSWORD = 10;
 /** Upper bound so a sign-in request body can be size-limited without making a valid password impossible. */
 export const MAX_PASSWORD = 1024;
@@ -50,9 +53,18 @@ function sign(payload: string): string {
   return createHmac('sha256', sessionKey()).update(payload).digest('base64url');
 }
 
+// The nonce carries the issue time in milliseconds (`<ms base36>~<random>`), inside the signed payload, so a sign-out
+// everywhere can end every earlier session exactly. base64url never contains `~`.
+const issuedAtMs = (nonce: string, expiresAt: number) => {
+  const i = nonce.indexOf('~');
+  const ms = i > 0 ? parseInt(nonce.slice(0, i), 36) : NaN;
+  return Number.isFinite(ms) ? ms : (expiresAt - SESSION_TTL_S) * 1000;
+};
+
 export function issueSession(): { token: string; maxAge: number; expiresAt: number } {
-  const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_S;
-  const payload = `${expiresAt}.${randomBytes(9).toString('base64url')}`;
+  const now = Date.now();
+  const expiresAt = Math.floor(now / 1000) + SESSION_TTL_S;
+  const payload = `${expiresAt}.${now.toString(36)}~${randomBytes(9).toString('base64url')}`;
   return { token: `${payload}.${sign(payload)}`, maxAge: SESSION_TTL_S, expiresAt };
 }
 
@@ -65,8 +77,8 @@ function readCookie(req: Request, name: string): string | undefined {
   return undefined;
 }
 
-/** Returns the session expiry (unix seconds) when the request carries a valid session, else null. */
-export function sessionExpiry(req: Request): number | null {
+/** The signed-in session the request carries (valid signature, not expired, not signed out), else null. */
+export function currentSession(req: Request): { nonce: string; expiresAt: number } | null {
   if (!adminAvailability().enabled) return null;
   const token = readCookie(req, SESSION_COOKIE);
   if (!token) return null;
@@ -79,7 +91,13 @@ export function sessionExpiry(req: Request): number | null {
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   const expiresAt = Number(exp);
   if (!Number.isFinite(expiresAt) || expiresAt * 1000 < Date.now()) return null;
-  return expiresAt;
+  if (isRevoked(nonce, issuedAtMs(nonce, expiresAt))) return null;
+  return { nonce, expiresAt };
+}
+
+/** Returns the session expiry (unix seconds) when the request carries a valid session, else null. */
+export function sessionExpiry(req: Request): number | null {
+  return currentSession(req)?.expiresAt ?? null;
 }
 
 function isHttps(req: Request): boolean {

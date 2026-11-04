@@ -3,6 +3,7 @@
  * tick. Nothing is sent when the browser asks not to be tracked (Do Not Track / Global Privacy Control).
  * "First" checks live in localStorage, the channel in sessionStorage — no identifiers leave the browser.
  */
+import { STATIC_PREVIEW } from '../preview';
 import { parseChannel, type ClientEvent } from './events';
 
 const ENDPOINT = '/api/metrics';
@@ -53,7 +54,7 @@ function schedule() {
 }
 
 export function sendMetric(ev: ClientEvent): void {
-  if (typeof window === 'undefined' || optedOut()) return;
+  if (STATIC_PREVIEW || typeof window === 'undefined' || optedOut()) return;
   queue.push(ev);
   schedule();
 }

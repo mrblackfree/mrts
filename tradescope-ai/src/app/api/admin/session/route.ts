@@ -2,6 +2,7 @@ import {
   adminAvailability,
   clearedCookie,
   clearLoginFailures,
+  currentSession,
   issueSession,
   loginBlocked,
   MAX_PASSWORD,
@@ -12,6 +13,7 @@ import {
   sessionExpiry,
 } from '@/lib/admin/auth';
 import { adminJson } from '@/lib/admin/http';
+import { revokeAllSessions, revokeSession } from '@/lib/admin/revocation';
 import { readBodyLimited } from '@/lib/http';
 import { clientKey } from '@/lib/rate-limit';
 
@@ -58,8 +60,16 @@ export async function POST(req: Request) {
   return adminJson({ ok: true, expiresAt: session.expiresAt }, { headers: { 'Set-Cookie': sessionCookie(req, session.token, session.maxAge) } });
 }
 
-/** Sign out. */
+/**
+ * Sign out: the session is revoked on the server, not only removed from this browser, so a copied cookie stops
+ * working too. `?all=1` signs out every session (all browsers and devices) and needs a signed-in session.
+ * `revoked` says where the sign-out is kept: `stored` (data folder) or `memory` (this process only, read-only hosting).
+ */
 export function DELETE(req: Request) {
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });
-  return adminJson({ ok: true }, { headers: { 'Set-Cookie': clearedCookie(req) } });
+  const all = new URL(req.url).searchParams.get('all') === '1';
+  const session = currentSession(req);
+  if (all && !session) return adminJson({ ok: false, error: 'unauthorized' }, { status: 401 });
+  const revoked = all ? revokeAllSessions(session!) : session ? revokeSession(session.nonce, session.expiresAt) : null;
+  return adminJson({ ok: true, revoked }, { headers: { 'Set-Cookie': clearedCookie(req) } });
 }

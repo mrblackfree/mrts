@@ -182,7 +182,8 @@ ADMIN_SECRET=<openssl rand -base64 32 결과>
 **보안**
 
 - 세션은 HttpOnly·SameSite=Strict 쿠키(HTTPS에서는 Secure)로 8시간 유지되며, 비밀번호나 `ADMIN_SECRET`을 바꾸면 모든 세션이 만료됩니다.
-- 로그아웃은 이 브라우저의 쿠키를 지웁니다. 세션 토큰은 서버에 저장하지 않으므로, 모든 세션을 즉시 끊으려면 `ADMIN_PASSWORD`나 `ADMIN_SECRET`을 바꾸고 재시작하세요.
+- 로그아웃하면 쿠키를 지우는 것과 함께 그 세션을 서버에서 무효로 만듭니다. 미리 복사해 둔 쿠키도 더 이상 쓸 수 없습니다. `/admin → 개요`의 **모든 기기에서 로그아웃**은 지금까지 발급된 모든 세션(다른 브라우저·기기 포함)을 끝냅니다.
+- 로그아웃 기록은 `TRADESCOPE_DATA_DIR/admin-sessions.json`(0600)에 남고, 만료가 지난 항목은 지웁니다. 이 파일이 손상되면 옆으로 옮기고 기존 세션을 모두 끝냅니다(다시 로그인은 가능). 저장소가 읽기 전용인 환경(Vercel 등)에서는 서버 메모리에만 남으므로, 재시작 뒤에도 확실히 끝내려면 `ADMIN_SECRET`을 바꾸세요.
 - 로그인 실패는 전체 15분 100회로 제한하고, 클라이언트를 식별할 수 있으면(`TRUST_PROXY` 설정 또는 Vercel) 클라이언트별 15분 8회로도 제한합니다. 식별할 수 없을 때 클라이언트별 제한을 걸면 한 사람의 오입력으로 모든 관리자가 잠기기 때문입니다. 차단된 요청은 본문을 읽기 전에 거절하고, 로그인 요청 본문 크기도 제한합니다.
 - 저장·테스트 요청은 같은 출처(Origin)에서 온 것만 받습니다.
 - `/admin`과 `/api/admin/*`에는 `no-store`·`noindex`·`X-Frame-Options: DENY` 헤더를 붙입니다.
@@ -278,7 +279,7 @@ npm run data:validate    # verified-overrides.json 검증: 필수 필드·날짜
 | `GET` | `/api/analyze?q=...&dir=KR_TO_PH&lang=en` | 위와 동일 (테스트·공유용) |
 | `POST` | `/api/draft` | `{ productId, partnerId, lang, options?, polish? }` → 국/영 이메일 + Proforma Invoice (`polish: true`면 LLM 문장 다듬기) |
 | `GET` | `/api/health` | 상태·AI 엔진 연결 여부(키 미노출)·데이터 기준일·신뢰도 센터 링크 — Docker HEALTHCHECK에 사용 |
-| `GET` `POST` `DELETE` | `/api/admin/session` | 관리자 로그인 상태 / 로그인(`{ password }`) / 로그아웃 |
+| `GET` `POST` `DELETE` | `/api/admin/session` | 관리자 로그인 상태 / 로그인(`{ password }`) / 로그아웃(서버에서 세션 무효화, `?all=1`이면 모든 기기) |
 | `GET` `PUT` | `/api/admin/settings` | 설정 조회(비밀값은 마스킹) / 저장(`{ values: { KEY: "값" \| null } }`) — 로그인 필요 |
 | `POST` | `/api/admin/test` | `{ target: "ai" \| "dataGoKr" \| "comtrade" \| "shipsgo" \| "unipass" \| "hapag" \| "cmacgm" }` 저장된 키로 연결 테스트(추적 키는 크레딧을 쓰지 않는 조회) — 로그인 필요 |
 | `GET` `POST` | `/api/consult` | 접수 가능 여부·대체 연락처 / 전문가 요청 접수(`{ name, email, serviceIds[], topic, message?, consent: true, … }`) → `{ ok, id }` (`id`는 고객이 문의 때 쓰는 접수번호, 예: `TS-7F3K9QW2` — 형식에 의존하지 마세요) |
@@ -335,6 +336,8 @@ sed -i '/^TRUST_PROXY=0$/d' .env.local 2>/dev/null   # 앱 단독 공개 때 넣
 DOMAIN=trade.example.com docker compose --profile https up -d --build
 ```
 Caddy가 Let's Encrypt 인증서를 자동 발급·갱신합니다 (`deploy/Caddyfile`). 앱 포트 3000은 기본값 `APP_BIND=127.0.0.1`로 서버 내부에만 열리므로 HTTPS를 우회할 수 없습니다 — `--profile https`와 `APP_BIND=0.0.0.0`을 함께 쓰지 마세요. 프록시 뒤에서는 `TRUST_PROXY=1`(compose 기본값, `deploy/compose.env`)로 LLM 호출 제한이 클라이언트별로 동작하며, `.env.local`에 적은 값이 이 기본값보다 우선합니다.
+공개 주소가 정해지면 빌드 전에 `NEXT_PUBLIC_SITE_URL`(예: `https://tradescope.example.com`)을 넣으세요. 링크를 공유할 때 미리보기 카드(`/opengraph-image`, 1200×630)와 주소가 절대 URL로 나갑니다. 앱 설치용 `manifest.webmanifest`도 함께 제공됩니다.
+
 신뢰도 센터 링크는 `/admin` → 링크 메뉴나 런타임 환경변수(`DATA_FEEDBACK_URL`, `OVERRIDES_EDIT_URL`)로 재빌드 없이 바꿀 수 있습니다. 빌드 때 넣는 `NEXT_PUBLIC_*` 값은 그 기본값으로 남으며(`.env*`는 Docker 빌드 컨텍스트에서 제외되므로 `NEXT_PUBLIC_DATA_FEEDBACK_URL=... docker compose build`처럼 셸 환경변수로 넘김), 이 경우 `/admin`에서 값을 지우면 빌드 기본값으로 돌아갑니다. 이미 Nginx를 쓰는 서버라면 `deploy/nginx.conf.example` + `certbot --nginx`를 사용하세요.
 
 Docker 없이 이미지만 옮길 때:
@@ -362,6 +365,14 @@ Copy-Item -Recurse public .next\standalone\ ; Copy-Item -Recurse .next\static .n
 cd .next\standalone; $env:PORT=3000; node server.js
 ```
 상시 구동은 NSSM(`nssm install TradeScope "C:\Program Files\nodejs\node.exe" server.js`) 또는 pm2를 사용하고, IIS ARR/URL Rewrite로 도메인을 리버스 프록시합니다.
+
+### F. 정적 미리보기 (서버 없이 보여 주기)
+
+```bash
+npm run build:preview   # → preview-dist/ (index.html · app.js · app.css · fonts)
+```
+
+서버를 띄울 수 없는 곳(정적 호스팅, 사내 공유 페이지 등)에서 제품을 보여 줄 때 씁니다. 모든 경로가 상대 경로라 어느 하위 경로에 올려도 동작합니다. `NEXT_PUBLIC_STATIC_PREVIEW=1`로 빌드되어 화면 위에 미리보기 안내가 붙고, 분석·7단계 가이드는 브라우저 엔진으로 동작하며, 컨테이너 조회는 예시 타임라인을 보여 줍니다. 전문가 요청 전송·실제 추적·가설 측정·`/admin`은 꺼집니다(보낼 수 없다고 안내). 실제 운영은 A~E의 서버 배포를 사용하세요.
 
 ### 1분 이전 체크리스트
 - [ ] 새 서버에 Docker(또는 Node 22) 설치

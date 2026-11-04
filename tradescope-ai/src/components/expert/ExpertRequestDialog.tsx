@@ -4,6 +4,7 @@ import { CheckCircle2, Send, UserRoundCheck, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { EXPERT_INDEX, EXPERT_SERVICES } from '@/data/experts';
 import { currentChannel, mark, measurementOff, seen } from '@/lib/metrics/client';
+import { STATIC_PREVIEW } from '@/lib/preview';
 import type { ExpertSource } from '@/lib/metrics/events';
 import type { TradeProduct } from '@/lib/types';
 import { Flag } from '../Flag';
@@ -39,6 +40,7 @@ const L = {
     doneBody: '접수번호 {id}. 운영팀이 내용을 확인한 뒤 입력하신 이메일로 연락드립니다.',
     close: '닫기',
     notAccepting: '지금은 온라인 접수를 받을 수 없습니다.',
+    previewNote: '이 화면은 미리보기라 요청을 보낼 수 없습니다. 서버로 배포한 사이트에서는 운영팀에 바로 전달됩니다.',
     contactAlt: '아래 이메일로 문의해 주세요',
     rateLimited: '짧은 시간에 요청이 많았습니다. 잠시 뒤 다시 시도해 주세요.',
     failed: '보내지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
@@ -65,6 +67,7 @@ const L = {
     doneBody: 'Reference {id}. The team will review it and reply to the email you entered.',
     close: 'Close',
     notAccepting: 'Requests cannot be taken online right now.',
+    previewNote: 'This is a preview, so requests cannot be sent from here. On the deployed site they go straight to the team.',
     contactAlt: 'Please email us instead',
     rateLimited: 'Too many requests in a short time. Please try again shortly.',
     failed: 'Could not send. Please try again shortly.',
@@ -88,6 +91,7 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
   const [availability, setAvailability] = useState<{ accepting: boolean; contact: string | null } | null>(null);
 
   useEffect(() => {
+    if (STATIC_PREVIEW) return setAvailability({ accepting: false, contact: null });
     let alive = true;
     fetch('/api/consult')
       .then((r) => r.json())
@@ -129,6 +133,7 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
     if (!picked.size && !context.topic && !form.message.trim()) errs.message = s.pickOne;
     setErrors(errs);
     if (Object.keys(errs).length) return focusFirst(errs);
+    if (STATIC_PREVIEW) return setState({ kind: 'error', message: s.previewNote });
     setState({ kind: 'sending' });
     // H3 counts browser·product pairs: flag the first request from the permits step for this product
     const permitsKey = context.product && (context.source === 'checklist' || context.source === 'card') ? `submit-permits:${context.product.id}` : null;
@@ -210,7 +215,7 @@ export default function ExpertRequestDialog({ context, onClose }: { context: Exp
           <form onSubmit={submit} noValidate className="space-y-5 px-5 py-5 sm:px-6">
             {availability && !availability.accepting && (
               <p role="note" className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
-                {s.notAccepting} {availability.contact && <span className="font-bold">{s.contactAlt}: <span className="select-all">{availability.contact}</span></span>}
+                {STATIC_PREVIEW ? s.previewNote : s.notAccepting} {availability.contact && <span className="font-bold">{s.contactAlt}: <span className="select-all">{availability.contact}</span></span>}
               </p>
             )}
             {context.topic && (

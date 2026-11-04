@@ -38,6 +38,7 @@ const ko = {
   demoTitle: '원클릭 즉시 시연',
 
   // landing (redesign)
+  previewBanner: '미리보기입니다. 분석·7단계 가이드는 브라우저에서 그대로 동작하고, 컨테이너 조회는 예시 데이터로 보여 줍니다. 전문가 요청 전송·실시간 추적·관리자 페이지는 서버로 배포한 사이트에서 동작합니다.',
   landingNav: '페이지 안내',
   navHow: '이용 방법',
   navProducts: '지원 품목',
@@ -364,6 +365,7 @@ const en: Record<DictKey, string> = {
   demoTitle: 'One-click live demos',
 
   // landing (redesign)
+  previewBanner: 'This is a preview. Analysis and the 7-step guide run in your browser, and container tracking shows example data. Expert requests, live tracking and the admin page work on the server deployment.',
   landingNav: 'Page sections',
   navHow: 'How it works',
   navProducts: 'Products',

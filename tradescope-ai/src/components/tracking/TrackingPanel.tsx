@@ -3,6 +3,8 @@
 import { Anchor, CheckCircle2, Circle, Container, Info, MapPin, Radar, RefreshCw, Search } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { noteSavedLookup, seen, sendMetric } from '@/lib/metrics/client';
+import { STATIC_PREVIEW } from '@/lib/preview';
+import { demoTrack } from '@/lib/tracking/demo';
 import { isContainerNumber, normaliseReference, type Milestone, type TrackKind, type TrackResult } from '@/lib/tracking/types';
 import type { TradeProduct } from '@/lib/types';
 import { useI18n } from '../I18nProvider';
@@ -198,6 +200,19 @@ export default function TrackingPanel({ product, mode }: { product: TradeProduct
   const lookup = async (q: Saved, opts: { save?: boolean } = {}) => {
     const save = opts.save !== false;
     setState({ kind: 'loading' });
+    if (STATIC_PREVIEW) {
+      // no tracking sources without the server: the labelled example timeline, as when no key is configured
+      if (save) {
+        try {
+          localStorage.setItem(savedKey(product.id, apiMode), JSON.stringify(q));
+        } catch {
+          /* private mode */
+        }
+        setSaved(q);
+        window.dispatchEvent(new CustomEvent(SAVED_EVENT, { detail: { key: savedKey(product.id, apiMode), value: q } }));
+      }
+      return setState({ kind: 'done', result: demoTrack({ reference: q.reference, kind: q.kind, carrier: q.carrier || undefined }, product, apiMode), tried: [] });
+    }
     try {
       const res = await fetch('/api/track', {
         method: 'POST',

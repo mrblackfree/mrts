@@ -3,17 +3,23 @@ import type { Metadata, Viewport } from 'next';
 import './fonts/pretendard/pretendardvariable-dynamic-subset.css';
 import './globals.css';
 
+// absolute URLs for link previews; set NEXT_PUBLIC_SITE_URL to the public address of the deployment
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || undefined;
+
 export const metadata: Metadata = {
-  title: 'TradeScope AI — 글로벌 올인원 AI 무역 인텔리전스',
+  ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
+  title: 'TradeScope AI — 전 세계 무역, 질문 하나로',
   description:
-    '전 세계 무역을 질문 하나로: HS Code 분류, FTA 절세 시뮬레이터, 통관·인증 체크리스트, 시장·물류 인텔리전스, 바이어·공급사 매칭, 콜드메일·PI 자동 생성. 첫 번째 노선 대한민국 ↔ 필리핀 프로토타입.',
+    '무엇을 어디로 보내는지 적으면 관세·FTA·인허가 서류·거래처·선적까지 해야 할 일을 7단계로 알려 드립니다. 필리핀 FDA·BAI 서류는 현지 전문가가, 컨테이너는 도착까지 추적. 첫 번째 노선 대한민국 ↔ 필리핀 프로토타입.',
   applicationName: 'TradeScope AI',
-  keywords: ['TradeScope AI', '무역', '글로벌 무역', '수출입', '필리핀', 'FTA', 'HS Code', 'RCEP', 'AKFTA', '한-필리핀 FTA', 'trade intelligence'],
+  keywords: ['TradeScope AI', '무역', '글로벌 무역', '수출입', '필리핀', 'FTA', 'HS Code', 'RCEP', 'AKFTA', '한-필리핀 FTA', '필리핀 FDA', 'BAI', '컨테이너 추적', 'trade intelligence'],
   openGraph: {
-    title: 'TradeScope AI — Global AI Trade Intelligence',
-    description: 'Global trade, answered in one question. First corridor: Korea ↔ Philippines (prototype).',
+    title: 'TradeScope AI — Global trade, answered in one question',
+    description: 'Duties, permits, partners and shipping — step by step, to the day your cargo arrives. First corridor: Korea ↔ Philippines (prototype).',
     type: 'website',
+    siteName: 'TradeScope AI',
   },
+  twitter: { card: 'summary_large_image', title: 'TradeScope AI — Global trade, answered in one question' },
 };
 
 export const viewport: Viewport = {

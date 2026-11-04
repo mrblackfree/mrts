@@ -130,6 +130,11 @@ const S = {
     writable: '저장 가능',
     notWritable: '읽기 전용',
     session: '세션 만료',
+    logoutAll: '모든 기기에서 로그아웃',
+    logoutAllConfirm: '이 브라우저를 포함해 로그인된 모든 브라우저·기기에서 로그아웃할까요?',
+    logoutAllHint: '비밀번호가 노출됐거나 공용 PC에서 로그인했다면 사용하세요. 로그아웃하면 이 세션도 서버에서 무효가 됩니다.',
+    logoutAllFailed: '모든 기기 로그아웃에 실패했습니다. 다시 시도하세요.',
+    logoutMemoryOnly: '이 환경은 저장소가 읽기 전용이라 로그아웃 기록이 서버 메모리에만 남습니다. 재시작 후에도 확실히 끝내려면 ADMIN_SECRET을 바꾸세요.',
     todo: '남은 설정',
     allDone: '필수 설정이 모두 끝났습니다.',
     go: '설정하기',
@@ -247,6 +252,11 @@ const S = {
     writable: 'Writable',
     notWritable: 'Read-only',
     session: 'Session expires',
+    logoutAll: 'Sign out everywhere',
+    logoutAllConfirm: 'Sign out of every browser and device, including this one?',
+    logoutAllHint: 'Use this if the password may have leaked or you signed in on a shared computer. Signing out also invalidates this session on the server.',
+    logoutAllFailed: 'Could not sign out everywhere. Try again.',
+    logoutMemoryOnly: 'Storage is read-only here, so sign-outs are kept in server memory only. To be sure after a restart, rotate ADMIN_SECRET.',
     todo: 'Remaining setup',
     allDone: 'All essential settings are done.',
     go: 'Configure',
@@ -373,10 +383,20 @@ function AdminInner() {
     void loadSession();
   }, [loadSession]);
 
-  const logout = async () => {
-    await api('/api/admin/session', 'DELETE').catch(() => null);
+  const signedOut = () => {
     setSnap(null);
     setSession((x) => (x ? { ...x, authenticated: false, expiresAt: null } : x));
+  };
+  const logout = async () => {
+    await api('/api/admin/session', 'DELETE').catch(() => null);
+    signedOut();
+  };
+  /** Ends every session (all browsers and devices); false when the server did not confirm it. */
+  const logoutAll = async (): Promise<boolean> => {
+    const r = await api<{ ok: boolean; revoked?: string }>('/api/admin/session?all=1', 'DELETE').catch(() => null);
+    if (!r || r.status !== 200 || !r.data?.ok) return false;
+    signedOut();
+    return true;
   };
 
   return (
@@ -428,7 +448,7 @@ function AdminInner() {
         ) : !session.authenticated ? (
           <Login s={s} onDone={loadSession} />
         ) : snap ? (
-          <Dashboard s={s} lang={lang} snap={snap} setSnap={setSnap} expiresAt={session.expiresAt} onUnauthorized={loadSession} />
+          <Dashboard s={s} lang={lang} snap={snap} setSnap={setSnap} expiresAt={session.expiresAt} onUnauthorized={loadSession} onLogoutAll={logoutAll} />
         ) : (
           <Centered>
             <Loader2 className="size-5 animate-spin text-slate-400" aria-label={s.loading} />
@@ -523,6 +543,7 @@ function Dashboard({
   setSnap,
   expiresAt,
   onUnauthorized,
+  onLogoutAll,
 }: {
   s: Strings;
   lang: Lang;
@@ -530,6 +551,7 @@ function Dashboard({
   setSnap: (x: Snapshot) => void;
   expiresAt: number | null;
   onUnauthorized: () => void;
+  onLogoutAll: () => Promise<boolean>;
 }) {
   const [section, setSection] = useState<Section>('overview');
   const fields = useMemo(() => Object.fromEntries(snap.fields.map((f) => [f.key, f])), [snap]);
@@ -568,7 +590,7 @@ function Dashboard({
           </Notice>
         )}
 
-        {section === 'overview' && <Overview s={s} lang={lang} snap={snap} fields={fields} expiresAt={expiresAt} go={setSection} />}
+        {section === 'overview' && <Overview s={s} lang={lang} snap={snap} fields={fields} expiresAt={expiresAt} go={setSection} onLogoutAll={onLogoutAll} />}
         {section === 'validation' && <Validation lang={lang} onUnauthorized={onUnauthorized} />}
         {section === 'service' && <ConsultRequests lang={lang} onUnauthorized={onUnauthorized} />}
         {(section === 'ai' || section === 'data' || section === 'service' || section === 'tracking' || section === 'links' || section === 'limits') && (
@@ -599,7 +621,33 @@ function Notice({ tone, title, children }: { tone: 'ok' | 'warn' | 'info' | 'err
   );
 }
 
-function Overview({ s, lang, snap, fields, expiresAt, go }: { s: Strings; lang: Lang; snap: Snapshot; fields: Record<string, Field>; expiresAt: number | null; go: (x: Section) => void }) {
+function Overview({
+  s,
+  lang,
+  snap,
+  fields,
+  expiresAt,
+  go,
+  onLogoutAll,
+}: {
+  s: Strings;
+  lang: Lang;
+  snap: Snapshot;
+  fields: Record<string, Field>;
+  expiresAt: number | null;
+  go: (x: Section) => void;
+  onLogoutAll: () => Promise<boolean>;
+}) {
+  const [allBusy, setAllBusy] = useState(false);
+  const [allError, setAllError] = useState('');
+  const signOutEverywhere = async () => {
+    if (!window.confirm(s.logoutAllConfirm)) return;
+    setAllBusy(true);
+    setAllError('');
+    const done = await onLogoutAll();
+    setAllBusy(false);
+    if (!done) setAllError(s.logoutAllFailed);
+  };
   const set = (k: string) => fields[k] && fields[k].source !== 'unset' && fields[k].source !== 'default';
   const todos: Array<{ text: string; to: Section }> = [];
   if (!set('AI_API_KEY')) todos.push({ text: s.todoAi, to: 'ai' });
@@ -670,8 +718,26 @@ function Overview({ s, lang, snap, fields, expiresAt, go }: { s: Strings; lang: 
         )}
       </Card>
 
+      <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {s.session}: {expiresAt ? new Date(expiresAt * 1000).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US') : '—'}
+          </p>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 dark:text-slate-400">{s.logoutAllHint}</p>
+          {!snap.storage.writable && <p className="mt-1 max-w-2xl text-xs leading-relaxed text-amber-700 dark:text-amber-300">{s.logoutMemoryOnly}</p>}
+          {allError && (
+            <p role="alert" className="mt-1 text-xs font-semibold text-rose-600">
+              {allError}
+            </p>
+          )}
+        </div>
+        <Button variant="secondary" size="sm" onClick={() => void signOutEverywhere()} loading={allBusy}>
+          <LogOut className="size-3.5" aria-hidden />
+          {s.logoutAll}
+        </Button>
+      </Card>
       <p className="text-xs text-slate-400">
-        {s.session}: {expiresAt ? new Date(expiresAt * 1000).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US') : '—'} · {s.updatedAt}: {fmt(snap.updatedAt)}
+        {s.updatedAt}: {fmt(snap.updatedAt)}
       </p>
     </div>
   );

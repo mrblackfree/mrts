@@ -18,6 +18,7 @@ import TariffModule from './modules/TariffModule';
 import Landing from './Landing';
 import UnsupportedNotice from './UnsupportedNotice';
 import { oncePerSession, sendMetric } from '@/lib/metrics/client';
+import { STATIC_PREVIEW } from '@/lib/preview';
 import ExpertRequestDialog, { type ExpertContext } from './expert/ExpertRequestDialog';
 import TradeJourney from './journey/TradeJourney';
 import { Button, cx } from './ui';
@@ -97,7 +98,10 @@ function WorkspaceInner() {
       const ticker = setInterval(() => setStep((s) => Math.min(s + 1, PIPELINE_STEPS.length - 1)), 95);
       const minDelay = new Promise((r) => setTimeout(r, MIN_ANALYSIS_MS));
       let next: AnalysisReport;
-      try {
+      if (STATIC_PREVIEW) {
+        // no server in the preview: the same simulation engine runs in the browser
+        next = analyzeLocal(text, dir).report;
+      } else try {
         const ctrl = new AbortController();
         const timeout = setTimeout(() => ctrl.abort(), 25_000);
         const res = await fetch('/api/analyze', {
@@ -135,10 +139,12 @@ function WorkspaceInner() {
 
   // Health probe + deep links (/?q=...&dir=KR_TO_PH).
   useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then((j) => setHealth(j))
-      .catch(() => setHealth(null));
+    if (!STATIC_PREVIEW) {
+      fetch('/api/health')
+        .then((r) => r.json())
+        .then((j) => setHealth(j))
+        .catch(() => setHealth(null));
+    }
     const params = new URLSearchParams(window.location.search);
     const q = params.get('q');
     const dir: Direction = params.get('dir') === 'KR_TO_PH' ? 'KR_TO_PH' : 'PH_TO_KR';
@@ -206,6 +212,12 @@ function WorkspaceInner() {
     <>
       <Header health={health} trustScore={trustScore} onOpenTrust={() => setTrustOpen(true)} nav={status === 'idle'} />
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 sm:py-7">
+        {STATIC_PREVIEW && (
+          <p role="note" className="no-print flex items-start gap-2 rounded-2xl border border-brand-200/70 bg-brand-50/70 px-4 py-3 text-[13px] leading-relaxed text-brand-900 dark:border-brand-400/20 dark:bg-brand-400/10 dark:text-brand-100">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>{t('previewBanner')}</span>
+          </p>
+        )}
         <HeroSearch
           query={query}
           direction={direction}
