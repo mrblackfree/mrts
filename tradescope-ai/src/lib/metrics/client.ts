@@ -2,6 +2,8 @@
  * Browser side of the validation metrics: sends aggregate events to /api/metrics with sendBeacon, batched per
  * tick. Nothing is sent when the browser asks not to be tracked (Do Not Track / Global Privacy Control).
  * "First" checks live in localStorage, the channel in sessionStorage — no identifiers leave the browser.
+ * The static preview measures nothing and leaves no markers either: it may be served from the live site's origin,
+ * where its markers would stop the real site from counting that browser's first visit or step.
  */
 import { STATIC_PREVIEW } from '../preview';
 import { parseChannel, type ClientEvent } from './events';
@@ -10,7 +12,7 @@ const ENDPOINT = '/api/metrics';
 const CH_KEY = 'ts-m:channel';
 
 function optedOut(): boolean {
-  if (typeof navigator === 'undefined') return true;
+  if (STATIC_PREVIEW || typeof navigator === 'undefined') return true;
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean; msDoNotTrack?: string };
   return nav.doNotTrack === '1' || nav.msDoNotTrack === '1' || nav.globalPrivacyControl === true;
 }
@@ -54,13 +56,14 @@ function schedule() {
 }
 
 export function sendMetric(ev: ClientEvent): void {
-  if (STATIC_PREVIEW || typeof window === 'undefined' || optedOut()) return;
+  if (typeof window === 'undefined' || optedOut()) return;
   queue.push(ev);
   schedule();
 }
 
 /** True the first time `key` is seen in this browser (then false); false when storage is unavailable. */
 export function firstTime(key: string): boolean {
+  if (STATIC_PREVIEW) return false;
   try {
     const k = `ts-m:${key}`;
     if (localStorage.getItem(k)) return false;
@@ -81,6 +84,7 @@ export function seen(key: string): boolean | null {
 }
 
 export function mark(key: string): void {
+  if (STATIC_PREVIEW) return;
   try {
     localStorage.setItem(`ts-m:${key}`, '1');
   } catch {
@@ -93,6 +97,7 @@ export const measurementOff = () => typeof navigator === 'undefined' || optedOut
 
 /** True once per tab session for `key`. */
 export function oncePerSession(key: string): boolean {
+  if (STATIC_PREVIEW) return false;
   try {
     const k = `ts-m:s:${key}`;
     if (sessionStorage.getItem(k)) return false;
@@ -112,6 +117,7 @@ export const RECHECK_GAP_MS = 60 * 60 * 1000;
  * re-check, so the success count never exceeds the browsers that reached the step.
  */
 export function noteSavedLookup(key: string, first: boolean, now = Date.now()): boolean {
+  if (STATIC_PREVIEW) return false;
   try {
     const k = `ts-m:recheck:${key}`;
     const raw = JSON.parse(localStorage.getItem(k) ?? 'null') as { n?: unknown; last?: unknown; done?: unknown } | null;

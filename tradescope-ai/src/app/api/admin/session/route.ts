@@ -63,7 +63,8 @@ export async function POST(req: Request) {
 /**
  * Sign out: the session is revoked on the server, not only removed from this browser, so a copied cookie stops
  * working too. `?all=1` signs out every session (all browsers and devices) and needs a signed-in session.
- * `revoked` says where the sign-out is kept: `stored` (data folder) or `memory` (this process only, read-only hosting).
+ * `revoked` says where the sign-out is kept: `stored` (data folder) or `memory` (this process only: read-only hosting,
+ * or the data folder could not be updated).
  */
 export function DELETE(req: Request) {
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });

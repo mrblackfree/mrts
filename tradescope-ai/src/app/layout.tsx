@@ -3,11 +3,24 @@ import type { Metadata, Viewport } from 'next';
 import './fonts/pretendard/pretendardvariable-dynamic-subset.css';
 import './globals.css';
 
-// absolute URLs for link previews; set NEXT_PUBLIC_SITE_URL to the public address of the deployment
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || undefined;
+// absolute URLs for link previews; set NEXT_PUBLIC_SITE_URL to the public address of the deployment (https://…).
+// A value that is not an http(s) URL is ignored with a warning instead of failing every page.
+function siteBase(): URL | undefined {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url;
+  } catch {
+    /* reported below */
+  }
+  console.warn(`[config] NEXT_PUBLIC_SITE_URL is not an http(s) URL and is ignored: ${raw}`);
+  return undefined;
+}
+const metadataBase = siteBase();
 
 export const metadata: Metadata = {
-  ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
+  ...(metadataBase ? { metadataBase } : {}),
   title: 'TradeScope AI — 전 세계 무역, 질문 하나로',
   description:
     '무엇을 어디로 보내는지 적으면 관세·FTA·인허가 서류·거래처·선적까지 해야 할 일을 7단계로 알려 드립니다. 필리핀 FDA·BAI 서류는 현지 전문가가, 컨테이너는 도착까지 추적. 첫 번째 노선 대한민국 ↔ 필리핀 프로토타입.',

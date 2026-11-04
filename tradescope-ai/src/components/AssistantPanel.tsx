@@ -7,6 +7,7 @@ import { formatNumber, formatUsd } from '@/lib/format';
 import { PARTNER_TYPE_LABEL, type DictKey } from '@/lib/i18n';
 import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, partnerFactors, priceForIncoterm, priceOnBasis, proformaToText } from '@/lib/engine/simulate';
 import type { DraftOptions, EmailDraft, Lang, Partner, QueryIntent, TradeProduct } from '@/lib/types';
+import { STATIC_PREVIEW } from '@/lib/preview';
 import { useI18n } from './I18nProvider';
 import { Badge, Button, buttonClass, CopyButton, copyText, cx, ProgressBar, ScoreRing, Segmented } from './ui';
 import { Flag } from './Flag';
@@ -63,6 +64,8 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
   };
 
   const polish = async () => {
+    // no server in the static preview: say so instead of a failed call
+    if (STATIC_PREVIEW) return setNotice(t('polishPreview'));
     setPolishing(true);
     setNotice(null);
     const requested = options;
@@ -365,7 +368,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                       <Mail className="size-3.5" aria-hidden />
                       {t('openMail')}
                     </a>
-                    <Button variant="ai" size="sm" onClick={polish} loading={polishing} title={aiEnabled ? undefined : t('polishNoKey')} className="ml-auto">
+                    <Button variant="ai" size="sm" onClick={polish} loading={polishing} title={STATIC_PREVIEW ? t('polishPreview') : aiEnabled ? undefined : t('polishNoKey')} className="ml-auto">
                       {!polishing && (aiEnabled ? <Sparkles className="size-3.5" aria-hidden /> : <Wand2 className="size-3.5" aria-hidden />)}
                       {polishing ? t('polishing') : t('polish')}
                     </Button>
