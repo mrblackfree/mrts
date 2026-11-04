@@ -1,0 +1,106 @@
+# TradeScope AI — weekly official-data sync.
+# Pulls UN Comtrade + World Bank WITS (+ Korea Customs when DATA_GO_KR_SERVICE_KEY is set), re-checks every
+# link, and opens a pull request when the data itself changed (timestamp-only changes are ignored).
+#
+# Setup (once): Settings → Secrets and variables → Actions
+#   DATA_GO_KR_SERVICE_KEY   (optional) data.go.kr service key — KCS monthly trade + customs FX
+#   COMTRADE_API_KEY         (optional) UN Comtrade subscription key — higher limits
+# and Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".
+name: TradeScope · official data sync
+
+on:
+  schedule:
+    - cron: '17 1 * * 1' # Mondays 01:17 UTC (10:17 KST)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: tradescope-data-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: tradescope-ai
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sync official data
+        env:
+          DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+          COMTRADE_API_KEY: ${{ secrets.COMTRADE_API_KEY }}
+        run: node scripts/sync-official-data.mjs
+
+      - name: Refuse to propose a degraded snapshot
+        run: |
+          # Only a fully successful sync may be proposed: "partial" means some values are carried over from the
+          # previous snapshot, which would mix fresh and stale data in one PR.
+          snap=src/data/official/snapshot.json
+          srcs="comtrade wits"
+          kcs=$(jq -r '.sources.kcs.status // "not-configured"' "$snap")
+          [ "$kcs" != "not-configured" ] && srcs="$srcs kcs"
+          for src in $srcs; do
+            st=$(jq -r ".sources.${src}.status // \"missing\"" "$snap")
+            echo "${src}: ${st}"
+            if [ "$st" != "ok" ]; then
+              jq -r ".sources.${src}.errors[]? // empty" "$snap" | sed 's/^/  - /'
+              echo "::error::${src} sync is ${st} — not opening a data PR (previous values were kept in the snapshot)."
+              exit 1
+            fi
+          done
+
+      - name: Detect real data changes (ignore timestamps)
+        id: diff
+        run: |
+          strip='del(.. | .fetchedAt?, .checkedAt?) | del(.generatedAt)'
+          git show HEAD:tradescope-ai/src/data/official/snapshot.json | jq -S "$strip" > "$RUNNER_TEMP/old.json"
+          jq -S "$strip" src/data/official/snapshot.json > "$RUNNER_TEMP/new.json"
+          if cmp -s "$RUNNER_TEMP/old.json" "$RUNNER_TEMP/new.json"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Only timestamps changed — nothing to propose."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            diff <(jq -r 'paths(scalars) as $p | "\($p|join("."))=\(getpath($p))"' "$RUNNER_TEMP/old.json") \
+                 <(jq -r 'paths(scalars) as $p | "\($p|join("."))=\(getpath($p))"' "$RUNNER_TEMP/new.json") > "$RUNNER_TEMP/changes.all" || [ $? -eq 1 ]
+            total=$(grep -c '^[<>]' "$RUNNER_TEMP/changes.all" || true)
+            head -150 "$RUNNER_TEMP/changes.all" > "$RUNNER_TEMP/changes.txt"
+            if [ "$(wc -l < "$RUNNER_TEMP/changes.all")" -gt 150 ]; then
+              echo "… truncated — ${total} changed values in total; see the commit diff for the full list." >> "$RUNNER_TEMP/changes.txt"
+            fi
+          fi
+
+      - name: Open pull request
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DAY=$(date -u +%Y-%m-%d)
+          BR="data-sync/${DAY}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BR"
+          git add src/data/official/snapshot.json
+          git commit -m "data: TradeScope official data sync ${DAY}"
+          git push -u origin "$BR"
+          {
+            echo "Automated sync of official sources (UN Comtrade, World Bank WITS, Korea Customs if configured) and link checks."
+            echo
+            echo "Review the changed values below; if an MFN rate or market share moved, update related insight texts in src/data/kr-ph-trade-db.ts and record the change in src/data/official/changelog.json."
+            echo
+            echo '```diff'
+            cat "$RUNNER_TEMP/changes.txt"
+            echo '```'
+          } > "$RUNNER_TEMP/body.md"
+          # Fails loudly (e.g. when "Allow GitHub Actions to create and approve pull requests" is off).
+          gh pr create --base "${{ github.event.repository.default_branch }}" --head "$BR" \
+            --title "data: TradeScope official data sync ${DAY}" --body-file "$RUNNER_TEMP/body.md"

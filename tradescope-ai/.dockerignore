@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+.git
+.gitignore
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+# never bake secrets into the image — pass them at runtime (env_file / -e)
+.env*
+!.env.example
+.data
+docker-compose.yml
+deploy

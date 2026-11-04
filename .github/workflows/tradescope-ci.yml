@@ -1,0 +1,41 @@
+# TradeScope AI — CI: validate verified overrides, typecheck, unit tests and production build.
+name: TradeScope · CI
+
+on:
+  pull_request:
+    paths:
+      - 'tradescope-ai/**'
+      - '.github/workflows/tradescope-*.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tradescope-ai/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: tradescope-ai
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tradescope-ai/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+      - name: Validate verified-overrides.json
+        run: npm run data:validate
+      - run: npm run typecheck
+      - name: Unit tests (offline)
+        run: npm test
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
