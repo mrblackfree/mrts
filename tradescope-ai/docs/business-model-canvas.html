@@ -378,7 +378,7 @@
     <h2 id="h-changes">v3에서 바뀐 것 — 2026-11-03 → 11-25 <span class="en" lang="en">What changed since v2</span></h2>
     <div class="changes">
       <div><b>첫 화면 전면 개편</b><p>질문 한 줄 검색, 수입·수출 선택, 예시 칩. 이용 방법·지원 품목·현지 전문가·교역 현황을 한 페이지에.</p></div>
-      <div><b>가설 검증 측정</b><p>H3·H7·H8·H9를 사이트가 익명 합계로 세고 <code>/admin</code> 「가설 검증」에서 자동 판정. 판정 계산기·검증 기록 추가.</p></div>
+      <div><b>가설 검증 측정</b><p>사이트가 익명 합계로 세어 <code>/admin</code> 「가설 검증」에서 H3·H7·H8은 자동 판정, H9는 채널별로 비교. 판정 계산기·검증 기록 추가.</p></div>
       <div><b>관리자 보안</b><p>로그아웃을 서버에서 무효화, 모든 기기에서 로그아웃, 여러 서버 프로세스에서도 기록 보존.</p></div>
       <div><b>보여 주기 쉬운 형태</b><p>링크 공유 카드(Open Graph)와 서버 없이 여는 데모 미리보기 — 설명회·제안 메일에서 바로 시연.</p></div>
       <div><b>품질</b><p>코드 리뷰 13차 반영, 자동 테스트 10개 파일과 CI 통과, 360~1440px 화면 점검.</p></div>
@@ -497,7 +497,7 @@
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>전문가 모집·검증·품질 관리<a class="hx" href="#H5">H5</a><span class="ev">면허 확인, 시범 건 평가, 응답 시간·기한 준수 기록</span></p></li>
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>요청 응대와 진행 관리 (48시간 내 첫 연락)</p></li>
         <li data-kind="now"><span class="tag now">현재</span><p>추적 소스 운영<span class="ev">선사 판별, 10분 캐시, ShipsGo 하루 신규 등록 상한, 연결 테스트</span></p></li>
-        <li data-kind="now"><span class="tag now">현재</span><p>가설 검증 측정<a class="hx" href="#H3">H3</a><a class="hx" href="#H7">H7</a><a class="hx" href="#H8">H8</a><a class="hx" href="#H9">H9</a><span class="v3">v3</span><span class="ev">익명 합계(쿠키·IP 없음, Do Not Track 존중)로 세고 관리자 화면에서 카드 기준·95% 구간으로 자동 판정</span></p></li>
+        <li data-kind="now"><span class="tag now">현재</span><p>가설 검증 측정<a class="hx" href="#H3">H3</a><a class="hx" href="#H7">H7</a><a class="hx" href="#H8">H8</a><a class="hx" href="#H9">H9</a><span class="v3">v3</span><span class="ev">익명 합계(쿠키·IP 저장 안 함, DNT 존중) — H3·H7·H8은 카드 기준·95% 구간으로 자동 판정, H9는 채널 비교</span></p></li>
         <li data-kind="now"><span class="tag now">현재</span><p>공식 데이터 동기화·검증, 서비스 운영(관리자 페이지)</p></li>
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>규정 변경 추적<span class="ev">FDA 순환고시·BAI 행정명령·BOC CAO 개정 반영</span></p></li>
       </ul>
