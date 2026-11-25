@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TradeScope AI 비즈니스 모델 캔버스</title>
-<meta name="description" content="TradeScope AI 비즈니스 모델 캔버스 v2 — 7단계 거래 가이드, 현지 전문가 서비스, 컨테이너·통관 추적과 가설 검증 계획·판정 계산기">
+<meta name="description" content="TradeScope AI 비즈니스 모델 캔버스 v3 — 7단계 거래 가이드, 현지 전문가 서비스, 컨테이너·통관 추적과 가설 검증 계획·판정 계산기">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
@@ -267,6 +267,20 @@
   }
   @media (max-width: 420px) { .journey { grid-template-columns: minmax(0, 1fr); } }
   @media (prefers-reduced-motion: reduce) { .field li { transition: none; } }
+  /* ---- v3 ---- */
+  .v3 { display: inline-block; font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.04em; color: var(--ink-2); border: 1px dashed var(--ink-3); padding: 1px 4px 0; margin-left: 5px; vertical-align: 1px; line-height: 1.3; white-space: nowrap; }
+  .changes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: var(--rule); border-top: 1px solid var(--rule); }
+  .changes > div { background: var(--sheet); padding: 10px 12px 12px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+  .changes b { font-size: 13px; }
+  .changes p { margin: 0; font-size: 12px; color: var(--ink-2); }
+  .print-only { display: none; }
+  .canvas-title { margin: 0; font-size: 17px; font-weight: 700; }
+  .canvas-title span { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--ink-3); margin-left: 6px; }
+  @media (max-width: 1100px) { .changes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 680px) { .changes { grid-template-columns: minmax(0, 1fr); } }
+
+  /* ---- print / PDF: A4 landscape, one section per sheet where it fits ---- */
+  @page { size: A4 landscape; margin: 10mm 11mm 13mm; }
   @media print {
     /* always print on the light palette, whatever the screen theme */
     :root, :root[data-theme="dark"], :root:not([data-theme="light"]) {
@@ -280,6 +294,60 @@
     .scroll { overflow: visible; }
     .scroll table { min-width: 0; }
     body[data-filter] .field li { display: grid !important; }
+    html, body { background: #fff; }
+    body { font-size: 11.5px; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { max-width: none; padding: 0; gap: 12px; }
+    a { text-decoration: none; }
+    .print-only { display: block; }
+    .print-break { break-before: page; }
+    .screen-only { display: none !important; }
+    /* the wide layouts, whatever the paper width */
+    h1 { font-size: 27px; }
+    .thesis { font-size: 13.5px; max-width: none; }
+    .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .fact + .fact { border-left: 1px solid var(--rule); }
+    .fact:nth-child(n + 3) { border-top: 0; }
+    .changes { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .journey { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .canvas {
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      grid-template-areas:
+        "kp kp ka ka vp vp cr cr cs cs"
+        "kp kp kr kr vp vp ch ch cs cs"
+        "co co co co co re re re re re";
+    }
+    /* the canvas keeps its A3-width layout and is scaled onto one sheet */
+    .toolbar { font-size: 12px; break-before: page; }
+    .canvas { zoom: 0.64; }
+    .canvas .field { padding: 11px 12px 12px; gap: 6px; break-inside: auto; }
+    .field header { gap: 1px 9px; }
+    .no { width: 24px; height: 24px; font-size: 12.5px; }
+    .field h2 { font-size: 15px; }
+    .field .en { font-size: 10px; }
+    .field .q { font-size: 11px; padding-bottom: 6px; }
+    .field ul { gap: 6px; }
+    .field li { gap: 7px; }
+    .field li p { font-size: 11.5px; line-height: 1.4; }
+    .field .ev { font-size: 10px; line-height: 1.36; }
+    .field .tag { font-size: 9.5px; padding: 3px 4px 2px; }
+    .field .hx { font-size: 10px; margin-left: 3px; }
+    .field .v3 { font-size: 9px; padding: 0 3px; margin-left: 4px; }
+    .amap, .hyps, .play { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hyps { gap: 10px; }
+    .hcard > header { padding: 8px 10px; }
+    .hcard h3 { font-size: 12.5px; }
+    .hcard dl { grid-template-columns: 64px minmax(0, 1fr); gap: 3px 10px; padding: 8px 10px 10px; font-size: 10.8px; }
+    .hcard dt { font-size: 10.5px; }
+    .hcard dd { margin-bottom: 0; }
+    .cadence { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .road { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    table { font-size: 10.8px; }
+    th, td { padding: 6px 10px; }
+    th { font-size: 10px; }
+    .panel > h2 { padding: 8px 12px; font-size: 13.5px; }
+    .panel .body { padding: 8px 12px 10px; }
+    .sec-title { font-size: 17px; margin-top: 0; }
+    .panel, table tr { break-inside: avoid; }
   }
 </style>
 </head>
@@ -290,11 +358,11 @@
   <section class="masthead" aria-labelledby="t">
     <div class="doc-meta">
       <span><b>과제</b> 모두의 AI 실험실 AI-2026-000083</span>
-      <span><b>버전</b> v2 · 2026-11-03</span>
-      <span><b>기준</b> Prototype MVP (PR #1, 커밋 2f86363)</span>
+      <span><b>버전</b> v3 · 2026-11-25</span>
+      <span><b>기준</b> Prototype MVP (PR #1 최종본)</span>
       <span><b>첫 노선</b> KR ↔ PH</span>
     </div>
-    <h1 id="t"><span class="en" lang="en">Business Model Canvas · v2</span>TradeScope AI 비즈니스 모델 캔버스</h1>
+    <h1 id="t"><span class="en" lang="en">Business Model Canvas · v3</span>TradeScope AI 비즈니스 모델 캔버스</h1>
     <p class="thesis">TradeScope는 실제 무역을 <b>순서대로, 빠뜨리지 않고, 끝까지</b> 진행하도록 돕는 서비스입니다. 질문 한 줄로 7단계 거래 가이드를 만들고, 직접 하기 어려운 필리핀 FDA·BAI·통관 서류는 <b>현지 전문가와 실제 인력</b>이 맡고, 선적 후에는 <b>컨테이너·통관 추적</b>으로 화물이 인도될 때까지 함께 확인합니다.</p>
     <dl class="facts">
       <div class="fact"><dt>2025 한–필 교역액</dt><dd>$15.1B</dd></div>
@@ -303,6 +371,18 @@
       <div class="fact"><dt>한–필 FTA 발효</dt><dd>2024.12.31</dd></div>
     </dl>
     <p class="src">출처: UN Comtrade 공개 API, 한국 신고 기준 HS TOTAL (2026-11-03 수집, 전년 대비). 한–필 FTA는 한–아세안 FTA·RCEP와 중첩 적용됩니다.</p>
+  </section>
+
+  <!-- ===================================================== changes since v2 -->
+  <section class="panel" aria-labelledby="h-changes">
+    <h2 id="h-changes">v3에서 바뀐 것 — 2026-11-03 → 11-25 <span class="en" lang="en">What changed since v2</span></h2>
+    <div class="changes">
+      <div><b>첫 화면 전면 개편</b><p>질문 한 줄 검색, 수입·수출 선택, 예시 칩. 이용 방법·지원 품목·현지 전문가·교역 현황을 한 페이지에.</p></div>
+      <div><b>가설 검증 측정</b><p>H3·H7·H8·H9를 사이트가 익명 합계로 세고 <code>/admin</code> 「가설 검증」에서 자동 판정. 판정 계산기·검증 기록 추가.</p></div>
+      <div><b>관리자 보안</b><p>로그아웃을 서버에서 무효화, 모든 기기에서 로그아웃, 여러 서버 프로세스에서도 기록 보존.</p></div>
+      <div><b>보여 주기 쉬운 형태</b><p>링크 공유 카드(Open Graph)와 서버 없이 여는 데모 미리보기 — 설명회·제안 메일에서 바로 시연.</p></div>
+      <div><b>품질</b><p>코드 리뷰 13차 반영, 자동 테스트 10개 파일과 CI 통과, 360~1440px 화면 점검.</p></div>
+    </div>
   </section>
 
   <!-- ===================================================== journey -->
@@ -322,6 +402,7 @@
 
   <!-- ===================================================== canvas -->
   <div class="toolbar">
+    <h2 class="print-only canvas-title" aria-hidden="true">TradeScope AI 비즈니스 모델 캔버스 <span>v3 · 2026-11-25</span></h2>
     <div class="legend" role="group" aria-label="항목 구분">
       <span class="tag now">현재</span> MVP에 구현됨
       <span class="tag hyp" style="margin-left:8px">가설</span> 검증 전 제안 (<span class="mono" style="color:var(--ochre)">H1</span>… = 아래 검증 카드)
@@ -332,7 +413,7 @@
       <button type="button" data-filter="hyp" aria-pressed="false">가설만</button>
     </div>
   </div>
-  <p class="order-note">칸 번호는 캔버스를 채우는 순서입니다: 고객 → 가치 → 채널 → 관계 → 수익 → 자원 → 활동 → 파트너 → 비용.</p>
+  <p class="order-note canvas-note">칸 번호는 캔버스를 채우는 순서입니다: 고객 → 가치 → 채널 → 관계 → 수익 → 자원 → 활동 → 파트너 → 비용.</p>
 
   <main class="canvas" aria-label="비즈니스 모델 캔버스">
     <section class="field f-cs" aria-labelledby="h-cs">
@@ -365,7 +446,8 @@
       <p class="q">고객에게 닿는 길</p>
       <ul>
         <li data-kind="now"><span class="tag now">현재</span><p>제품 안 전환 지점<span class="ev">인허가 단계의 「맡기기」, 데이터에 없는 품목(예: 펫푸드 → BAI) 안내, 통관 단계의 관세사 연결</span></p></li>
-        <li data-kind="now"><span class="tag now">현재</span><p>웹 앱 · 공유 링크(<code>/?q=…</code>) · PDF 리포트</p></li>
+        <li data-kind="now"><span class="tag now">현재</span><p>랜딩 페이지 + 웹 앱<span class="v3">v3</span><span class="ev">첫 화면에서 질문 한 줄로 시작 — 이용 방법·지원 품목·현지 전문가 서비스·교역 현황, 공유 링크(<code>/?q=…</code>)·PDF 리포트</span></p></li>
+        <li data-kind="now"><span class="tag now">현재</span><p>공유 카드 · 데모 미리보기<a class="hx" href="#H9">H9</a><span class="v3">v3</span><span class="ev">링크를 붙이면 제목·이미지 카드가 뜨고, 서버 없이 여는 미리보기로 설명회·제안 메일에서 바로 시연</span></p></li>
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>수출지원기관·협회 설명회<a class="hx" href="#H9">H9</a><span class="ev">KOTRA, 한국무역협회, aT(농식품), 지자체 수출지원센터</span></p></li>
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>품목 × 국가 검색 랜딩<span class="ev">예: "필리핀 펫푸드 BAI 등록", "필리핀 FDA CPR 대행"</span></p></li>
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>포워더·관세사 추천(리퍼럴)</p></li>
@@ -404,6 +486,7 @@
         <li data-kind="now"><span class="tag now">현재</span><p>추적 어댑터 <span class="mono">4</span>종<a class="hx" href="#H8">H8</a><span class="ev">Hapag-Lloyd·CMA CGM(DCSA), ShipsGo, UNI-PASS — 실제 키 검증 전</span></p></li>
         <li data-kind="now"><span class="tag now">현재</span><p>한–필 무역 지식베이스와 검증 레이어<span class="ev"><span class="mono">7</span>개 품목 · <span class="mono">38</span>개 기업 · 양국 요건 <span class="mono">54</span>건, 수치별 검증 등급, AI 답변 근거 검사</span></p></li>
         <li data-kind="now"><span class="tag now">현재</span><p>공식 데이터 파이프라인 · 시뮬레이션 엔진 + LLM 어댑터</p></li>
+        <li data-kind="now"><span class="tag now">현재</span><p>관리자 콘솔 <code>/admin</code><span class="v3">v3</span><span class="ev">API 키·운영 설정(암호화 저장), 요청 상태 관리, 「가설 검증」 화면, 서버 측 로그아웃·모든 기기 로그아웃</span></p></li>
       </ul>
     </section>
 
@@ -414,6 +497,7 @@
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>전문가 모집·검증·품질 관리<a class="hx" href="#H5">H5</a><span class="ev">면허 확인, 시범 건 평가, 응답 시간·기한 준수 기록</span></p></li>
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>요청 응대와 진행 관리 (48시간 내 첫 연락)</p></li>
         <li data-kind="now"><span class="tag now">현재</span><p>추적 소스 운영<span class="ev">선사 판별, 10분 캐시, ShipsGo 하루 신규 등록 상한, 연결 테스트</span></p></li>
+        <li data-kind="now"><span class="tag now">현재</span><p>가설 검증 측정<a class="hx" href="#H3">H3</a><a class="hx" href="#H7">H7</a><a class="hx" href="#H8">H8</a><a class="hx" href="#H9">H9</a><span class="v3">v3</span><span class="ev">익명 합계(쿠키·IP 없음, Do Not Track 존중)로 세고 관리자 화면에서 카드 기준·95% 구간으로 자동 판정</span></p></li>
         <li data-kind="now"><span class="tag now">현재</span><p>공식 데이터 동기화·검증, 서비스 운영(관리자 페이지)</p></li>
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>규정 변경 추적<span class="ev">FDA 순환고시·BAI 행정명령·BOC CAO 개정 반영</span></p></li>
       </ul>
@@ -439,14 +523,14 @@
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>전문가 원가(파트너 보수)와 기관 수수료<a class="hx" href="#H6">H6</a><span class="ev">기관 수수료 예: FDA LTO PHP 8,000 + 1% 법률연구비, BAI LTO PHP 480, CFPR 제품당 PHP 100, SPSIC 건당 PHP 150 (민원 안내 기준)</span></p></li>
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>운영 매니저 인건비(요청 응대·진행 관리)</p></li>
         <li data-kind="now"><span class="tag now">현재</span><p>추적 API 비용<span class="ev">ShipsGo 새 화물당 1크레딧 — 하루 신규 등록 상한(기본 30)·재사용으로 제한</span></p></li>
-        <li data-kind="now"><span class="tag now">현재</span><p>LLM 호출(클라이언트당 시간 30회, 하루 500회 상한) · 호스팅</p></li>
+        <li data-kind="now"><span class="tag now">현재</span><p>LLM 호출(클라이언트당 시간 30회, 하루 500회 상한) · 호스팅<span class="ev">Vercel(서울 리전) 또는 Docker 자체 서버 — 측정·요청 기록을 남기려면 쓰기 가능한 저장소 필요</span></p></li>
         <li data-kind="hyp"><span class="tag hyp">가설</span><p>계약·책임 범위 정비(대행 계약서, 배상 책임)</p></li>
       </ul>
     </section>
   </main>
 
   <!-- ===================================================== why local people -->
-  <section class="panel" aria-labelledby="h-why">
+  <section class="panel print-break" aria-labelledby="h-why">
     <h2 id="h-why">왜 현지 인력이 필요한가 — 확인된 절차 <span class="en" lang="en">Why the expert service exists</span></h2>
     <div class="body">
       <p style="margin:0">한국 수출자는 필리핀 FDA·BAI·BOC에 <b>직접 신청할 수 없습니다</b>. 영업허가(LTO)·제품 등록·수입자 등록은 필리핀 등록 법인(DTI·SEC·CDA)과 실사를 받은 사무실·창고를 전제로 하므로, 허가를 가진 현지 수입자(또는 자체 현지 법인)와 그 명의로 서류를 진행할 사람이 필요합니다.</p>
@@ -637,7 +721,7 @@
   </section>
 
   <!-- ===================================================== validating as hard as we can -->
-  <section aria-labelledby="h-max" style="display:grid;grid-template-columns:minmax(0,1fr);gap:14px">
+  <section class="print-break" aria-labelledby="h-max" style="display:grid;grid-template-columns:minmax(0,1fr);gap:14px">
     <h2 class="sec-title" id="h-max"><span class="en" lang="en">Validating as hard as we can</span>가설을 최대한 검증하는 방법</h2>
     <p class="order-note">한 줄 요약: <b>시작 전에 기준을 적고, 말보다 행동·돈을 증거로 삼고, 표본이 찰 때까지 판정하지 않는다.</b> 결과는 아래 계산기로 판정해 기록에 남깁니다.</p>
 
@@ -725,7 +809,7 @@
           </tbody>
         </table>
       </div>
-      <div class="body"><p class="note">수집 방식: 날짜별 합계만 저장하고 쿠키·IP·기기 ID·입력 내용은 남기지 않습니다. Do Not Track·Global Privacy Control을 켠 브라우저는 보내지 않고, 서버도 그 신호가 붙은 요청·조회는 세지 않습니다. 관리자 화면은 매주 같은 요일, 같은 기간(28일)으로 봅니다.</p></div>
+      <div class="body"><p class="note">수집 방식: 날짜별 합계만 저장하고 쿠키·IP·기기 ID·입력 내용은 남기지 않습니다. Do Not Track·Global Privacy Control을 켠 브라우저는 보내지 않고, 서버도 그 신호가 붙은 요청·조회는 세지 않습니다. 관리자 화면은 매주 같은 요일, 같은 기간(28일)으로 봅니다. <b>합계는 서버의 데이터 폴더에 저장되므로</b> 저장소가 읽기 전용인 호스팅(Vercel 기본 설정)에서는 남지 않습니다 — 검증 기간에는 Docker·자체 서버로 운영하거나 측정용 저장소를 연결합니다.</p></div>
     </section>
 
     <div class="play">
@@ -754,7 +838,7 @@
       </section>
     </div>
 
-    <section class="panel" aria-labelledby="h-calc">
+    <section class="panel screen-only" aria-labelledby="h-calc">
       <h2 id="h-calc">판정 계산기 <span class="en" lang="en">Verdict calculator</span></h2>
       <div class="calc">
         <form id="calc" novalidate>
@@ -782,7 +866,9 @@
       </div>
     </section>
 
-    <section class="panel" aria-labelledby="h-log" id="log-panel">
+    <p class="note print-only" style="border:1px dashed var(--rule-strong);padding:8px 12px"><b>판정 계산기 · 검증 기록</b> — 결과를 넣으면 카드 기준으로 통과·보류·중단을 판정하고 기록·CSV로 남기는 도구는 HTML 문서(<code>tradescope-ai/docs/business-model-canvas.html</code>)에서 사용합니다.</p>
+
+    <section class="panel screen-only" aria-labelledby="h-log" id="log-panel">
       <h2 id="h-log">검증 기록 <span class="en" lang="en">Evidence log</span></h2>
       <div class="scroll">
         <table id="log">
@@ -801,7 +887,7 @@
   </section>
 
   <!-- ===================================================== roadmap -->
-  <section aria-labelledby="h-road" style="display:grid;gap:10px">
+  <section class="print-break" aria-labelledby="h-road" style="display:grid;gap:10px">
     <h2 class="sec-title" id="h-road"><span class="en" lang="en">12-week roadmap</span>12주 검증 로드맵</h2>
     <div class="road">
       <section>
@@ -828,7 +914,7 @@
   </section>
 
   <div class="limits">
-    <p style="margin:0"><b>현재 한계</b> — 지원 품목은 7개이고 펫푸드는 아직 지식베이스에 없어 BAI 대행 안내로 연결됩니다. RCEP·한–필 FTA 협정세율과 원산지기준·운임은 시드 참고값입니다. 추적 어댑터는 공개 명세 기반 고정 응답으로만 검증했고 실제 키 검증은 아직입니다. 현지 전문가 네트워크는 모집 전이며, 바이어 적합도 점수는 시뮬레이션 결과로 실제 거래 관계나 추천을 뜻하지 않습니다.</p>
+    <p style="margin:0"><b>현재 한계</b> — 지원 품목은 7개이고 펫푸드는 아직 지식베이스에 없어 BAI 대행 안내로 연결됩니다. RCEP·한–필 FTA 협정세율과 원산지기준·운임은 시드 참고값입니다. 추적 어댑터는 공개 명세 기반 고정 응답으로만 검증했고 실제 키 검증은 아직입니다. 현지 전문가 네트워크는 모집 전이며, 바이어 적합도 점수는 시뮬레이션 결과로 실제 거래 관계나 추천을 뜻하지 않습니다. 가설 측정 장치는 갖췄지만 <b>아직 실제 사용자 데이터는 없습니다</b> — 모든 카드는 「검증 전」입니다.</p>
   </div>
 </div>
 
