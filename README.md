@@ -41,3 +41,9 @@ npm run build
 ```
 
 The plugin manifest and skill files were validated before generating `submission.zip`.
+
+---
+
+## TradeScope AI (KR ↔ PH trade intelligence MVP)
+
+The `tradescope-ai/` folder holds a separate project: a zero-login, all-in-one AI trade intelligence MVP for Korea ↔ Philippines trade (Next.js standalone build, Docker-ready). See [`tradescope-ai/README.md`](tradescope-ai/README.md).

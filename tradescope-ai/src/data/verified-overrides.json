@@ -1,0 +1,4 @@
+{
+  "$comment": "Human-verified values that override seed data and raise them to 'verified'. Add an entry ONLY after checking an official source (see README §3-1 for the format, or generate one with the Data Trust Center's entry helper). Required: productId, target, source, reference, verifiedBy, verifiedAt (YYYY-MM-DD); optional validUntil. Expired entries fall back to seed. Validate with `npm run data:validate`.",
+  "entries": []
+}

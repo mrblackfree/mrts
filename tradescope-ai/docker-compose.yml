@@ -1,0 +1,53 @@
+# TradeScope AI — requires Docker Compose v2.24+ (optional env_file)
+#   App + automatic HTTPS for a domain:    DOMAIN=trade.example.com docker compose --profile https up -d --build
+#   App only over plain HTTP (no proxy):   set TRUST_PROXY=0 in .env.local, then
+#                                          APP_BIND=0.0.0.0 docker compose up -d --build   → http://SERVER_IP:3000
+#   Behind a host Nginx/Caddy:             docker compose up -d --build                    → 127.0.0.1:3000
+# Port 3000 is bound to 127.0.0.1 by default, so it can never bypass the HTTPS proxy by accident;
+# opening it to the network is an explicit APP_BIND=0.0.0.0 choice.
+services:
+  tradescope:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_DATA_FEEDBACK_URL: ${NEXT_PUBLIC_DATA_FEEDBACK_URL:-}
+        NEXT_PUBLIC_OVERRIDES_EDIT_URL: ${NEXT_PUBLIC_OVERRIDES_EDIT_URL:-}
+    image: tradescope-ai:latest
+    container_name: tradescope-ai
+    restart: unless-stopped
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    # deploy/compose.env holds the defaults (e.g. TRUST_PROXY=1); .env.local is optional and overrides them.
+    # Without an AI key the built-in KR-PH simulation engine is used.
+    env_file:
+      - path: deploy/compose.env
+        required: true
+      - path: .env.local
+        required: false
+    environment:
+      NODE_ENV: production
+    # values saved on /admin (encrypted) survive rebuilds in this volume
+    volumes:
+      - tradescope_data:/app/.data
+
+  # Reverse proxy with automatic Let's Encrypt certificates (enable with --profile https).
+  caddy:
+    image: caddy:2.8-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on:
+      - tradescope
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  tradescope_data:
+  caddy_data:
+  caddy_config:
