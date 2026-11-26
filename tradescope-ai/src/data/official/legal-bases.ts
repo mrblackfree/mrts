@@ -142,6 +142,86 @@ export const LEGAL_BASES: Record<string, LegalBasisEntry> = {
     source: 'DTI Bureau of Philippine Standards (bps.dti.gov.ph)',
     checkedAt: '2026-11-26',
   },
+  // ---- Korea -----------------------------------------------------------------------------------------------------
+  'kr-foreign-facility': {
+    citation: b('수입식품안전관리 특별법 제5조 제1항', 'Special Act on Imported Food Safety Control, Art. 5(1)'),
+    url: 'https://www.law.go.kr/법령/수입식품안전관리특별법/제5조',
+    quote:
+      '"수입식품등을 국내로 수입하려는 자 또는 해외제조업소의 설치ㆍ운영자…는 해당 해외제조업소의 명칭, 소재지 및 생산 품목 등 총리령으로 정하는 사항을 제20조에 따른 수입신고 전까지 식품의약품안전처장에게 등록을 신청하여야 한다." · "제1항에 따른 해외제조업소 등록의 유효기간은 등록한 날부터 2년으로 하며…"',
+    source: '국가법령정보센터 법령 (한국법제연구원 elaw.klri.re.kr 국영문 원문으로 대조)',
+    checkedAt: '2026-11-26',
+  },
+  'kr-import-business': {
+    citation: b('수입식품안전관리 특별법 제15조 제1항·제17조 제2항', 'Special Act on Imported Food Safety Control, Art. 15(1) and Art. 17(2)'),
+    url: 'https://www.law.go.kr/법령/수입식품안전관리특별법/제15조',
+    quote:
+      '"제14조제1항 각 호에 따른 영업을 하려는 자는 식품의약품안전처장에게 영업등록을 하여야 한다." (제15조) · "제14조제1항 각 호에 따른 영업을 하려는 자는 … 미리 수입식품등의 위생관리 등에 관한 교육을 받아야 한다. 다만, 부득이한 사유로 미리 교육을 받을 수 없는 경우에는 영업을 시작한 뒤에 … 교육을 받을 수 있다." (제17조)',
+    source: '국가법령정보센터 법령 (한국법제연구원 elaw.klri.re.kr 국영문 원문으로 대조)',
+    checkedAt: '2026-11-26',
+  },
+  'kr-import-declaration': {
+    citation: b('수입식품안전관리 특별법 제21조 제1항·제2항 (검사 구분은 시행규칙 별표 9·10)', 'Special Act on Imported Food Safety Control, Art. 21(1)–(2) (inspection classes in Enforcement Rule Annexes 9–10)'),
+    url: 'https://www.law.go.kr/법령/수입식품안전관리특별법/제21조',
+    quote:
+      '"식품의약품안전처장은 제20조제1항에 따라 수입신고된 수입식품등에 대하여 통관 절차가 끝나기 전에 … 필요한 검사를 하게 하여야 한다." · "… 수입식품등의 검사이력, 국내외 식품안전정보 등에 따라 수입식품등을 구분하여 차등 검사할 수 있다." · 시행규칙 별표 10: "Imported food, etc. imported for the first time" — re-imports of the same product "within five years … after undergoing laboratory tests"',
+    source: '국가법령정보센터 법령 (한국법제연구원 elaw.klri.re.kr 국영문 원문으로 대조) · 식약처 시행규칙 영문본(총리령 제1800호)',
+    checkedAt: '2026-11-26',
+  },
+  'kr-label': {
+    citation: b('식품 등의 표시·광고에 관한 법률 제4조 제1항 · 대외무역법 제33조 제1항(원산지)', 'Act on Labeling and Advertising of Foods, Art. 4(1) · Foreign Trade Act, Art. 33(1) (origin)'),
+    url: 'https://www.law.go.kr/법령/식품등의표시ㆍ광고에관한법률/제4조',
+    quote:
+      '"식품등에는 다음 각 호의 구분에 따른 사항을 표시하여야 한다. … 1. 식품, 식품첨가물 또는 축산물 가. 제품명, 내용량 및 원재료명 나. 영업소 명칭 및 소재지 다. 소비자 안전을 위한 주의사항 라. 제조연월일, 소비기한 또는 품질유지기한…" · 대외무역법 제33조: "원산지표시대상물품…을 수출하거나 수입하려는 자는 그 물품등에 대하여 원산지를 표시하여야 한다."',
+    source: '국가법령정보센터 법령 (한국법제연구원 elaw.klri.re.kr 국영문 원문으로 대조)',
+    checkedAt: '2026-11-26',
+  },
+  'kr-plant-quarantine': {
+    citation: b('식물방역법 제2조 제1호 나목 (검역 대상 식물의 정의)', 'Plant Protection Act, Art. 2(1)(b) (plants subject to quarantine)'),
+    url: 'https://www.law.go.kr/법령/식물방역법/제2조',
+    quote: '"가목에 규정된 것의 씨앗ㆍ과실 및 가공품(병해충이 잠복할 수 없도록 가공한 것으로서 농림축산식품부령으로 정하는 것은 제외한다)"',
+    source: '국가법령정보센터 법령 (한국법제연구원 elaw.klri.re.kr 국영문 원문으로 대조)',
+    checkedAt: '2026-11-26',
+  },
+  'kr-fta-origin': {
+    citation: b('FTA 관세특례법 제8조 제1항·제9조 제1항·제15조', 'Act on Special Cases of the Customs Act for FTAs, Art. 8(1), Art. 9(1) and Art. 15'),
+    url: 'https://www.law.go.kr/법령/자유무역협정의이행을위한관세법의특례에관한법률/제8조',
+    quote:
+      '"협정관세를 적용받으려는 자…는 수입신고의 수리 전까지 … 세관장에게 협정관세의 적용을 신청하여야 한다." (제8조) · "수입자는 해당 물품의 수입신고 수리일부터 1년 이내에 … 협정관세의 적용을 신청할 수 있다." (제9조) · "…원산지증빙서류 등 대통령령으로 정하는 서류를 5년의 범위에서 대통령령으로 정하는 기간 … 동안 보관하여야 한다." (제15조)',
+    source: '국가법령정보센터 법령 (한국법제연구원 elaw.klri.re.kr 국영문 원문으로 대조)',
+    checkedAt: '2026-11-26',
+  },
+  'kr-customs-docs': {
+    citation: b('관세법 시행령 제250조 (관세법 제245조 신고서류)', 'Enforcement Decree of the Customs Act, Art. 250 (documents under Customs Act Art. 245)'),
+    url: 'https://www.law.go.kr/법령/관세법시행령/제250조',
+    quote:
+      '"법 제245조제1항에서 \"대통령령으로 정하는 서류\"란 다음 각 호의 서류를 말한다. 1. 선하증권 사본 또는 항공화물운송장 사본 2. 원산지증명서(제236조제1항이 적용되는 경우로 한정한다) 3. 기타 참고서류" · "수출입신고를 하는 물품이 법 제226조의 규정에 의한 증명을 필요로 하는 것인 때에는 관련증명서류를 첨부하여 수출입신고를 하여야 한다."',
+    source: '국가법령정보센터 법령 (한국법제연구원 elaw.klri.re.kr 국영문 원문으로 대조)',
+    checkedAt: '2026-11-26',
+  },
+  'kr-sulfite': {
+    citation: b('식품첨가물의 기준 및 규격(식약처 고시) — 이산화황 잔류 기준 · 표시·광고법 시행규칙 별표 2(아황산류)', 'MFDS Food Additives Code — SO₂ residue limits · Labeling Act Enforcement Rule Annex 2 (sulfites)'),
+    url: 'https://www.mfds.go.kr/eng/brd/m_15/down.do?brd_id=eng0001&seq=72436&data_tp=A&file_seq=1',
+    quote:
+      'Food Additives Code (No. 2021-19): residue "as sulfur dioxide should be less than … 7. Dried fruits: 1.0g/kg" · Labeling Act Enforcement Rule Annex 2 lists "sulfurous acids (included only if the final product contains more than 10 milligrams of sulfur dioxide per kilogram)"',
+    source: '식약처 영문 법령 자료 (mfds.go.kr) — 식품첨가물공전 2021-19 · 표시·광고법 시행규칙(총리령 제1813호)',
+    checkedAt: '2026-11-26',
+  },
+  'kr-cosmetic-route': {
+    citation: b('수입식품안전관리 특별법 제20조 제1항 · 화장품법 제8조', 'Special Act on Imported Food Safety Control, Art. 20(1) · Cosmetics Act, Art. 8'),
+    url: 'https://www.law.go.kr/법령/수입식품안전관리특별법/제20조',
+    quote:
+      '"영업자가 판매를 목적으로 하거나 영업상 사용할 목적으로 수입식품등을 수입…하려면 해당 수입식품등을 … 식품의약품안전처장에게 수입신고를 하여야 한다." · 화장품법 제8조: "식품의약품안전처장은 화장품의 제조 등에 사용할 수 없는 원료를 지정하여 고시하여야 한다."',
+    source: '국가법령정보센터 법령 (한국법제연구원 elaw.klri.re.kr 국영문 원문으로 대조)',
+    checkedAt: '2026-11-26',
+  },
+  'kr-export-co': {
+    citation: b('관세청 고시 「FTA 관세특례법 사무처리에 관한 고시」 제22조 (증명서발급기관)', 'Korea Customs Service notice on FTA customs procedures, Art. 22 (certificate issuers)'),
+    url: 'https://www.law.go.kr/행정규칙/자유무역협정의이행을위한관세법의특례에관한법률사무처리에관한고시',
+    quote:
+      '"…증명서발급기관은 다음 각 호와 같다. 1. 「관세청과 그 소속기관 직제」 제22조에 따른 세관 2. 「상공회의소법」에 따라 설립된 상공회의소 및 대한상공회의소"',
+    source: '국가법령정보센터 행정규칙 원문 (관세청 고시)',
+    checkedAt: '2026-11-26',
+  },
 };
 
 /** The legal basis of a product's requirement, if one has been matched. */

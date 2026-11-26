@@ -138,8 +138,8 @@ const krFoodImportRequirements = (opts: { quarantine: Bilingual; extra?: Require
     category: 'registration',
     title: b('해외제조업소 등록', 'Overseas manufacturing facility registration'),
     detail: b(
-      '수입식품안전관리 특별법 제5조 — 필리핀 현지 공장 정보를 수입신고 7일 전까지 식약처에 등록. 공장 주소·제조품목·위생관리 현황 필요.',
-      'Special Act on Imported Food Safety Art. 5 — register the Philippine plant with MFDS at least 7 days before the import declaration.',
+      '수입식품안전관리 특별법 제5조 — 필리핀 현지 공장(명칭·소재지·생산 품목 등)을 수입신고 전까지 식약처에 등록. 등록 유효기간은 2년이며, 연장 신청은 만료 7일 전까지.',
+      'Special Act on Imported Food Safety Control Art. 5 — register the Philippine plant (name, location, products and more) with MFDS before the import declaration. Registration is valid for 2 years; apply to renew at least 7 days before it expires.',
     ),
     agency: '식약처 (MFDS)',
     url: AGENCY_LINKS.impfood,
@@ -152,8 +152,8 @@ const krFoodImportRequirements = (opts: { quarantine: Bilingual; extra?: Require
     category: 'registration',
     title: b('수입식품등 수입·판매업 영업등록', 'Imported-food import & sales business registration'),
     detail: b(
-      '수입자는 관할 지방식약청에 영업등록 및 식품위생교육 이수. 등록증이 있어야 수입신고 가능.',
-      'The Korean importer registers with the regional MFDS office and completes food-hygiene training before declaring imports.',
+      '수입자는 지방식약청에 수입식품등 수입·판매업 영업등록을 하고, 영업 전에 수입식품 위생교육(4시간)을 이수 — 부득이한 경우 영업 시작 후 이수 가능. 영업등록을 해야 수입신고 가능.',
+      'The Korean importer registers an imported-food import & sales business with the regional MFDS office and completes the imported-food hygiene training (4 hours) beforehand — or after starting, for unavoidable reasons. Imports can be declared only once registered.',
     ),
     agency: '지방식약청',
     url: AGENCY_LINKS.impfood,
@@ -166,8 +166,8 @@ const krFoodImportRequirements = (opts: { quarantine: Bilingual; extra?: Require
     category: 'food-safety',
     title: b('수입식품 신고 및 정밀검사 (최초 수입)', 'Imported-food declaration & first-time laboratory inspection'),
     detail: b(
-      '최초 수입 시 정밀검사(산가·과산화물가·타르색소·잔류농약·이물 등). 이후 서류·관능검사 또는 무작위표본검사로 전환.',
-      'First shipment undergoes lab testing (acid/peroxide value, colorants, pesticide residue, foreign matter); later shipments move to document/sensory or random sampling.',
+      '처음 수입하는 식품은 정밀검사 — 검사 항목은 식품 유형별 기준(예: 기름에 튀긴 과채가공품은 산가·과산화물가, 타르색소·이물). 같은 업체가 같은 제품을 5년 안에 다시 들여오면 서류검사로 바뀌고, 무작위표본검사 등 이력에 따라 차등 적용. 검사는 통관 전에 끝나야 함.',
+      'Food imported for the first time gets a laboratory inspection — items follow its food type (e.g. acid and peroxide value for oil-fried fruit products, tar colours, foreign matter). Re-imports of the same product by the same company within 5 years move to document review, with random sampling and other checks varied by history. Inspection is completed before customs clearance.',
     ),
     agency: '식약처 (MFDS)',
     url: AGENCY_LINKS.impfood,
@@ -180,8 +180,8 @@ const krFoodImportRequirements = (opts: { quarantine: Bilingual; extra?: Require
     category: 'labeling',
     title: b('한글표시사항 부착', 'Korean-language label'),
     detail: b(
-      '식품등의 표시·광고에 관한 법률 — 제품명·식품유형·원산지(필리핀)·원재료명 및 함량·내용량·소비기한·알레르기 유발물질·수입판매업소 표기. 통관 전 스티커 부착 가능.',
-      'Food Labeling & Advertising Act — product name, food type, origin (Philippines), ingredients, net content, use-by date, allergens, importer. Stickers may be applied before clearance.',
+      '식품 등의 표시·광고에 관한 법률 제4조 — 제품명·식품유형·원재료명 및 함량·내용량·소비기한·알레르기 유발물질·수입판매업소 명칭과 소재지 등을 한글로 표시. 원산지(필리핀) 표시는 대외무역법 제33조. 한글 스티커는 떨어지지 않게 붙이면 사용 가능.',
+      "Act on Labeling and Advertising of Foods Art. 4 — Korean label with product name, food type, ingredients and content, net content, use-by date, allergens and the importer's name and address. Origin (Philippines) marking comes from the Foreign Trade Act Art. 33. Korean stickers are allowed if attached so they will not come off.",
     ),
     agency: '식약처 (MFDS)',
     url: AGENCY_LINKS.foodsafety,
@@ -204,8 +204,8 @@ const krFoodImportRequirements = (opts: { quarantine: Bilingual; extra?: Require
     category: 'origin',
     title: b('FTA 원산지증명서 & 협정관세 적용신청', 'FTA certificate of origin & preferential tariff claim'),
     detail: b(
-      '필리핀 수출자가 Form AK(한-아세안) / RCEP CO / 한-필 FTA CO 중 최적 협정 증명서 발급 → 수입신고 시 협정관세 적용신청. 사후검증 대비 원산지 소명서류 5년 보관.',
-      'The Philippine exporter issues Form AK / RCEP CO / KR-PH CO; claim the preferential rate at declaration and keep origin evidence for 5 years for post-audit.',
+      '최적 협정의 필리핀 측 원산지증명서(Form AK / RCEP / 한-필 FTA)를 받아 수입신고 수리 전까지 협정관세 적용 신청 — 놓쳤으면 수리일부터 1년 안에 사후 신청 가능. 원산지증빙서류는 신청한 다음 날부터 5년 보관.',
+      'Obtain the Philippine certificate of origin for the best agreement (Form AK / RCEP / KR-PH FTA) and claim the preferential rate before the import declaration is accepted — or within 1 year of acceptance afterwards. Keep origin documents for 5 years from the day after the claim.',
     ),
     agency: '관세청 FTA 포털',
     url: AGENCY_LINKS.ftaPortal,
@@ -217,8 +217,8 @@ const krFoodImportRequirements = (opts: { quarantine: Bilingual; extra?: Require
     category: 'customs',
     title: b('수입통관 서류 (UNI-PASS 전자신고)', 'Import clearance documents (UNI-PASS e-filing)'),
     detail: b(
-      '상업송장(C/I)·포장명세서(P/L)·선하증권(B/L)·원산지증명서·식품 수입신고필증·(필요 시) 위생증명서. 관세사 통해 UNI-PASS 전자신고.',
-      'Commercial invoice, packing list, B/L, certificate of origin, food import certificate, health certificate if needed — filed electronically via a licensed customs broker.',
+      '화주 또는 관세사 명의로 UNI-PASS 전자신고. 과세가격 자료(상업송장 등)·선하증권 사본, 협정관세를 받을 때 원산지증명서, 포장명세서 등 참고서류 제출. 식약처 「수입식품등의 수입신고 확인증」을 받은 뒤 통관. 위생증명서는 특별위생관리 대상 식품만 필요(이 품목은 해당 없음).',
+      "Declare via UNI-PASS in the owner's or a customs broker's name, with valuation documents (commercial invoice etc.), a copy of the B/L, the certificate of origin when claiming a preferential rate, and other references such as the packing list. Clear customs after MFDS issues its imported-food declaration confirmation. A health certificate is needed only for special-sanitation foods (not this product).",
     ),
     agency: '관세청 UNI-PASS',
     url: AGENCY_LINKS.unipass,
@@ -248,8 +248,8 @@ const phCommonExportRequirements = (): Requirement[] => [
     category: 'origin',
     title: b('한국 측 원산지증명서 발급 (Form AK / RCEP / KR-PH)', 'Korean certificate of origin (Form AK / RCEP / KR-PH)'),
     detail: b(
-      '대한상공회의소 또는 세관에서 기관발급. 원산지 판정 근거(BOM·원가계산서) 사전 준비 — 필리핀 세관 협정세율 적용의 전제.',
-      'Issued by KCCI or Korea Customs. Prepare origin evidence (BOM, cost sheet) in advance — required for the PH preferential rate.',
+      '대한상공회의소(상공회의소) 또는 세관에서 기관발급. 원산지 판정 근거(자재명세서 BOM·원가산출내역서) 사전 준비 — 필리핀 세관 협정세율 적용의 전제.',
+      'Issued by a chamber of commerce (KCCI) or Korea Customs. Prepare origin evidence (bill of materials, cost statement) in advance — required for the PH preferential rate.',
     ),
     agency: '대한상공회의소 / 관세청',
     url: AGENCY_LINKS.korcham,
@@ -428,8 +428,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
     },
     requirements: krFoodImportRequirements({
       quarantine: b(
-        '유탕·가당·가열 처리된 가공품은 식물검역 대상에서 제외될 수 있음(제조공정도·가공증명 제출). 단순 건조 바나나 슬라이스는 검역 대상 여부를 농림축산검역본부에 사전 확인.',
-        'Fried / sugared / heat-processed products can be exempt from plant quarantine (submit process flow). Plain dried banana slices: confirm status with APQA in advance.',
+        '병해충이 잠복할 수 없도록 가공한 식물 가공품은 식물방역법 검역 대상에서 제외 — 기름에 튀기거나 설탕으로 처리한 바나나칩이 이런 경우로, 검역본부 「가공품 품목의 예」 해당 여부와 가공품목확인서를 확인. 단순 건조 바나나 슬라이스는 검역 대상 여부를 농림축산검역본부에 사전 확인.',
+        "Plant products processed so pests cannot hide in them are outside plant quarantine — oil-fried or sugared banana chips are such a case; check APQA's list of processed-item examples and get its processed-item confirmation. Plain dried banana slices: confirm with APQA in advance.",
       ),
     }),
     requirementMeta: REQ_META_KR,
@@ -700,8 +700,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
     },
     requirements: krFoodImportRequirements({
       quarantine: b(
-        '가당·건조 가공된 건망고는 식물검역 대상 제외 가능(가공공정 증빙). 생망고는 증열처리(VHT) 조건부 수입 품목이므로 반건조·생과 혼입 금지.',
-        'Sugared and dried mango can be exempt (submit process evidence). Fresh mango is import-conditional (vapor-heat treatment), so avoid semi-dried / fresh mixing.',
+        '병해충이 잠복할 수 없도록 가공한 식물 가공품은 식물방역법 검역 대상에서 제외 — 설탕으로 처리해 건조한 건망고가 이런 경우로, 검역본부 가공품목확인서를 받아 둠. 생망고는 증열처리(VHT) 조건부 수입 품목이므로 반건조·생과 혼입 금지.',
+        "Plant products processed so pests cannot hide in them are outside plant quarantine — sugared dried mango is such a case; get APQA's processed-item confirmation. Fresh mango is import-conditional (vapor-heat treatment), so avoid semi-dried / fresh mixing.",
       ),
       extra: [
         {
@@ -710,8 +710,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
           category: 'food-safety',
           title: b('이산화황(보존료) 잔류 기준 확인', 'Sulphur dioxide (preservative) residue limits'),
           detail: b(
-            '건조과실류 이산화황 잔류 허용기준 확인 및 사용 시 한글표시에 "이산화황 함유" 표기. 정밀검사 부적합 다발 항목.',
-            'Check SO₂ residue limits for dried fruit and declare it on the Korean label. A frequent cause of inspection failures.',
+            '「식품첨가물의 기준 및 규격」상 건조과일류의 이산화황 잔류량은 1.0g/kg 미만이어야 함. 최종 제품에 이산화황이 1kg당 10mg 이상 남으면 한글표시에 알레르기 유발물질(아황산류)로 표시.',
+            'Under the Food Additives Code, sulfur-dioxide residue in dried fruits must be under 1.0 g/kg. If the final product holds 10 mg/kg of SO₂ or more, list sulfites as an allergen on the Korean label.',
           ),
           agency: '식약처 (MFDS)',
           url: AGENCY_LINKS.foodsafety,
@@ -953,8 +953,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
     },
     requirements: krFoodImportRequirements({
       quarantine: b(
-        '정제 유지류는 식물검역 대상이 아님. 단, 코프라·코코넛 원물(1203·0801) 동반 수입 시 검역 대상.',
-        'Refined oils are outside plant quarantine; copra or whole coconuts (1203 / 0801) shipped together are subject to inspection.',
+        '착유·정제한 유지는 병해충이 잠복할 수 없도록 가공한 것으로 식물검역 대상에서 제외되는 것이 일반적 — 검역본부에 가공품목 해당 여부 확인. 코프라·코코넛 원물(1203·0801)을 함께 들여오면 검역 대상.',
+        'Pressed and refined oils are generally treated as processed so pests cannot hide in them, and fall outside plant quarantine — confirm the processed-item status with APQA. Copra or whole coconuts (1203 / 0801) shipped together are inspected.',
       ),
       extra: [
         {
@@ -963,8 +963,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
           category: 'registration',
           title: b('화장품 원료 용도 시 화장품법 경로 분리', 'Separate Cosmetics Act route for cosmetic-grade VCO'),
           detail: b(
-            '화장품 원료로 수입하면 식품 수입신고가 아닌 화장품 원료 수입 절차(품질 성적서·사용기준) 적용 — 용도별 로트 분리 관리.',
-            'If imported as a cosmetic ingredient, the cosmetics route (COA, ingredient standards) applies instead of food import — keep lots separated by use.',
+            '식품이 아닌 화장품 원료로 들여오는 VCO는 식품 수입신고 대상이 아님(수입신고는 판매·영업용 식품에 적용). 식품으로 신고한 물량과 섞이지 않게 용도별로 로트를 분리. 화장품 제조사는 사용 금지 원료·사용 기준(화장품법 제8조)에 맞는지 확인하고 입고 원료를 시험.',
+            'VCO imported as a cosmetic ingredient rather than food is outside the food import declaration (which covers food for sale or business use). Keep lots separated from those declared as food. The cosmetics manufacturer checks the banned-ingredient list and use standards (Cosmetics Act Art. 8) and tests incoming raw materials.',
           ),
           agency: '식약처 (MFDS)',
           url: AGENCY_LINKS.mfds,
