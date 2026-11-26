@@ -95,11 +95,19 @@ async function post(pathSuffix: string, payload: unknown, timeoutMs: number): Pr
   }
 }
 
+/** A well-formed answer to one command: an object that carries `result` (null for a missing key) and no error. */
+const isReply = (r: unknown): r is { result: unknown } => !!r && typeof r === 'object' && !Array.isArray(r) && Object.hasOwn(r, 'result') && !(r as { error?: unknown }).error;
+
 /** One Redis command; throws KvError on a transport or Redis error (never returns a partial result). */
 export async function kv(command: Array<string | number>, timeoutMs = 8000): Promise<unknown> {
-  const body = (await post('', command.map(String), timeoutMs)) as { result?: unknown };
+  const body = await post('', command.map(String), timeoutMs);
+  // a malformed answer is a failure, never read as "no value"
+  if (!isReply(body)) {
+    markFailure();
+    throw new KvError('kv-bad-answer');
+  }
   markSuccess();
-  return body.result ?? null;
+  return body.result;
 }
 
 /**
@@ -110,12 +118,12 @@ export async function kvPipeline(commands: Array<Array<string | number>>, timeou
   if (!commands.length) return [];
   const body = await post('/pipeline', commands.map((c) => c.map(String)), timeoutMs);
   // healthy only when every command in the batch succeeded
-  if (!Array.isArray(body) || body.length !== commands.length || body.some((r) => !r || typeof r !== 'object' || (r as { error?: string }).error)) {
+  if (!Array.isArray(body) || body.length !== commands.length || !body.every(isReply)) {
     markFailure();
     throw new KvError('kv-error');
   }
   markSuccess();
-  return body.map((r) => (r as { result?: unknown }).result ?? null);
+  return body.map((r) => r.result);
 }
 
 /** HGETALL's flat [field, value, field, value…] answer as an object (no prototype, so any field name is safe). */

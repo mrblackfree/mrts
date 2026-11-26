@@ -21,6 +21,8 @@ export interface FakeUpstash {
   clockOffsetS: number;
   /** run each command but answer 504, as when the answer is lost on the way back */
   loseAnswers: boolean;
+  /** answer 200 with a body that has no `result` (a broken proxy or API change) */
+  malformed: boolean;
   close: () => Promise<void>;
 }
 
@@ -29,7 +31,7 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
   const hashes = new Map<string, Map<string, string>>();
   const expiries = new Map<string, number>();
   const calls: string[][] = [];
-  const state = { failWith: null as number | null, delayMs: 0, clockOffsetS: 0, loseAnswers: false };
+  const state = { failWith: null as number | null, delayMs: 0, clockOffsetS: 0, loseAnswers: false, malformed: false };
   const nowS = () => Math.floor(Date.now() / 1000) + state.clockOffsetS;
   const purgeExpired = () => {
     for (const [k, at] of expiries) {
@@ -143,6 +145,7 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
         res.end(JSON.stringify(obj));
       };
       if (state.failWith) return send(state.failWith, { error: 'unavailable' });
+      if (state.malformed) return send(200, req.url === '/pipeline' ? [{}] : {});
       if (req.headers.authorization !== `Bearer ${token}`) return send(401, { error: 'Unauthorized' });
       let parsed: unknown;
       try {
@@ -186,6 +189,12 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
     },
     get loseAnswers() {
       return state.loseAnswers;
+    },
+    get malformed() {
+      return state.malformed;
+    },
+    set malformed(v) {
+      state.malformed = v;
     },
     set loseAnswers(v) {
       state.loseAnswers = v;
