@@ -1,0 +1,31 @@
+/* Shipped tariff tables: the recommended FTA is never beaten by another agreement in the same table, preferential
+   rates never exceed MFN, and values read from an official schedule show as official. */
+import { done, ok } from './assert';
+
+const { PRODUCTS, getProduct } = await import('@/data/kr-ph-trade-db');
+
+for (const p of PRODUCTS) {
+  const tables = [{ name: 'main', tariffs: p.tariffs, best: p.bestFta.scheme }, ...Object.entries(p.tariffsByHs ?? {}).map(([hs, t]) => ({ name: hs, tariffs: t.tariffs, best: t.bestFta.scheme }))];
+  for (const t of tables) {
+    const mfn = t.tariffs.find((x) => x.scheme === 'MFN');
+    const ftas = t.tariffs.filter((x) => x.scheme !== 'MFN');
+    const best = ftas.find((x) => x.scheme === t.best);
+    ok(`${p.id} ${t.name}: the recommended FTA is in the table`, !!best);
+    if (!best) continue;
+    const lowest = Math.min(...ftas.map((x) => x.rate));
+    ok(`${p.id} ${t.name}: the recommended ${t.best} (${best.rate}%) is the lowest rate (${lowest}%)`, best.rate === lowest);
+    ok(`${p.id} ${t.name}: no preferential rate above MFN`, !mfn || ftas.every((x) => x.rate <= mfn.rate));
+  }
+}
+
+const rate = (id: string, scheme: string, hs?: string) => {
+  const p = getProduct(id)!;
+  return (hs ? p.tariffsByHs![hs].tariffs : p.tariffs).find((x) => x.scheme === scheme)!;
+};
+ok("banana chips: Korea's AKFTA rate is the official 36%", rate('banana-chips', 'AKFTA').rate === 36 && rate('banana-chips', 'AKFTA').level === 'official');
+ok('banana chips: RCEP is recommended and its rule of origin is official', getProduct('banana-chips')!.bestFta.scheme === 'RCEP' && getProduct('banana-chips')!.verification!.items.find((i) => i.key === 'roo')!.level === 'official');
+ok('dried mango: unsweetened 0804.50 is AKFTA 24% (official)', rate('dried-mango', 'AKFTA', '0804.50.2000').rate === 24 && rate('dried-mango', 'AKFTA', '0804.50.2000').level === 'official');
+ok('coconut oil: crude 1513.11 is 0% under all three agreements (official)', ['AKFTA', 'RCEP', 'KRPH'].every((s) => rate('coconut-oil', s, '1513.11.0000').rate === 0 && rate('coconut-oil', s, '1513.11.0000').level === 'official'));
+ok('rates not printed in a schedule stay at the seed level', rate('banana-chips', 'KRPH').level === undefined && rate('coconut-oil', 'KRPH').level === undefined);
+
+done('tariff tables');

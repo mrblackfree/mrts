@@ -258,6 +258,100 @@
       "verifiedAt": "2026-11-26",
       "validUntil": "2026-12-31",
       "basis": "official"
+    },
+    {
+      "productId": "banana-chips",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 36,
+        "roo": "CC or RVC 40%"
+      },
+      "source": "ASEAN–Korea FTA — Korea's Tariff Reduction Schedule (HS 2012, consolidated Aug 2015), Annex 2 (Sensitive Track) and the Product-Specific Rules / Annex 3 (ASEAN Secretariat, asean.org)",
+      "reference": "HSK 2008.99.9000 · Highly Sensitive List Group B (base 45%, cut by 20% by 2016, Annex 2 para 4(ii)) · 36% in every year 2016–2024 · PSR 2008.99: CC or RVC 40",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 양허표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "dried-mango",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 36,
+        "roo": "CC or RVC 40%"
+      },
+      "source": "ASEAN–Korea FTA — Korea's Tariff Reduction Schedule (HS 2012, consolidated Aug 2015), Annex 2 (Sensitive Track) and the Product-Specific Rules / Annex 3 (ASEAN Secretariat, asean.org)",
+      "reference": "HSK 2008.99.9000 · Highly Sensitive List Group B (base 45%, cut by 20% by 2016, Annex 2 para 4(ii)) · 36% in every year 2016–2024 · PSR 2008.99: CC or RVC 40",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 양허표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "dried-mango",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 24,
+        "roo": "WO",
+        "hs": "0804.50.2000"
+      },
+      "source": "ASEAN–Korea FTA — Korea's Tariff Reduction Schedule (HS 2012, consolidated Aug 2015), Annex 2 (Sensitive Track) and the Product-Specific Rules / Annex 3 (ASEAN Secretariat, asean.org)",
+      "reference": "HSK 0804.50.2000 Mangoes · Highly Sensitive List Group B (base 30%) · 24% in every year 2016–2024 · PSR 08.04: wholly obtained",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 양허표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "coconut-oil",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 0,
+        "roo": "CTH or RVC 40%",
+        "hs": "1513.11.0000"
+      },
+      "source": "ASEAN–Korea FTA — Korea's Tariff Reduction Schedule (HS 2012, consolidated Aug 2015), Annex 2 (Sensitive Track) and the Product-Specific Rules / Annex 3 (ASEAN Secretariat, asean.org)",
+      "reference": "HSK 1513.11.0000 Crude oil · Normal Track · 0% in every year 2016–2024, no reciprocity remark (unlike 1513.19: R(PH)) · no PSR for 15.13, so Annex 3 Rule 4.1 applies: RVC 40 or CTH",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 양허표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "coconut-oil",
+      "target": {
+        "type": "tariff",
+        "scheme": "RCEP",
+        "rate": 0,
+        "roo": "CC",
+        "hs": "1513.11.0000"
+      },
+      "source": "RCEP Agreement Annex I — Korea's Schedule of Tariff Commitments for ASEAN, and Annex 3A (RCEP Secretariat, rcepsec.org)",
+      "reference": "HSK 2014 1513.11.00.00 · base 3% · 0.0% from year 1 (2026 = year 5) · Annex 3A PSR 1513.11: CC",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 양허표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "coconut-oil",
+      "target": {
+        "type": "tariff",
+        "scheme": "KRPH",
+        "rate": 0,
+        "roo": "CTH or RVC 40%",
+        "hs": "1513.11.0000"
+      },
+      "source": "Korea–Philippines FTA Annex 2-A (General Notes; Tariff Schedule of Korea) and Annex 4-B (Product-Specific Rules) — Philippine DTI FTA portal (philippineftas.dti.gov.ph) and the full-text copy published by KITA (okfta.kita.net)",
+      "reference": "HSK 2017 1513.11.0000 Crude oil · staging Cat 0 (duty-free from entry into force, General Note 1(a)) · base 0 · Annex 4-B PSR 1513.11: RVC 40 or CTH",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 양허표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
     }
   ]
 }
