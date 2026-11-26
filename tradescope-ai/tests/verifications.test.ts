@@ -87,7 +87,7 @@ ok('expired entries are filtered (only the expiry differs)', store.activeEntries
 ok('entries naming something that no longer exists are filtered', store.activeEntries([saved('v-2', { ...entry, target: { type: 'requirement', id: 'gone' } })]).length === 0);
 const partnerEntry = (until: string) => ({ ...past, target: { type: 'partner', id: product.partners[0].id, license: 'LTO-2000-0451', licenseValidUntil: until } });
 ok('partner licence still valid: applies', store.activeEntries([saved('v-3', partnerEntry('2999-01-01'))]).length === 1);
-ok('partner licence expired: filtered, also from the public list', store.activeEntries([saved('v-4', partnerEntry('2001-01-01'))]).length === 0);
+ok('partner licence expired: filtered', store.activeEntries([saved('v-4', partnerEntry('2001-01-01'))]).length === 0);
 
 // the runtime layer itself: a stored entry that has expired is not applied on reload
 const docFile = path.join(process.env.TRADESCOPE_DATA_DIR!, 'verifications.json');
@@ -97,6 +97,11 @@ ok('reload: an expired stored entry leaves the product at its seed value', reqIt
 writeFileSync(docFile, JSON.stringify({ format: 1, items: [saved('v-ok', { ...past, validUntil: '2999-01-01' })] }));
 await store.loadVerifications(true);
 ok('reload: a valid stored entry is applied', reqItem().level === 'verified');
+
+// the public route, from the stored document: an expired licence is left out, a valid one is listed
+writeFileSync(docFile, JSON.stringify({ format: 1, items: [saved('v-lic-old', partnerEntry('2001-01-01')), saved('v-lic-ok', partnerEntry('2999-01-01'))] }));
+const pubBody = (await (await pub.GET()).json()) as { entries: Array<{ target: { licenseValidUntil?: string } }> };
+ok('public list: expired licence left out, valid one listed', pubBody.entries.length === 1 && pubBody.entries[0].target.licenseValidUntil === '2999-01-01', pubBody);
 
 // records this version cannot use are kept, never dropped by a later save or removal
 writeFileSync(docFile, JSON.stringify({ format: 1, items: [{ id: 'v-bad' }, 'junk', { id: 'v-notarget', entry: { productId: product.id } }, saved('v-ok', { ...past, validUntil: '2999-01-01' })] }));
