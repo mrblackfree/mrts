@@ -91,6 +91,15 @@ function loadDoc() {
   } catch (e) {
     return e && e.code === 'ENOENT' ? { doc: null } : { doc: null, problem: 'file-unreadable' };
   }
+  return parseSettingsDoc(raw);
+}
+
+/**
+ * The settings document from its stored text (file or key-value store). `null` text means "nothing stored yet";
+ * invalid JSON or an unknown format is reported as `file-corrupt` so it is never overwritten.
+ */
+export function parseSettingsDoc(raw) {
+  if (raw === null || raw === undefined) return { doc: null };
   let doc;
   try {
     doc = JSON.parse(raw);
@@ -114,7 +123,11 @@ export function settingsFileProblem() {
  * instead of throwing; a file that cannot be read at all yields no values and a `problem`.
  */
 export function readSettings() {
-  const { doc, problem = null } = loadDoc();
+  return decodeSettings(loadDoc());
+}
+
+/** Decrypted values of a parsed document (see parseSettingsDoc). */
+export function decodeSettings({ doc, problem = null }) {
   const values = {};
   const unreadable = [];
   if (!doc) return { values, unreadable, updatedAt: null, problem };
@@ -139,11 +152,30 @@ export function readSettings() {
  * `file-corrupt` without touching the file.
  */
 export function writeSettings(patch, secretKeys) {
-  const secret = masterSecret();
-  if (!secret) throw new Error('admin-not-configured');
   const { doc: prev, problem } = loadDoc();
   // never overwrite a file we could not read: that would drop every saved value and rotate the salt
   if (problem) throw new Error(problem);
+  const next = patchSettingsDoc(prev, patch, secretKeys);
+  const dir = settingsDir();
+  mkdirSync(dir, { recursive: true, mode: 0o700 });
+  const file = settingsFile();
+  const tmp = `${file}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(next, null, 2), { mode: 0o600 });
+  renameSync(tmp, file);
+  try {
+    chmodSync(file, 0o600);
+  } catch {
+    /* not supported on every filesystem */
+  }
+}
+
+/**
+ * The next document after applying a patch (`null` removes a key); secrets in `secretKeys` are encrypted.
+ * Pure: the caller stores the result (file or key-value store). Throws `admin-not-configured`.
+ */
+export function patchSettingsDoc(prev, patch, secretKeys) {
+  const secret = masterSecret();
+  if (!secret) throw new Error('admin-not-configured');
   const salt = prev?.salt ?? randomBytes(16).toString('base64');
   const key = deriveKey(secret, salt);
   const values = { ...(prev?.values ?? {}) };
@@ -151,15 +183,5 @@ export function writeSettings(patch, secretKeys) {
     if (v === null || v === undefined || v === '') delete values[k];
     else values[k] = secretKeys.includes(k) ? { enc: encrypt(String(v), key) } : { v: String(v) };
   }
-  const dir = settingsDir();
-  mkdirSync(dir, { recursive: true, mode: 0o700 });
-  const file = settingsFile();
-  const tmp = `${file}.${process.pid}.tmp`;
-  writeFileSync(tmp, JSON.stringify({ format: FORMAT, salt, updatedAt: new Date().toISOString(), values }, null, 2), { mode: 0o600 });
-  renameSync(tmp, file);
-  try {
-    chmodSync(file, 0o600);
-  } catch {
-    /* not supported on every filesystem */
-  }
+  return { format: FORMAT, salt, updatedAt: new Date().toISOString(), values };
 }

@@ -6,6 +6,7 @@ import { countMetrics } from '@/lib/metrics/store';
 import { clientKey, windowLimiter } from '@/lib/rate-limit';
 import { trackShipment, type TrackMode } from '@/lib/tracking';
 import { isContainerNumber, normaliseReference, type TrackKind } from '@/lib/tracking/types';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,8 @@ export const dynamic = 'force-dynamic';
 const allow = windowLimiter({ perClient: 30, overall: 300, windowMs: 60 * 60 * 1000 });
 
 /** Body: { reference, kind: "container" | "bl" | "booking", carrier?, productId?, mode: "shipping" | "customs" }. */
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
+  await prepareRequest();
   const parsed = await readJsonLimited(req, 4_000);
   if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
   const body = parsed.body;

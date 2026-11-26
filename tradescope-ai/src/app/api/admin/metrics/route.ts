@@ -2,6 +2,7 @@ import { adminJson, requireAdmin } from '@/lib/admin/http';
 import { listRequests } from '@/lib/consult/store';
 import { channelRows, hypothesisChecks, requestTally, type RequestTally } from '@/lib/metrics/hypotheses';
 import { metricsSummary } from '@/lib/metrics/store';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,7 +19,8 @@ function tally(from: string): RequestTally | undefined {
 }
 
 /** Validation metrics for the admin page: `?days=7|28|90|400` (default 28). */
-export function GET(req: Request) {
+export async function GET(req: Request)  {
+  await prepareRequest();
   const denied = requireAdmin(req, { mutating: false });
   if (denied) return denied;
   const asked = Number(new URL(req.url).searchParams.get('days'));

@@ -7,7 +7,8 @@ import { readJsonLimited } from '@/lib/http';
 import { EXPERT_SOURCES, eventKeys, optedOutHeaders, parseChannel, type ExpertSource } from '@/lib/metrics/events';
 import { countMetrics } from '@/lib/metrics/store';
 import { clientKey, windowLimiter } from '@/lib/rate-limit';
-import { getSetting, storageState } from '@/lib/settings';
+import { getSetting, fileStorageState } from '@/lib/settings';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,14 +21,16 @@ const text = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 
 /** Whether this server can take requests online, and the fallback contact otherwise. */
-export function GET() {
+export async function GET()  {
+  await prepareRequest();
   const contact = getSetting('CONSULT_CONTACT_EMAIL') ?? null;
-  const accepting = storageState().writable || !!webhookUrl();
+  const accepting = fileStorageState().writable || !!webhookUrl();
   return NextResponse.json({ ok: true, accepting, contact }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 /** A trader asks TradeScope to arrange a local expert. Body: { name, company?, email, phone?, productId?, topic, serviceIds[], message?, lang, consent, website (honeypot) }. */
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
+  await prepareRequest();
   const parsed = await readJsonLimited(req, MAX_BODY_BYTES);
   if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
   const body = parsed.body;
@@ -68,7 +71,7 @@ export async function POST(req: Request) {
   };
 
   const webhook = webhookUrl();
-  const canStore = storageState().writable;
+  const canStore = fileStorageState().writable;
   const contact = getSetting('CONSULT_CONTACT_EMAIL') ?? null;
   if (!canStore && !webhook) return NextResponse.json({ ok: false, error: 'not-accepting', contact }, { status: 503 });
 

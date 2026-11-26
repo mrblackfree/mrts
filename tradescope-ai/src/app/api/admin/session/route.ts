@@ -16,12 +16,14 @@ import { adminJson } from '@/lib/admin/http';
 import { revokeAllSessions, revokeSession } from '@/lib/admin/revocation';
 import { readBodyLimited } from '@/lib/http';
 import { clientKey } from '@/lib/rate-limit';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /** Session state for the admin page: whether the admin is enabled and whether this browser is signed in. */
-export function GET(req: Request) {
+export async function GET(req: Request)  {
+  await prepareRequest();
   const availability = adminAvailability();
   const expiresAt = sessionExpiry(req);
   return adminJson({ ...availability, authenticated: expiresAt !== null, expiresAt });
@@ -31,7 +33,8 @@ export function GET(req: Request) {
 const MAX_BODY_BYTES = MAX_PASSWORD * 8 + 256;
 
 /** Sign in with ADMIN_PASSWORD. */
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
+  await prepareRequest();
   const availability = adminAvailability();
   if (!availability.enabled) return adminJson({ ok: false, error: 'admin-disabled', reason: availability.reason }, { status: 403 });
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });
@@ -66,7 +69,8 @@ export async function POST(req: Request) {
  * `revoked` says where the sign-out is kept: `stored` (data folder) or `memory` (this process only: read-only hosting,
  * or the data folder could not be updated).
  */
-export function DELETE(req: Request) {
+export async function DELETE(req: Request)  {
+  await prepareRequest();
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });
   const all = new URL(req.url).searchParams.get('all') === '1';
   const session = currentSession(req);

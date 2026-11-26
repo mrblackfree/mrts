@@ -2,6 +2,7 @@ import { adminJson, requireAdmin } from '@/lib/admin/http';
 import { chatCompletion, getAiConfig } from '@/lib/ai-adapter';
 import { todayIso } from '@/lib/format';
 import { getSetting } from '@/lib/settings';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -123,7 +124,8 @@ const TESTS: Record<string, () => Promise<TestResult>> = {
 };
 
 /** Connectivity test for a saved key: body `{ target }` (see TESTS). Keys are never echoed. */
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
+  await prepareRequest();
   const denied = requireAdmin(req, { mutating: true });
   if (denied) return denied;
   let target = '';

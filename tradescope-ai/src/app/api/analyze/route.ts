@@ -5,6 +5,7 @@ import { llmBriefing } from '@/lib/engine/llm';
 import { analyzeLocal } from '@/lib/engine/simulate';
 import { allowLlmCall, clientKey } from '@/lib/rate-limit';
 import type { AnalysisReport, Direction, Lang } from '@/lib/types';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -68,7 +69,8 @@ function safeFallback(input: AnalyzeInput) {
   return NextResponse.json({ ok: true, report: { ...report, engine: { ...report.engine, fallbackReason: 'internal-error' } } });
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
+  await prepareRequest();
   let body: unknown = {};
   try {
     body = await req.json();
@@ -84,7 +86,8 @@ export async function POST(req: Request) {
 }
 
 /** GET is for sharing / testing: it never triggers a billable LLM call (crawlers, link previews). */
-export async function GET(req: Request) {
+export async function GET(req: Request)  {
+  await prepareRequest();
   const url = new URL(req.url);
   const input = parseInput({ query: url.searchParams.get('q') ?? '', direction: url.searchParams.get('dir') ?? '', lang: url.searchParams.get('lang') ?? '' });
   try {

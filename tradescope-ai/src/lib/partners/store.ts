@@ -1,15 +1,13 @@
 /**
  * Partner pipeline store (server-side only): the admin's status, contact and contract notes for each candidate
- * firm, plus firms added by hand. Kept in TRADESCOPE_DATA_DIR/partners.json (0600), rewritten atomically.
+ * firm, plus firms added by hand. One document "partners" in the data folder (partners.json, 0600) or in Redis
+ * (see lib/store/docs); every change is a read-change-write that never loses a concurrent one.
  * The researched candidate list itself ships with the code (src/data/partner-candidates.ts).
  */
 import { randomBytes } from 'node:crypto';
-import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
 import { PARTNER_CANDIDATES } from '@/data/partner-candidates';
-import { withFileLock } from '@/lib/file-lock';
-import { settingsDir } from '@/lib/settings/core.mjs';
 import { isHttpsUrl } from '@/lib/settings/schema';
+import { readDoc, updateDoc } from '@/lib/store/docs';
 import {
   DEAL_MAX,
   EMPTY_DEAL,
@@ -33,18 +31,12 @@ interface StoreFile {
   keep: unknown[];
 }
 
-const file = () => path.join(settingsDir(), 'partners.json');
+const DOC = 'partners';
 const empty = (): StoreFile => ({ format: 1, deals: Object.create(null), custom: [], keep: [] });
 
-/** The stored state; an empty one when the file does not exist. A damaged file throws (never overwritten). */
-function read(): StoreFile {
-  let raw: string;
-  try {
-    raw = readFileSync(file(), 'utf8');
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return empty();
-    throw e;
-  }
+/** The stored state from its text; an empty one when nothing is stored. A damaged document throws (never overwritten). */
+function parse(raw: string | null): StoreFile {
+  if (raw === null) return empty();
   let v: Partial<StoreFile>;
   try {
     v = JSON.parse(raw) as Partial<StoreFile>;
@@ -97,29 +89,20 @@ function calendarDate(v: unknown): string {
   return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === d ? d : '';
 }
 
-function write(state: StoreFile): void {
-  mkdirSync(settingsDir(), { recursive: true, mode: 0o700 });
-  const f = file();
-  const tmp = `${f}.${process.pid}.tmp`;
+function serialize(state: StoreFile): string {
   const { keep, ...rest } = state;
-  writeFileSync(tmp, JSON.stringify({ ...rest, custom: [...state.custom, ...keep] }, null, 1), { mode: 0o600 });
-  renameSync(tmp, f);
-  try {
-    chmodSync(f, 0o600);
-  } catch {
-    /* not supported on every filesystem */
-  }
+  return JSON.stringify({ ...rest, custom: [...state.custom, ...keep] }, null, 1);
 }
 
-/** Read, change and write under the lock file, so two admins cannot overwrite each other's edits. */
-function mutate<T>(change: (st: StoreFile) => T): T {
+/** Read, change and write as one step; `change` returns false to write nothing. */
+async function mutate<T>(change: (st: StoreFile) => { write: boolean; out: T }): Promise<T> {
   let out!: T;
-  const locked = withFileLock(`${file()}.lock`, () => {
-    const st = read();
-    out = change(st);
-    write(st);
+  await updateDoc(DOC, (raw) => {
+    const st = parse(raw);
+    const r = change(st);
+    out = r.out;
+    return r.write ? serialize(st) : null;
   });
-  if (!locked) throw new Error('partners-busy');
   return out;
 }
 
@@ -140,16 +123,16 @@ function cleanDeal(d: unknown): PartnerDeal {
 }
 
 /** Every firm (research + custom) with its pipeline record. */
-export function listPartners(): PartnerRow[] {
-  const st = read();
+export async function listPartners(): Promise<PartnerRow[]> {
+  const st = parse(await readDoc(DOC));
   return [...PARTNER_CANDIDATES, ...st.custom].map((f) => ({ ...f, deal: Object.hasOwn(st.deals, f.id) ? st.deals[f.id] : { ...EMPTY_DEAL } }));
 }
 
 /** Contracted firms only: the public list. Never includes contacts, terms or notes. */
-export function contractedPartners(): Array<Pick<PartnerFirm, 'country' | 'type' | 'name' | 'nameLocal' | 'city' | 'website'>> {
+export async function contractedPartners(): Promise<Array<Pick<PartnerFirm, 'country' | 'type' | 'name' | 'nameLocal' | 'city' | 'website'>>> {
   let rows: PartnerRow[];
   try {
-    rows = listPartners();
+    rows = await listPartners();
   } catch {
     return [];
   }
@@ -159,14 +142,14 @@ export function contractedPartners(): Array<Pick<PartnerFirm, 'country' | 'type'
 export type DealPatch = Partial<Omit<PartnerDeal, 'updatedAt'>>;
 
 /** Updates the pipeline record of a known firm. Returns the new record, or null when the id is unknown. */
-export function updateDeal(id: string, patch: DealPatch): PartnerDeal | null {
-  return mutate((st) => {
+export async function updateDeal(id: string, patch: DealPatch): Promise<PartnerDeal | null> {
+  return mutate<PartnerDeal | null>((st) => {
     const known = PARTNER_CANDIDATES.some((f) => f.id === id) || st.custom.some((f) => f.id === id);
-    if (!known) return null;
+    if (!known) return { write: false, out: null };
     const prev = Object.hasOwn(st.deals, id) ? st.deals[id] : { ...EMPTY_DEAL };
     const next = cleanDeal({ ...prev, ...patch, updatedAt: new Date().toISOString() });
     st.deals[id] = next;
-    return next;
+    return { write: true, out: next };
   });
 }
 
@@ -204,21 +187,21 @@ export function validateFirm(input: unknown): { ok: true; firm: Omit<PartnerFirm
   };
 }
 
-export function addFirm(firm: Omit<PartnerFirm, 'id' | 'origin' | 'sources'>): PartnerFirm {
+export async function addFirm(firm: Omit<PartnerFirm, 'id' | 'origin' | 'sources'>): Promise<PartnerFirm> {
   return mutate((st) => {
     const rec: PartnerFirm = { ...firm, id: `c-${randomBytes(6).toString('hex')}`, origin: 'custom', sources: [] };
     st.custom.push(rec);
-    return rec;
+    return { write: true, out: rec };
   });
 }
 
 /** Removes a hand-entered firm (researched candidates are set to "dropped" instead). */
-export function removeFirm(id: string): boolean {
+export async function removeFirm(id: string): Promise<boolean> {
   return mutate((st) => {
     const before = st.custom.length;
     st.custom = st.custom.filter((f) => f.id !== id);
-    if (st.custom.length === before) return false;
+    if (st.custom.length === before) return { write: false, out: false };
     delete st.deals[id];
-    return true;
+    return { write: true, out: true };
   });
 }

@@ -7,7 +7,7 @@
  */
 import { chmodSync, readFileSync, renameSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { storageState } from '@/lib/settings';
+import { fileStorageState } from '@/lib/settings';
 import { settingsDir } from '@/lib/settings/core.mjs';
 
 type Day = Record<string, number>;
@@ -125,7 +125,7 @@ export function flushMetrics(): boolean {
   if (timer) clearTimeout(timer);
   timer = null;
   if (!dirty) return false;
-  if (!storageState().writable) {
+  if (!fileStorageState().writable) {
     // keep the unwritten counts: storage may come back (a temporary error, a secret set later) and they are
     // then written with the next flush; expired days are dropped so this cannot grow without end
     prune({ format: 1, days: delta });
@@ -174,7 +174,7 @@ export interface MetricsSummary {
 
 /** Totals over the last `days` days (today included). */
 export function metricsSummary(days: number): MetricsSummary {
-  const persistent = storageState().writable;
+  const persistent = fileStorageState().writable;
   let source: Doc;
   if (persistent) {
     // the file has every process's written counts; add this process's unwritten ones

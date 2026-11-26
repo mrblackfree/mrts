@@ -86,7 +86,8 @@ const S = {
     saveFailed: '저장하지 못했습니다.',
     readOnly: '이 환경에서는 저장할 수 없습니다',
     readOnlyWhy: {
-      vercel: 'Vercel 서버리스는 파일이 유지되지 않습니다. Vercel → Project → Settings → Environment Variables에 같은 이름으로 넣고 Redeploy 하세요.',
+      vercel: 'Vercel 서버리스는 파일이 유지되지 않습니다. Vercel → Storage에서 「Upstash for Redis」를 연결하면(무료 플랜 있음) 여기서 바로 저장됩니다. 또는 Project → Settings → Environment Variables에 같은 이름으로 넣고 Redeploy 하세요.',
+      'kv-error': 'Redis(Upstash)에 연결할 수 없습니다. 마지막으로 읽은 값으로 동작하고 있고, 연결이 돌아오면 다시 저장할 수 있습니다. KV_REST_API_URL·KV_REST_API_TOKEN을 확인하세요.',
       netlify: 'Netlify 함수는 파일이 유지되지 않습니다. Site settings → Environment variables에 같은 이름으로 넣으세요.',
       'readonly-env': 'SETTINGS_READONLY가 켜져 있습니다.',
       'no-secret': 'ADMIN_PASSWORD가 없어 값을 암호화할 수 없습니다.',
@@ -211,7 +212,8 @@ const S = {
     saveFailed: 'Could not save.',
     readOnly: 'Saving is not available here',
     readOnlyWhy: {
-      vercel: 'Vercel functions have no persistent files. Add the same names under Project → Settings → Environment Variables and redeploy.',
+      vercel: 'Vercel functions have no persistent files. Connect “Upstash for Redis” under Vercel → Storage (free plan available) to save right here, or add the same names under Project → Settings → Environment Variables and redeploy.',
+      'kv-error': 'Cannot reach Redis (Upstash). Running on the last values read; saving works again once it is back. Check KV_REST_API_URL and KV_REST_API_TOKEN.',
       netlify: 'Netlify functions have no persistent files. Add the same names under Site settings → Environment variables.',
       'readonly-env': 'SETTINGS_READONLY is on.',
       'no-secret': 'ADMIN_PASSWORD is missing, so values cannot be encrypted.',

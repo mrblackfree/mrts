@@ -2,6 +2,7 @@ import { getProduct } from '@/data/kr-ph-trade-db';
 import { adminJson, requireAdmin } from '@/lib/admin/http';
 import { CONSULT_STATUSES, listRequests, updateStatus, type ConsultStatus } from '@/lib/consult/store';
 import { readJsonLimited } from '@/lib/http';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,14 +15,16 @@ const withProduct = () =>
   });
 
 /** Expert-service requests, newest first. */
-export function GET(req: Request) {
+export async function GET(req: Request)  {
+  await prepareRequest();
   const denied = requireAdmin(req, { mutating: false });
   if (denied) return denied;
   return adminJson({ ok: true, requests: withProduct() });
 }
 
 /** Change a request's status: body `{ id, status }`. */
-export async function PATCH(req: Request) {
+export async function PATCH(req: Request)  {
+  await prepareRequest();
   const denied = requireAdmin(req, { mutating: true });
   if (denied) return denied;
   const parsed = await readJsonLimited(req, 2_000);

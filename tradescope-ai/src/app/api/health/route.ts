@@ -3,12 +3,14 @@ import { DATA_AS_OF, PRODUCTS, refreshOfficialLayer } from '@/data/kr-ph-trade-d
 import { OFFICIAL } from '@/data/official';
 import { publicAiStatus } from '@/lib/ai-adapter';
 import { getSetting } from '@/lib/settings';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /** Liveness + capability probe (used by the header status bar and the Docker HEALTHCHECK). */
-export function GET() {
+export async function GET()  {
+  await prepareRequest();
   refreshOfficialLayer(); // report the same expiry state the analysis uses
   return NextResponse.json({
     status: 'ok',

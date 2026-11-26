@@ -3,6 +3,7 @@ import { readJsonLimited } from '@/lib/http';
 import { eventKeys, optedOutHeaders, parseChannel, parseClientEvent } from '@/lib/metrics/events';
 import { countMetrics } from '@/lib/metrics/store';
 import { clientKey, windowLimiter } from '@/lib/rate-limit';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,8 @@ const allow = windowLimiter({ perClient: 300, overall: 30_000, windowMs: 60 * 60
 const ONCE = new Set(['visit', 'step_first', 'track_recheck2']);
 
 /** Body: `{ events: [{ e, … }] (≤10), ch? }`. Unknown events are dropped; the answer is always 204. */
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
+  await prepareRequest();
   const parsed = await readJsonLimited(req, 2_000);
   if (!parsed.ok) return new NextResponse(null, { status: parsed.error === 'too-large' ? 413 : 400 });
   const done = () => new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });

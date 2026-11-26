@@ -14,7 +14,7 @@
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { withFileLock } from '@/lib/file-lock';
-import { storageState } from '@/lib/settings';
+import { fileStorageState } from '@/lib/settings';
 import { settingsDir } from '@/lib/settings/core.mjs';
 
 interface State {
@@ -97,7 +97,7 @@ function readFile(): State | null {
 
 /** The current state: what every process has saved, plus what this process has signed out. */
 function read(): State {
-  if (!storageState().writable) return memory;
+  if (!fileStorageState().writable) return memory;
   const disk = readFile();
   return disk ? union(disk, memory) : memory;
 }
@@ -110,7 +110,7 @@ function update(change: (s: State) => void): RevocationStore {
   const mine = read();
   change(mine);
   memory = prune(union(memory, mine));
-  if (!storageState().writable) return 'memory';
+  if (!fileStorageState().writable) return 'memory';
   let saved = false;
   const locked = withFileLock(lockFile(), () => {
     const disk = readFile() ?? empty();
