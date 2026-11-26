@@ -1,34 +1,13 @@
 'use client';
 
-import {
-  AlertTriangle,
-  ArrowLeft,
-  CheckCircle2,
-  CirclePause,
-  CircleX,
-  Cpu,
-  Database,
-  FlaskConical,
-  Gauge,
-  Hourglass,
-  Info,
-  KeyRound,
-  LayoutDashboard,
-  Link2,
-  Loader2,
-  Lock,
-  LogOut,
-  PlugZap,
-  Radar,
-  ScanSearch,
-  Server,
-  ShieldCheck,
-  Trash2,
-  UserRoundCheck,
-} from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, CirclePause, CircleX, Cpu, CreditCard, Database, FlaskConical, Gauge, Handshake, Hourglass, Info, KeyRound, LayoutDashboard, Link2, Loader2, Lock, LogOut, PlugZap, Radar, ScanSearch, Server, ShieldCheck, Trash2, UserRoundCheck } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EXPERT_INDEX } from '@/data/experts';
 import { SETTINGS, type SettingDef, type SettingGroup } from '@/lib/settings/schema';
+import Partners from './Partners';
+import Verifications from './Verifications';
+import { useVerifications } from '../useVerifications';
+import TrustHub from './TrustHub';
 import type { Lang } from '@/lib/types';
 import { I18nProvider, useI18n } from '../I18nProvider';
 import { Badge, Button, buttonClass, Card, cx, Segmented } from '../ui';
@@ -49,7 +28,7 @@ interface Snapshot {
 }
 type Session = { enabled: boolean; reason?: 'not-set' | 'too-short' | 'too-long' | 'secret-too-short'; authenticated: boolean; expiresAt: number | null };
 type TestResult = { ok: boolean; message: string; latencyMs: number; detail?: string };
-type Section = 'overview' | 'validation' | SettingGroup | 'deploy';
+type Section = 'overview' | 'connect' | 'verify' | 'validation' | SettingGroup | 'partners' | 'deploy';
 
 // ---------------------------------------------------------------------------
 // strings
@@ -77,13 +56,17 @@ const S = {
     wrongPassword: '비밀번호가 올바르지 않습니다.',
     tooMany: '시도가 너무 많습니다. 15분 뒤 다시 시도하세요.',
     networkError: '서버에 연결할 수 없습니다.',
-    menu: { overview: '개요', validation: '가설 검증', ai: 'AI 엔진', data: '공식 데이터 키', service: '전문가 서비스', tracking: '컨테이너 추적', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
+    menu: { overview: '개요', connect: 'API 연결 · 신뢰도', verify: '검증 입력', partners: '파트너 관리', validation: '가설 검증', ai: 'AI 엔진', data: '공식 데이터 키', service: '전문가 서비스', pricing: '요금제', tracking: '컨테이너 추적', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
     sectionSub: {
       overview: '현재 상태와 남은 설정을 한눈에 봅니다.',
+      connect: '연결한 API와 파트너 검증이 데이터 신뢰도를 얼마나 올리는지 미리 보고, 키를 바로 입력·테스트합니다.',
+      verify: '계약 파트너가 확인해 준 값을 넣으면 검증 후 바로 반영되어 데이터 신뢰도가 오릅니다.',
+      partners: '국가별 법무법인(인허가·요건 검토·계약)과 관세법인(통관·FTA·HS)을 후보부터 계약까지 관리합니다. 「계약」으로 바꾼 곳만 사이트에 표시됩니다(이름·국가·도시·웹사이트).',
       validation: '사이트에서 측정하는 가설(H3·H7·H8·H9)을 비즈니스 모델 캔버스의 기준으로 판정합니다. 익명 집계만 사용합니다.',
       ai: 'OpenAI 호환 LLM을 연결합니다. 저장 즉시 다음 요청부터 적용됩니다.',
       data: '공식 데이터 동기화(npm run data:sync)에 쓰는 키입니다.',
       service: '「전문가에게 맡기기」로 들어온 요청을 확인하고 담당 전문가를 배정합니다. 알림 웹훅과 대체 연락처를 설정합니다.',
+      pricing: '메인 페이지 「요금제」의 건당·구독 가격과 결제 링크입니다. 저장 즉시 적용되고, 결제는 링크한 결제 페이지(토스페이먼츠·Stripe 등)에서 이루어집니다. 링크가 없으면 버튼이 견적·문의 양식을 엽니다.',
       tracking: '조회 순서: 선사 공식 API(Hapag-Lloyd·CMA CGM, 무료) → ShipsGo(유료, 전 선사) · 한국 수입 통관은 UNI-PASS(무료). 키가 없는 소스는 건너뛰고, 하나도 없으면 예시 타임라인을 보여 줍니다.',
       links: '신뢰도 센터의 제보·편집 버튼 주소입니다. 저장 즉시 적용됩니다.',
       limits: 'LLM 비용 상한과 접속자 식별 방식입니다. 저장 즉시 적용됩니다.',
@@ -106,7 +89,8 @@ const S = {
     saveFailed: '저장하지 못했습니다.',
     readOnly: '이 환경에서는 저장할 수 없습니다',
     readOnlyWhy: {
-      vercel: 'Vercel 서버리스는 파일이 유지되지 않습니다. Vercel → Project → Settings → Environment Variables에 같은 이름으로 넣고 Redeploy 하세요.',
+      vercel: 'Vercel 서버리스는 파일이 유지되지 않습니다. Vercel → Storage에서 「Upstash for Redis」를 연결하면(무료 플랜 있음) 여기서 바로 저장됩니다. 또는 Project → Settings → Environment Variables에 같은 이름으로 넣고 Redeploy 하세요.',
+      'kv-error': 'Redis(Upstash)에 연결할 수 없습니다. 마지막으로 읽은 값으로 동작하고 있고, 연결이 돌아오면 다시 저장할 수 있습니다. KV_REST_API_URL·KV_REST_API_TOKEN을 확인하세요.',
       netlify: 'Netlify 함수는 파일이 유지되지 않습니다. Site settings → Environment variables에 같은 이름으로 넣으세요.',
       'readonly-env': 'SETTINGS_READONLY가 켜져 있습니다.',
       'no-secret': 'ADMIN_PASSWORD가 없어 값을 암호화할 수 없습니다.',
@@ -134,7 +118,7 @@ const S = {
     logoutAllConfirm: '이 브라우저를 포함해 로그인된 모든 브라우저·기기에서 로그아웃할까요?',
     logoutAllHint: '비밀번호가 노출됐거나 공용 PC에서 로그인했다면 사용하세요. 로그아웃하면 이 세션도 서버에서 무효가 됩니다.',
     logoutAllFailed: '모든 기기 로그아웃에 실패했습니다. 다시 시도하세요.',
-    logoutMemoryOnly: '이 환경은 저장소가 읽기 전용이라 로그아웃 기록이 서버 메모리에만 남습니다. 재시작 후에도 확실히 끝내려면 ADMIN_SECRET을 바꾸세요.',
+    logoutMemoryOnly: '이 환경은 저장소가 읽기 전용이라 로그아웃 기록이 서버 메모리에만 남습니다. Vercel이라면 Upstash Redis를 연결하세요. 그 전에 모든 세션을 확실히 끝내려면 ADMIN_SECRET을 바꾸세요.',
     todo: '남은 설정',
     allDone: '필수 설정이 모두 끝났습니다.',
     go: '설정하기',
@@ -199,13 +183,17 @@ const S = {
     wrongPassword: 'Incorrect password.',
     tooMany: 'Too many attempts. Try again in 15 minutes.',
     networkError: 'Cannot reach the server.',
-    menu: { overview: 'Overview', validation: 'Hypothesis checks', ai: 'AI engine', data: 'Official data keys', service: 'Expert service', tracking: 'Container tracking', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
+    menu: { overview: 'Overview', connect: 'Connections & trust', verify: 'Verified values', partners: 'Partners', validation: 'Hypothesis checks', ai: 'AI engine', data: 'Official data keys', service: 'Expert service', pricing: 'Pricing', tracking: 'Container tracking', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
     sectionSub: {
       overview: 'Current state and what is left to configure.',
+      connect: 'See how much each API and partner verification raises the data trust score, then enter and test keys right here.',
+      verify: 'Values confirmed by contracted partners are checked and applied right away, raising the data trust score.',
+      partners: 'Law firms (permits, requirement reviews, contracts) and customs firms (clearance, FTA, HS) per country, from candidates to contracts. Only firms set to “Contracted” appear on the site (name, country, city, website).',
       validation: 'The hypotheses the site measures (H3, H7, H8, H9), judged against the business model canvas thresholds. Aggregate counts only.',
       ai: 'Connect an OpenAI-compatible LLM. Takes effect from the next request.',
       data: 'Keys used by the official data sync (npm run data:sync).',
       service: 'Review requests sent through “Hand it to an expert” and assign an expert. Set the notification webhook and fallback contact.',
+      pricing: 'Per-case and subscription prices and checkout links for the landing page “Pricing” section. Takes effect immediately; payment happens on the linked checkout page (Toss Payments, Stripe…). Without a link the buttons open the quote / enquiry form.',
       tracking: 'Lookup order: carrier APIs (Hapag-Lloyd, CMA CGM, free) → ShipsGo (paid, all carriers); customs progress for imports into Korea via UNI-PASS (free). Sources without a key are skipped; with none, an example timeline is shown.',
       links: 'Targets of the Trust Center feedback and edit buttons. Takes effect immediately.',
       limits: 'LLM cost caps and how clients are identified. Takes effect immediately.',
@@ -228,7 +216,8 @@ const S = {
     saveFailed: 'Could not save.',
     readOnly: 'Saving is not available here',
     readOnlyWhy: {
-      vercel: 'Vercel functions have no persistent files. Add the same names under Project → Settings → Environment Variables and redeploy.',
+      vercel: 'Vercel functions have no persistent files. Connect “Upstash for Redis” under Vercel → Storage (free plan available) to save right here, or add the same names under Project → Settings → Environment Variables and redeploy.',
+      'kv-error': 'Cannot reach Redis (Upstash). Running on the last values read; saving works again once it is back. Check KV_REST_API_URL and KV_REST_API_TOKEN.',
       netlify: 'Netlify functions have no persistent files. Add the same names under Site settings → Environment variables.',
       'readonly-env': 'SETTINGS_READONLY is on.',
       'no-secret': 'ADMIN_PASSWORD is missing, so values cannot be encrypted.',
@@ -256,7 +245,7 @@ const S = {
     logoutAllConfirm: 'Sign out of every browser and device, including this one?',
     logoutAllHint: 'Use this if the password may have leaked or you signed in on a shared computer. Signing out also invalidates this session on the server.',
     logoutAllFailed: 'Could not sign out everywhere. Try again.',
-    logoutMemoryOnly: 'Storage is read-only here, so sign-outs are kept in server memory only. To be sure after a restart, rotate ADMIN_SECRET.',
+    logoutMemoryOnly: 'Storage is read-only here, so sign-outs are kept in server memory only. On Vercel, connect Upstash Redis. Until then, rotate ADMIN_SECRET to be sure every session ends.',
     todo: 'Remaining setup',
     allDone: 'All essential settings are done.',
     go: 'Configure',
@@ -319,10 +308,14 @@ const isPresetValue = (key: ManualKey, v: string | null | undefined) => !!v && P
 
 const SECTIONS: Array<{ id: Section; icon: React.ReactNode }> = [
   { id: 'overview', icon: <LayoutDashboard className="size-4" /> },
+  { id: 'connect', icon: <PlugZap className="size-4" /> },
+  { id: 'verify', icon: <ShieldCheck className="size-4" /> },
   { id: 'validation', icon: <FlaskConical className="size-4" /> },
   { id: 'ai', icon: <Cpu className="size-4" /> },
   { id: 'data', icon: <Database className="size-4" /> },
   { id: 'service', icon: <UserRoundCheck className="size-4" /> },
+  { id: 'partners', icon: <Handshake className="size-4" /> },
+  { id: 'pricing', icon: <CreditCard className="size-4" /> },
   { id: 'tracking', icon: <Radar className="size-4" /> },
   { id: 'links', icon: <Link2 className="size-4" /> },
   { id: 'limits', icon: <Gauge className="size-4" /> },
@@ -554,6 +547,8 @@ function Dashboard({
   onLogoutAll: () => Promise<boolean>;
 }) {
   const [section, setSection] = useState<Section>('overview');
+  // verified values saved here apply to this page's product data too (projections, scores)
+  const { version: verifiedVersion, reload: reloadVerified } = useVerifications();
   const fields = useMemo(() => Object.fromEntries(snap.fields.map((f) => [f.key, f])), [snap]);
   const writable = snap.storage.writable;
   const ro = !snap.storage.writable ? snap.storage : null;
@@ -591,9 +586,16 @@ function Dashboard({
         )}
 
         {section === 'overview' && <Overview s={s} lang={lang} snap={snap} fields={fields} expiresAt={expiresAt} go={setSection} onLogoutAll={onLogoutAll} />}
+        {section === 'connect' && (
+          <TrustHub lang={lang} fields={fields} sources={snap.officialData.sources} version={verifiedVersion} go={(to) => setSection(to === 'partners' ? 'partners' : to)} onVerify={() => setSection('verify')} onUnauthorized={onUnauthorized} />
+        )}
+        {section === 'verify' && (
+          <Verifications lang={lang} writable={snap.storage.writable} version={verifiedVersion} onApplied={reloadVerified} onUnauthorized={onUnauthorized} />
+        )}
+        {section === 'partners' && <Partners lang={lang} onUnauthorized={onUnauthorized} />}
         {section === 'validation' && <Validation lang={lang} onUnauthorized={onUnauthorized} />}
         {section === 'service' && <ConsultRequests lang={lang} onUnauthorized={onUnauthorized} />}
-        {(section === 'ai' || section === 'data' || section === 'service' || section === 'tracking' || section === 'links' || section === 'limits') && (
+        {(section === 'ai' || section === 'data' || section === 'service' || section === 'pricing' || section === 'tracking' || section === 'links' || section === 'limits') && (
           <GroupForm key={section} s={s} lang={lang} group={section} fields={fields} writable={writable} setSnap={setSnap} onUnauthorized={onUnauthorized} />
         )}
         {section === 'deploy' && <Deploy s={s} lang={lang} snap={snap} />}
@@ -1446,8 +1448,8 @@ function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () =
           <div className="mt-3">
             <Notice tone="warn" title={ko ? '측정값이 메모리에만 있습니다' : 'Counts are in memory only'}>
               {ko
-                ? '저장소에 쓸 수 없는 환경이라 서버가 다시 시작되면 숫자가 사라집니다. 검증 기간 동안에는 쓰기 가능한 데이터 폴더(TRADESCOPE_DATA_DIR)가 있는 서버에서 운영하세요.'
-                : 'Storage is not writable here, so the numbers reset when the server restarts. Run the validation period on a server with a writable data folder (TRADESCOPE_DATA_DIR).'}
+                ? '저장소에 쓸 수 없는 환경이라 서버가 다시 시작되면 숫자가 사라집니다. Vercel이라면 Upstash Redis를 연결하고, 직접 운영하는 서버라면 쓰기 가능한 데이터 폴더(TRADESCOPE_DATA_DIR)를 지정하세요.'
+                : 'Storage is not writable here, so the numbers reset when the server restarts. On Vercel, connect Upstash Redis; on your own server, set a writable data folder (TRADESCOPE_DATA_DIR).'}
             </Notice>
           </div>
         )}

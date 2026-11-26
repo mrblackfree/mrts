@@ -1,17 +1,58 @@
 /**
  * Server-side settings: environment variable → admin-saved value → default (see ./schema).
  * Never import this from client components — it reads the settings file with Node APIs.
+ *
+ * Saved values live in the data folder (settings.json) or, when Redis is configured, in Redis (key "settings",
+ * same document). With Redis, `loadSettings()` refreshes an in-memory copy at the start of a request, so
+ * `getSetting` stays synchronous everywhere.
  */
 import { accessSync, constants, mkdirSync } from 'node:fs';
-import { masterSecret, readSettings, settingsDir, settingsFile, settingsFileProblem, settingsMtime, writeSettings } from './core.mjs';
+import { docBackend, updateDoc, readDoc } from '@/lib/store/docs';
+import { kvConfig } from '@/lib/store/kv';
+import { refresher } from '@/lib/store/refresh';
+import { decodeSettings, masterSecret, parseSettingsDoc, patchSettingsDoc, readSettings, settingsDir, settingsFile, settingsFileProblem, settingsMtime, writeSettings } from './core.mjs';
 import { SECRET_KEYS, SETTING_INDEX, SETTINGS, validateSetting, type SettingDef } from './schema';
 
 type Stored = { values: Record<string, string>; unreadable: string[]; updatedAt: string | null };
 
 let cache: (Stored & { mtime: number; checkedAt: number }) | null = null;
 
+/** Redis copy: refreshed by loadSettings(); `problem` when the stored document cannot be used. */
+type KvCopy = Stored & { problem: 'file-corrupt' | 'kv-error' | null };
+let kvCache: KvCopy | null = null;
+
+const decodeKv = (raw: string | null): KvCopy => {
+  const decoded = decodeSettings(parseSettingsDoc(raw));
+  return { values: decoded.values, unreadable: decoded.unreadable, updatedAt: decoded.updatedAt, problem: decoded.problem === 'file-corrupt' ? 'file-corrupt' : null };
+};
+const kvRefresh = refresher<KvCopy>({
+  read: async () => decodeKv(await readDoc('settings')),
+  apply: (copy) => {
+    kvCache = copy;
+  },
+  // keep serving the last good copy; saving is refused until Redis answers again
+  onError: () => {
+    kvCache = { values: kvCache?.values ?? {}, unreadable: kvCache?.unreadable ?? [], updatedAt: kvCache?.updatedAt ?? null, problem: 'kv-error' };
+  },
+  ttlMs: 1500,
+});
+
+/** Refreshes the Redis copy of the settings (no-op for the data folder). Call at the start of a request. */
+export async function loadSettings(force = false): Promise<void> {
+  if (docBackend() !== 'kv') return;
+  await kvRefresh.refresh(force);
+}
+
+/** For tests: forget the Redis copy. */
+export function resetSettingsCacheForTest(): void {
+  kvCache = null;
+  cache = null;
+  kvRefresh.reset();
+}
+
 /** Saved values, re-read when the file changes (checked at most once per second). */
 function stored(): Stored {
+  if (docBackend() === 'kv') return kvCache ?? { values: {}, unreadable: [], updatedAt: null };
   const now = Date.now();
   if (cache && now - cache.checkedAt < 1000) return cache;
   const mtime = settingsMtime();
@@ -40,16 +81,45 @@ export function getSetting(key: string): string | undefined {
 }
 
 export type StorageState =
-  | { writable: true; path: string }
+  | { writable: true; path: string; backend?: 'file' | 'kv' }
   | {
       writable: false;
       path: string;
-      reason: 'vercel' | 'netlify' | 'readonly-env' | 'no-secret' | 'fs-error' | 'file-unreadable' | 'file-corrupt';
+      backend?: 'file' | 'kv';
+      reason: 'vercel' | 'netlify' | 'readonly-env' | 'no-secret' | 'fs-error' | 'file-unreadable' | 'file-corrupt' | 'kv-error';
       detail?: string;
     };
 
-/** Whether the admin page can persist values here. Serverless filesystems are not persistent. */
+/**
+ * Whether admin documents (settings, partner pipeline, verified values) can be saved: in Redis when configured,
+ * else in the data folder. Records the server keeps for itself use recordStorageState().
+ */
 export function storageState(): StorageState {
+  const kv = kvConfig();
+  if (!kv) return { ...fileStorageState(), backend: 'file' };
+  const path = `Redis · ${kv.prefix}settings`;
+  if (process.env.SETTINGS_READONLY === '1' || process.env.SETTINGS_READONLY === 'true') return { writable: false, path, backend: 'kv', reason: 'readonly-env' };
+  if (!masterSecret()) return { writable: false, path, backend: 'kv', reason: 'no-secret' };
+  if (kvCache?.problem) return { writable: false, path, backend: 'kv', reason: kvCache.problem };
+  return { writable: true, path, backend: 'kv' };
+}
+
+/**
+ * Whether records the server keeps for itself — expert requests, admin sign-outs, metric counts — are kept: in
+ * Redis when configured, else in the data folder. Only the admin page reads them, so the admin secret is needed
+ * either way.
+ */
+export function recordStorageState(): StorageState {
+  const kv = kvConfig();
+  if (!kv) return { ...fileStorageState(), backend: 'file' };
+  const path = `Redis · ${kv.prefix}`;
+  if (process.env.SETTINGS_READONLY === '1' || process.env.SETTINGS_READONLY === 'true') return { writable: false, path, backend: 'kv', reason: 'readonly-env' };
+  if (!masterSecret()) return { writable: false, path, backend: 'kv', reason: 'no-secret' };
+  return { writable: true, path, backend: 'kv' };
+}
+
+/** Whether files can be persisted in the data folder. Serverless filesystems are not persistent. */
+export function fileStorageState(): StorageState {
   const path = settingsFile();
   if (process.env.SETTINGS_READONLY === '1' || process.env.SETTINGS_READONLY === 'true') return { writable: false, path, reason: 'readonly-env' };
   if (process.env.VERCEL === '1') return { writable: false, path, reason: 'vercel' };
@@ -105,7 +175,7 @@ export function settingsUpdatedAt(): string | null {
  * Saves a patch from the admin page: `null` or '' clears a saved value. Settings provided by an environment
  * variable are locked and rejected. Returns per-key errors; nothing is written when any key is invalid.
  */
-export function updateSettings(patch: Record<string, unknown>): { ok: true } | { ok: false; errors: Record<string, string> } {
+export async function updateSettings(patch: Record<string, unknown>): Promise<{ ok: true } | { ok: false; errors: Record<string, string> }> {
   // null prototype: a `__proto__` key from the request must land in `errors`, not change the object's prototype
   const errors: Record<string, string> = Object.create(null);
   const clean: Record<string, string | null> = Object.create(null);
@@ -132,13 +202,24 @@ export function updateSettings(patch: Record<string, unknown>): { ok: true } | {
     else clean[key] = r.value;
   }
   if (Object.keys(errors).length) return { ok: false, errors };
+  if (docBackend() === 'kv') await loadSettings(true);
   const st = storageState();
   if (!st.writable) return { ok: false, errors: { _storage: st.reason } };
   try {
-    writeSettings(clean, SECRET_KEYS);
+    if (docBackend() === 'kv') {
+      const written = await updateDoc('settings', (raw) => {
+        const parsed = parseSettingsDoc(raw);
+        // never overwrite a document we could not read: that would drop every saved value and rotate the salt
+        if (parsed.problem) throw new Error(parsed.problem);
+        return JSON.stringify(patchSettingsDoc(parsed.doc, clean, SECRET_KEYS));
+      });
+      // the document just written is the current one: no re-read, and no older read in flight can replace it
+      if (written !== null) kvRefresh.set(decodeKv(written));
+    } else writeSettings(clean, SECRET_KEYS);
   } catch (e) {
+    if (docBackend() === 'kv') await loadSettings(true);
     const msg = (e as Error).message;
-    return { ok: false, errors: { _storage: msg === 'file-unreadable' || msg === 'file-corrupt' ? msg : 'fs-error' } };
+    return { ok: false, errors: { _storage: msg === 'file-unreadable' || msg === 'file-corrupt' ? msg : docBackend() === 'kv' ? 'kv-error' : 'fs-error' } };
   } finally {
     cache = null;
   }

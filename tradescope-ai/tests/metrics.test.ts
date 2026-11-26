@@ -116,26 +116,26 @@ ok('tally: one entry per requester, permits step, in period', tal.handled === 2 
 
 // ---- store --------------------------------------------------------------------------------------------------------
 const day = new Date().toISOString().slice(0, 10);
-store.countMetrics(['a', 'a', 'b']);
-ok('counts in memory', store.metricsSummary(1).totals.a === 2 && store.metricsSummary(1).totals.b === 1);
-ok('summary is persistent with storage', store.metricsSummary(1).persistent === true);
+await store.countMetrics(['a', 'a', 'b']);
+ok('counts in memory', (await store.metricsSummary(1)).totals.a === 2 && (await store.metricsSummary(1)).totals.b === 1);
+ok('summary is persistent with storage', (await store.metricsSummary(1)).persistent === true);
 ok('flush writes', store.flushMetrics() === true);
 ok('file mode 0600', process.platform === 'win32' || (statSync(file).mode & 0o777) === 0o600);
 store.resetMetricsForTest();
-ok('read back after a restart', store.metricsSummary(1).totals.a === 2, store.metricsSummary(1));
-ok('today in the period', store.metricsSummary(7).to === day && store.metricsSummary(7).daily.some((d) => d.date === day));
+ok('read back after a restart', (await store.metricsSummary(1)).totals.a === 2, (await store.metricsSummary(1)));
+ok('today in the period', (await store.metricsSummary(7)).to === day && (await store.metricsSummary(7)).daily.some((d) => d.date === day));
 
 // channel names come from visitors' links: they have their own budget and never crowd out other counters
-store.countMetrics(Array.from({ length: 1100 }, (_, i) => `ch:c${i}:visit`));
-store.countMetrics(['consult_first:card', 'track:live']);
-let counts = store.metricsSummary(1).daily[0].counts;
+await store.countMetrics(Array.from({ length: 1100 }, (_, i) => `ch:c${i}:visit`));
+await store.countMetrics(['consult_first:card', 'track:live']);
+let counts = (await store.metricsSummary(1)).daily[0].counts;
 ok('at most 1000 channel keys a day', Object.keys(counts).filter((k) => k.startsWith('ch:')).length === 1000);
 ok('verdict counters still counted after the channel budget is spent', counts['consult_first:card'] === 1 && counts['track:live'] === 1, counts['consult_first:card']);
-store.countMetrics(Array.from({ length: 1100 }, (_, i) => `k${i}`));
-counts = store.metricsSummary(1).daily[0].counts;
+await store.countMetrics(Array.from({ length: 1100 }, (_, i) => `k${i}`));
+counts = (await store.metricsSummary(1)).daily[0].counts;
 ok('at most 1000 other keys a day', Object.keys(counts).filter((k) => !k.startsWith('ch:')).length === 1000);
-store.countMetrics(['a']);
-ok('existing keys still count at the cap', store.metricsSummary(1).totals.a === 3);
+await store.countMetrics(['a']);
+ok('existing keys still count at the cap', (await store.metricsSummary(1)).totals.a === 3);
 
 // another process writing the same file: each flush adds only its own new counts
 store.flushMetrics();
@@ -143,9 +143,9 @@ const other = JSON.parse(readFileSync(file, 'utf8')) as { days: Record<string, R
 other.days[day].fromOther = 5;
 other.days[day].a += 10;
 writeFileSync(file, JSON.stringify(other));
-ok('summary shows the other process’s counts', store.metricsSummary(1).totals.fromOther === 5 && store.metricsSummary(1).totals.a === 13);
-store.countMetrics(['a']);
-ok('…plus this process’s unwritten ones', store.metricsSummary(1).totals.a === 14);
+ok('summary shows the other process’s counts', (await store.metricsSummary(1)).totals.fromOther === 5 && (await store.metricsSummary(1)).totals.a === 13);
+await store.countMetrics(['a']);
+ok('…plus this process’s unwritten ones', (await store.metricsSummary(1)).totals.a === 14);
 store.flushMetrics();
 const merged = (JSON.parse(readFileSync(file, 'utf8')) as typeof other).days[day];
 ok('flush keeps the other process’s counts', merged.fromOther === 5 && merged.a === 14, { a: merged.a, fromOther: merged.fromOther });
@@ -157,14 +157,14 @@ const old: Record<string, Record<string, number>> = {};
 for (let i = 1; i <= 405; i++) old[ago(i)] = { visit: 1 };
 writeFileSync(file, JSON.stringify({ format: 1, days: old }));
 store.resetMetricsForTest();
-store.countMetrics(['visit']);
+await store.countMetrics(['visit']);
 store.flushMetrics();
 let kept = Object.keys((JSON.parse(readFileSync(file, 'utf8')) as { days: object }).days);
 ok('keeps 400 days by date', kept.length === 400 && kept.includes(day) && kept.includes(ago(399)) && !kept.includes(ago(400)), kept.length);
-ok('period is capped at 400 days', store.metricsSummary(10_000).daily.length <= 400);
+ok('period is capped at 400 days', (await store.metricsSummary(10_000)).daily.length <= 400);
 writeFileSync(file, JSON.stringify({ format: 1, days: { [ago(500)]: { visit: 1 }, [ago(1)]: { visit: 2 } } }));
 store.resetMetricsForTest();
-ok('expired day not reported', store.metricsSummary(400).totals.visit === 2);
+ok('expired day not reported', (await store.metricsSummary(400)).totals.visit === 2);
 store.flushMetrics();
 kept = Object.keys((JSON.parse(readFileSync(file, 'utf8')) as { days: object }).days);
 ok('expired day removed after reading, with nothing new counted', kept.length === 1 && kept[0] === ago(1), kept);
@@ -172,24 +172,24 @@ ok('expired day removed after reading, with nothing new counted', kept.length ==
 // counts made while storage is read-only are kept and written once it is writable again
 store.resetMetricsForTest();
 process.env.SETTINGS_READONLY = '1';
-store.countMetrics(['ro-count']);
-ok('read-only: not written', store.flushMetrics() === false && store.metricsSummary(1).totals['ro-count'] === 1);
+await store.countMetrics(['ro-count']);
+ok('read-only: not written', store.flushMetrics() === false && (await store.metricsSummary(1)).totals['ro-count'] === 1);
 delete process.env.SETTINGS_READONLY;
-ok('writable again: the summary still has them', store.metricsSummary(1).totals['ro-count'] === 1);
+ok('writable again: the summary still has them', (await store.metricsSummary(1)).totals['ro-count'] === 1);
 ok('…and the next flush writes them', store.flushMetrics() === true && (JSON.parse(readFileSync(file, 'utf8')) as { days: Record<string, Record<string, number>> }).days[day]['ro-count'] === 1);
 
 // a damaged file is set aside, never overwritten
 writeFileSync(file, '{"format":1,"days":');
 store.resetMetricsForTest();
-store.countMetrics(['x']);
+await store.countMetrics(['x']);
 ok('damaged file kept aside', readdirSync(dir).some((f) => f.startsWith('metrics.json.corrupt-')));
-ok('fresh start after damage', store.metricsSummary(1).totals.x === 1 && store.metricsSummary(1).totals.visit === undefined);
+ok('fresh start after damage', (await store.metricsSummary(1)).totals.x === 1 && (await store.metricsSummary(1)).totals.visit === undefined);
 // a parseable file of another shape is set aside too, not replaced
 const before = readdirSync(dir).filter((f) => f.startsWith('metrics.json.corrupt-')).length;
 writeFileSync(file, JSON.stringify({ format: 2, days: { [day]: { visit: 99 } } }));
 store.resetMetricsForTest();
-store.countMetrics(['y']);
-ok('unknown format kept aside', readdirSync(dir).filter((f) => f.startsWith('metrics.json.corrupt-')).length === before + 1 && store.metricsSummary(1).totals.visit === undefined);
+await store.countMetrics(['y']);
+ok('unknown format kept aside', readdirSync(dir).filter((f) => f.startsWith('metrics.json.corrupt-')).length === before + 1 && (await store.metricsSummary(1)).totals.visit === undefined);
 
 // ---- browser re-check rule (H7) -----------------------------------------------------------------------------------
 const mem = new Map<string, string>();
@@ -244,21 +244,21 @@ store.resetMetricsForTest();
 const { POST } = await import('@/app/api/metrics/route');
 const send = (body: string) => POST(new Request('http://localhost/api/metrics', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }));
 let res = await send(JSON.stringify({ events: [{ e: 'visit' }, { e: 'step_first', step: 'permits' }, { e: 'nope' }], ch: 'KOTRA' }));
-let totals = store.metricsSummary(1).totals;
+let totals = (await store.metricsSummary(1)).totals;
 ok('204 and counted', res.status === 204 && totals['visit'] === 1 && totals['step_first:permits'] === 1 && totals['ch:kotra:visit'] === 1, totals);
 ok('unknown event dropped', !Object.keys(totals).some((k) => k.includes('nope')));
 res = await send(JSON.stringify({ events: Array.from({ length: 12 }, () => ({ e: 'expert_open', src: 'card' })) }));
-ok('at most 10 events per request', store.metricsSummary(1).totals['expert_open:card'] === 10);
+ok('at most 10 events per request', (await store.metricsSummary(1)).totals['expert_open:card'] === 10);
 res = await send(JSON.stringify({ events: [{ e: 'track_recheck2' }, { e: 'track_recheck2' }, { e: 'step_first', step: 'shipping' }, { e: 'step_first', step: 'shipping' }, { e: 'step_first', step: 'customs' }] }));
-totals = store.metricsSummary(1).totals;
+totals = (await store.metricsSummary(1)).totals;
 ok('one-time events counted once per request', totals.track_recheck2 === 1 && totals['step_first:shipping'] === 1 && totals['step_first:customs'] === 1, totals);
 const sendGpc = (body: string) => POST(new Request('http://localhost/api/metrics', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Sec-GPC': '1' }, body }));
 res = await sendGpc(JSON.stringify({ events: [{ e: 'step_first', step: 'contract' }] }));
-ok('GPC request accepted but not counted', res.status === 204 && store.metricsSummary(1).totals['step_first:contract'] === undefined);
+ok('GPC request accepted but not counted', res.status === 204 && (await store.metricsSummary(1)).totals['step_first:contract'] === undefined);
 ok('bad JSON → 400', (await send('{')).status === 400);
 ok('too large → 413', (await send(JSON.stringify({ events: [], pad: 'x'.repeat(3000) }))).status === 413);
 res = await send(JSON.stringify({ events: [{ e: 'visit' }], ch: 'has space' }));
-ok('bad channel ignored, event kept', res.status === 204 && store.metricsSummary(1).totals.visit === 2 && !Object.keys(store.metricsSummary(1).totals).some((k) => k.startsWith('ch:has')));
+ok('bad channel ignored, event kept', res.status === 204 && (await store.metricsSummary(1)).totals.visit === 2 && !Object.keys((await store.metricsSummary(1)).totals).some((k) => k.startsWith('ch:has')));
 
 // ---- /api/consult counts the submission with its source and channel ----------------------------------------------
 const consult = await import('@/app/api/consult/route');
@@ -272,20 +272,21 @@ const submit = (extra: Record<string, unknown>, headers: Record<string, string> 
     }),
   );
 res = await submit({ source: 'checklist', ch: 'kotra', first: true });
-totals = store.metricsSummary(1).totals;
+totals = (await store.metricsSummary(1)).totals;
 ok('consult 200', res.status === 200, await res.clone().text());
 ok('consult_submit counted with source and channel', totals.consult_submit === 1 && totals['consult_submit:checklist'] === 1 && totals['ch:kotra:consult_submit'] === 1, totals);
 ok('first permits request counted as a pair', totals['consult_first:checklist'] === 1);
-ok('record keeps source and channel', listRequests()[0].source === 'checklist' && listRequests()[0].channel === 'kotra');
+const latestRequest = (await listRequests())[0];
+ok('record keeps source and channel', latestRequest.source === 'checklist' && latestRequest.channel === 'kotra');
 res = await submit({ source: 'admin', ch: 'Bad Channel!' });
-totals = store.metricsSummary(1).totals;
-ok('unknown source and channel dropped', res.status === 200 && totals.consult_submit === 2 && listRequests()[0].source === undefined && listRequests()[0].channel === undefined, listRequests()[0]);
+totals = (await store.metricsSummary(1)).totals;
+ok('unknown source and channel dropped', res.status === 200 && totals.consult_submit === 2 && (await listRequests())[0].source === undefined && (await listRequests())[0].channel === undefined, (await listRequests())[0]);
 res = await submit({ source: ['card'] });
-ok('array source is not a source', res.status === 200 && listRequests()[0].source === undefined && store.metricsSummary(1).totals['consult_submit:card'] === undefined, listRequests()[0]);
+ok('array source is not a source', res.status === 200 && (await listRequests())[0].source === undefined && (await store.metricsSummary(1)).totals['consult_submit:card'] === undefined, (await listRequests())[0]);
 res = await submit({ source: 'checklist', ch: 'kotra', first: true }, { DNT: '1' });
-totals = store.metricsSummary(1).totals;
-ok('DNT request stored but not counted, no channel kept', res.status === 200 && totals.consult_submit === 3 && listRequests()[0].channel === undefined && listRequests()[0].source === 'checklist', { totals: totals.consult_submit, row: listRequests()[0] });
+totals = (await store.metricsSummary(1)).totals;
+ok('DNT request stored but not counted, no channel kept', res.status === 200 && totals.consult_submit === 3 && (await listRequests())[0].channel === undefined && (await listRequests())[0].source === 'checklist', { totals: totals.consult_submit, row: (await listRequests())[0] });
 res = await submit({ email: 'not-an-email', source: 'card' });
-ok('rejected request is not counted', res.status === 400 && store.metricsSummary(1).totals['consult_submit:card'] === undefined);
+ok('rejected request is not counted', res.status === 400 && (await store.metricsSummary(1)).totals['consult_submit:card'] === undefined);
 
 done('metrics');

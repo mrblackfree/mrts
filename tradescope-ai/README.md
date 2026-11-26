@@ -27,7 +27,8 @@
 - 서비스 카탈로그: [`src/data/experts.ts`](src/data/experts.ts) — 필리핀 현지 수입자(Importer of Record), FDA 식품(LTO·CPR), FDA 화장품(CPN), **BAI 펫푸드·사료(LTO·CFPR·SPSIC)**, BFAR/DA SPS, DTI/NTC 인증, 할랄, 필리핀·한국 관세사, 한국 수입식품 등록
 - 서비스마다 대행 범위와 고객이 준비할 서류를 표시하고, 처리 기간과 근거가 확인된 서비스(현재 FDA 식품, BAI 펫푸드)에는 기관 민원 안내(Citizen's Charter) 기준 처리 기간과 근거 링크를 함께 표시합니다(보완 요청 기간 제외, 기관 공지로 바뀔 수 있음). 필리핀 통관(BOC 수입자 등록)은 CAO 01-2026의 법무법인 게시본을 근거로 표시하며 공식 출처는 확인 중입니다. 나머지는 확인되는 대로 추가합니다
 - 체크리스트 항목의 「맡기기」, 인허가 단계의 서비스 카드, 데이터에 없는 품목(예: 펫푸드 → BAI)의 안내에서 요청 양식이 열립니다
-- 요청은 `TRADESCOPE_DATA_DIR/consult-requests.jsonl`(0600)에 저장되고 `/admin → 전문가 서비스`에서 상태(new → contacted → in-progress → done, 또는 closed)를 관리합니다. `CONSULT_WEBHOOK_URL`을 넣으면 Slack 등으로 즉시 알림
+- 요청은 `TRADESCOPE_DATA_DIR/consult-requests.jsonl`(0600)에, Redis를 연결한 환경(Vercel + Upstash)에서는 Redis 해시 `consult-requests`에 저장되고 `/admin → 전문가 서비스`에서 상태(new → contacted → in-progress → done, 또는 closed)를 관리합니다. 저장하려면 `ADMIN_SECRET`(또는 `ADMIN_PASSWORD`)이 설정되어 있고 읽기 전용(`SETTINGS_READONLY`)이 아니어야 합니다. `CONSULT_WEBHOOK_URL`을 넣으면 Slack 등으로 즉시 알림
+- **webhook만 쓰는 경우:** 저장소가 없거나 Redis가 응답하지 않을 때 `CONSULT_WEBHOOK_URL`이 있으면 요청을 webhook으로만 전달합니다. 이 요청은 관리자 목록에 남지 않으므로 webhook을 받는 곳(Slack 등)에서 관리하세요. webhook 전달까지 실패하면 고객에게 오류와 연락처 이메일을 보여 줍니다. 저장소도 webhook도 없으면 양식이 요청을 받지 않습니다. Redis 장애에 대비한 webhook은 **환경변수 `CONSULT_WEBHOOK_URL`**로 넣으세요 — 관리자 화면에서 저장한 값은 Redis 안에 있어서, Redis가 멈춘 동안 새로 시작한 서버 인스턴스는 그 값을 알 수 없습니다. Redis에 저장했다는 응답만 끊긴 경우에도 webhook에는 같은 요청 번호가 가므로 한 건으로 맞춰 볼 수 있습니다
 - 남용 방지: 시간당 전체 60건, 봇 차단용 숨은 필드, 요청 본문 32KB 제한. 클라이언트당 5건 한도는 클라이언트를 식별할 수 있을 때(`TRUST_PROXY` 또는 Vercel)만 적용되고, 한도는 서버 인스턴스(프로세스)마다 따로 셉니다 — 여러 인스턴스로 운영하면 인스턴스 수만큼 늘어납니다
 
 ### 컨테이너·통관 추적
@@ -61,7 +62,8 @@
 - 「처음 연 단계」·첫 요청·재조회는 브라우저 저장소에서 **품목별로** 중복을 막으므로 단위는 브라우저·품목이고, 같은 사람이 다른 기기를 쓰면 따로 셉니다
 - Do Not Track 또는 Global Privacy Control을 켠 브라우저는 아무것도 보내지 않고, 서버도 그 신호(`DNT: 1`·`Sec-GPC: 1`)가 붙은 요청 제출·추적 조회는 세지 않으며 요청에 채널도 남기지 않습니다
 - 합계는 `TRADESCOPE_DATA_DIR/metrics.json`(0600)에 5초 단위로 모아 씁니다. 쓸 때마다 파일을 다시 읽어 이 프로세스의 새 숫자만 더하므로, 같은 데이터 폴더를 쓰는 여러 프로세스의 숫자가 서로 지워지지 않습니다(같은 순간에 두 프로세스가 쓰면 한쪽 묶음이 빠질 수 있음). 400일이 지난 날은 다음에 기록하거나 관리자 화면을 열 때 지웁니다. 알 수 없는 형식의 파일은 덮어쓰지 않고 옆으로 옮깁니다
-- 저장소에 쓸 수 없는 환경(Vercel·읽기 전용)에서는 메모리에만 있어 재시작하면 사라지므로, 검증 기간에는 Docker·자체 서버로 운영하세요
+- Redis를 연결하고 `ADMIN_SECRET`(또는 `ADMIN_PASSWORD`)이 설정되어 있으며 읽기 전용이 아닌 환경(Vercel + Upstash)에서는 요청마다 날짜별 해시(`metrics:<날짜>`, 채널 키는 `metrics:<날짜>:ch`)에 바로 더하고, 400일이 지나면 Redis가 자동으로 지웁니다. 하루 키 한도는 Redis 스크립트 한 번으로 확인과 증가를 함께 처리하므로 동시 요청에도 넘지 않습니다. 추적 조회와 전문가 요청의 숫자는 응답을 보낸 뒤 기록해 응답을 늦추지 않습니다. Redis가 응답하지 않으면 그 요청의 숫자만 빠지고 요청 자체는 실패하지 않으며, 관리자 화면은 0이 아니라 오류로 표시합니다
+- 저장소가 없는 환경(Redis 없는 Vercel·읽기 전용)에서는 메모리에만 있어 재시작하면 사라집니다
 - 브라우저 이벤트는 로그인 없이 받는 익명 카운터라 일부러 부풀릴 수 있습니다. 한 요청 안의 같은 일회성 이벤트는 한 번만 세고, 한도는 요청이 아니라 받아들인 이벤트 수로 셉니다(시간당 전체 30,000건, 프록시 설정 시 클라이언트당 300건). 채널 이름 키는 하루 1,000개까지 따로 세어 판정에 쓰는 숫자를 밀어내지 않습니다. H3의 요청 수는 실제 접수 건에서 세므로 요청 목록과 대조할 수 있고, 판정이 갑자기 바뀌면 일별 합계부터 확인하세요
 - 요청 레코드에는 시작 위치(`source`: 체크리스트·서비스 카드·통관·미지원 품목·첫 화면)와 유입 채널(`channel`)이 함께 저장되어 관리자 요청 목록에 표시됩니다. H3의 응답률 조건은 인허가 단계(체크리스트·서비스 카드)에서 요청한 사람을 이메일 기준으로 한 번씩만 세어 계산합니다(여러 번 요청해도 한 명)
 - 인터뷰·사전 판매·시범 운영으로 검증하는 나머지 가설(H1·H2·H4·H5·H6·H10, H9의 비용)은 캔버스의 「판정 계산기」에 결과를 넣어 같은 규칙으로 판정합니다
@@ -177,13 +179,13 @@ ADMIN_SECRET=<openssl rand -base64 32 결과>
 - 관리자 저장값은 `.data/settings.json`(Docker는 `/app/.data` 볼륨)에 파일 권한 0600으로 저장됩니다. 키는 `ADMIN_SECRET`(없으면 `ADMIN_PASSWORD`)에서 파생한 키로 **AES-256-GCM 암호화**됩니다.
 - 브라우저에는 마스킹된 값(`••••abcd`)만 전달되고, 키 원문은 어떤 응답에도 포함되지 않습니다.
 - 설정 파일이 손상되었거나 읽을 수 없으면 덮어쓰지 않고 저장을 막습니다(기존 값과 암호화 salt 보호). 화면에 원인이 표시됩니다.
-- Vercel·Netlify 서버리스는 파일이 유지되지 않으므로 화면이 **읽기 전용**으로 열립니다. 이 경우 같은 이름의 환경변수를 플랫폼 설정에 넣으세요.
+- Vercel·Netlify 서버리스는 파일이 유지되지 않습니다. Vercel에서는 **Storage → Upstash for Redis**를 연결하면(무료 플랜 있음) `KV_REST_API_URL`·`KV_REST_API_TOKEN`이 자동으로 들어가, 관리자 저장값·파트너·검증값·전문가 요청·로그아웃 기록·측정 합계가 모두 Redis에 저장됩니다(키 접두어 `KV_PREFIX`, 기본 `tradescope:`; Upstash에서 직접 만든 경우 `UPSTASH_REDIS_REST_URL`·`UPSTASH_REDIS_REST_TOKEN`도 인식). 연결하지 않으면 화면이 **읽기 전용**으로 열리므로, 같은 이름의 환경변수를 플랫폼 설정에 넣으세요.
 
 **보안**
 
 - 세션은 HttpOnly·SameSite=Strict 쿠키(HTTPS에서는 Secure)로 8시간 유지되며, 비밀번호나 `ADMIN_SECRET`을 바꾸면 모든 세션이 만료됩니다.
 - 로그아웃하면 쿠키를 지우는 것과 함께 그 세션을 서버에서 무효로 만듭니다. 미리 복사해 둔 쿠키도 더 이상 쓸 수 없습니다. `/admin → 개요`의 **모든 기기에서 로그아웃**은 지금까지 발급된 모든 세션(다른 브라우저·기기 포함)을 끝냅니다.
-- 로그아웃 기록은 `TRADESCOPE_DATA_DIR/admin-sessions.json`(0600)에 남고, 만료가 지난 항목은 지웁니다. 이 파일이 손상되면 옆으로 옮기고 기존 세션을 모두 끝냅니다(다시 로그인은 가능). 저장소가 읽기 전용인 환경(Vercel 등)에서는 서버 메모리에만 남으므로, 재시작 뒤에도 확실히 끝내려면 `ADMIN_SECRET`을 바꾸세요.
+- 로그아웃 기록은 `TRADESCOPE_DATA_DIR/admin-sessions.json`(0600)에 남고, 만료가 지난 항목은 지웁니다. 이 파일이 손상되면 옆으로 옮기고 기존 세션을 모두 끝냅니다(다시 로그인은 가능). Redis를 연결한 환경에서는 같은 내용을 Redis 키 `admin-sessions`에 compare-and-set으로 저장하고, 각 서버 인스턴스가 1초마다 새로 읽어 다른 인스턴스의 로그아웃도 반영합니다. Redis가 1분 넘게 응답하지 않으면 다른 곳의 로그아웃을 알 수 없으므로 세션을 받지 않습니다(fail closed). 저장소가 없는 환경에서는 서버 메모리에만 남으므로, 재시작 뒤에도 확실히 끝내려면 `ADMIN_SECRET`을 바꾸세요.
 - 로그인 실패는 전체 15분 100회로 제한하고, 클라이언트를 식별할 수 있으면(`TRUST_PROXY` 설정 또는 Vercel) 클라이언트별 15분 8회로도 제한합니다. 식별할 수 없을 때 클라이언트별 제한을 걸면 한 사람의 오입력으로 모든 관리자가 잠기기 때문입니다. 차단된 요청은 본문을 읽기 전에 거절하고, 로그인 요청 본문 크기도 제한합니다.
 - 저장·테스트 요청은 같은 출처(Origin)에서 온 것만 받습니다.
 - `/admin`과 `/api/admin/*`에는 `no-store`·`noindex`·`X-Frame-Options: DENY` 헤더를 붙입니다.
@@ -305,6 +307,7 @@ curl -s -X POST http://localhost:3000/api/analyze \
 2. **Root Directory → `tradescope-ai`** 로 지정 (Framework는 Next.js 자동 감지, 빌드 설정은 기본값 그대로)
 3. **Deploy** → `https://<project>.vercel.app` 발급. 이후 PR마다 Preview URL이 자동 생성됨
 4. (선택) Settings → Environment Variables에 `AI_API_KEY`, `AI_BASE_URL`, `AI_MODEL` 추가 → Redeploy
+   - 관리자 화면을 쓰려면 `ADMIN_PASSWORD`와 `ADMIN_SECRET`(32자 이상)을 넣고, **Storage → Upstash for Redis**를 연결하세요. 연결해야 관리자 저장값·전문가 요청·로그아웃 기록·측정 합계가 배포와 재시작 뒤에도 남습니다
 5. Settings → Domains에서 도메인 추가 → 안내되는 DNS 레코드(A `76.76.21.21` 또는 CNAME `cname.vercel-dns.com`)를 도메인 업체에 등록
 
 `tradescope-ai/vercel.json`이 서버 함수를 서울 리전(`icn1`)으로 고정합니다. 공식 데이터는 빌드에 포함된 스냅샷(`src/data/official/snapshot.json`)을 쓰므로, Vercel에는 데이터용 키가 필요 없습니다. 갱신은 주간 GitHub Actions PR → 머지 → 자동 재배포 순서로 이루어집니다.

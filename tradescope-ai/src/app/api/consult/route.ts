@@ -2,12 +2,15 @@ import { NextResponse } from 'next/server';
 import { EXPERT_INDEX } from '@/data/experts';
 import { getProduct } from '@/data/kr-ph-trade-db';
 import { notify, webhookUrl } from '@/lib/consult/notify';
-import { appendRequest, newRequestId, type ConsultRequest } from '@/lib/consult/store';
+import { appendRequest, newRequestId, RequestNotStoredError, type ConsultRequest } from '@/lib/consult/store';
 import { readJsonLimited } from '@/lib/http';
 import { EXPERT_SOURCES, eventKeys, optedOutHeaders, parseChannel, type ExpertSource } from '@/lib/metrics/events';
 import { countMetrics } from '@/lib/metrics/store';
 import { clientKey, windowLimiter } from '@/lib/rate-limit';
-import { getSetting, storageState } from '@/lib/settings';
+import { inBackground } from '@/lib/background';
+import { getSetting, recordStorageState } from '@/lib/settings';
+import { kvHealthy } from '@/lib/store/kv';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,15 +22,23 @@ const MAX_BODY_BYTES = 32_000;
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, max) : '');
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 
+/** Requests can be stored: writable storage, and with Redis, Redis answering on this instance. */
+function canStoreRequests(): boolean {
+  const st = recordStorageState();
+  return st.writable && (st.backend !== 'kv' || kvHealthy());
+}
+
 /** Whether this server can take requests online, and the fallback contact otherwise. */
-export function GET() {
+export async function GET()  {
+  await prepareRequest(['settings']);
   const contact = getSetting('CONSULT_CONTACT_EMAIL') ?? null;
-  const accepting = storageState().writable || !!webhookUrl();
+  const accepting = canStoreRequests() || !!webhookUrl();
   return NextResponse.json({ ok: true, accepting, contact }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 /** A trader asks TradeScope to arrange a local expert. Body: { name, company?, email, phone?, productId?, topic, serviceIds[], message?, lang, consent, website (honeypot) }. */
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
+  await prepareRequest(['settings']);
   const parsed = await readJsonLimited(req, MAX_BODY_BYTES);
   if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
   const body = parsed.body;
@@ -68,23 +79,34 @@ export async function POST(req: Request) {
   };
 
   const webhook = webhookUrl();
-  const canStore = storageState().writable;
+  let stored = canStoreRequests();
   const contact = getSetting('CONSULT_CONTACT_EMAIL') ?? null;
-  if (!canStore && !webhook) return NextResponse.json({ ok: false, error: 'not-accepting', contact }, { status: 503 });
+  if (!stored && !webhook) return NextResponse.json({ ok: false, error: 'not-accepting', contact }, { status: 503 });
 
-  let record: ConsultRequest;
-  try {
-    record = canStore ? appendRequest(input) : { id: newRequestId(), createdAt: new Date().toISOString(), status: 'new', ...input };
-  } catch {
-    return NextResponse.json({ ok: false, error: 'storage-error', contact }, { status: 503 });
+  let record: ConsultRequest | null = null;
+  if (stored) {
+    try {
+      record = await appendRequest(input);
+    } catch (e) {
+      // storage failed: with a webhook the request still reaches the team (webhook-only, as without storage).
+      // A Redis write whose answer was lost may have been stored after all: the webhook gets the same id, so the
+      // two are one request, never two.
+      if (!webhook) return NextResponse.json({ ok: false, error: 'storage-error', contact }, { status: 503 });
+      stored = false;
+      if (e instanceof RequestNotStoredError) record = e.record;
+    }
   }
+  record ??= { id: newRequestId(), createdAt: new Date().toISOString(), status: 'new', ...input };
 
   if (webhook) {
     const delivered = await notify(webhook, record);
-    // without storage the webhook is the only copy: tell the trader so they can retry or use the email
-    if (!delivered && !canStore) return NextResponse.json({ ok: false, error: 'delivery-failed', contact }, { status: 502 });
+    // without a stored copy the webhook is the only one: tell the trader so they can retry or use the email
+    if (!delivered && !stored) return NextResponse.json({ ok: false, error: 'delivery-failed', contact }, { status: 502 });
   }
-  if (!optedOut) countMetrics(eventKeys({ e: 'consult_submit', src: source, first: body.first === true }, channel));
+  if (!optedOut) {
+    const keys = eventKeys({ e: 'consult_submit', src: source, first: body.first === true }, channel);
+    inBackground(() => countMetrics(keys));
+  }
   return NextResponse.json({ ok: true, id: record.id });
 }
 

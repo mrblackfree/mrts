@@ -77,8 +77,11 @@ function readCookie(req: Request, name: string): string | undefined {
   return undefined;
 }
 
-/** The signed-in session the request carries (valid signature, not expired, not signed out), else null. */
-export function currentSession(req: Request): { nonce: string; expiresAt: number } | null {
+/**
+ * The session cookie when its signature is valid and it has not expired — without the sign-out check, so it needs no
+ * stored state. Lets a route turn away requests without a real session before reading any storage.
+ */
+export function signedSession(req: Request): { nonce: string; expiresAt: number } | null {
   if (!adminAvailability().enabled) return null;
   const token = readCookie(req, SESSION_COOKIE);
   if (!token) return null;
@@ -91,8 +94,14 @@ export function currentSession(req: Request): { nonce: string; expiresAt: number
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   const expiresAt = Number(exp);
   if (!Number.isFinite(expiresAt) || expiresAt * 1000 < Date.now()) return null;
-  if (isRevoked(nonce, issuedAtMs(nonce, expiresAt))) return null;
   return { nonce, expiresAt };
+}
+
+/** The signed-in session the request carries (valid signature, not expired, not signed out), else null. */
+export function currentSession(req: Request): { nonce: string; expiresAt: number } | null {
+  const s = signedSession(req);
+  if (!s || isRevoked(s.nonce, issuedAtMs(s.nonce, s.expiresAt))) return null;
+  return s;
 }
 
 /** Returns the session expiry (unix seconds) when the request carries a valid session, else null. */

@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { getProduct } from '@/data/kr-ph-trade-db';
 import { readJsonLimited } from '@/lib/http';
 import { eventKeys, optedOutHeaders } from '@/lib/metrics/events';
+import { inBackground } from '@/lib/background';
 import { countMetrics } from '@/lib/metrics/store';
 import { clientKey, windowLimiter } from '@/lib/rate-limit';
 import { trackShipment, type TrackMode } from '@/lib/tracking';
 import { isContainerNumber, normaliseReference, type TrackKind } from '@/lib/tracking/types';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,7 +16,8 @@ export const dynamic = 'force-dynamic';
 const allow = windowLimiter({ perClient: 30, overall: 300, windowMs: 60 * 60 * 1000 });
 
 /** Body: { reference, kind: "container" | "bl" | "booking", carrier?, productId?, mode: "shipping" | "customs" }. */
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
+  await prepareRequest(['settings', 'verifications']);
   const parsed = await readJsonLimited(req, 4_000);
   if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
   const body = parsed.body;
@@ -29,7 +32,10 @@ export async function POST(req: Request) {
   const out = await trackShipment({ reference, kind, carrier }, { mode, product });
   // validation metrics (H8): how live lookups end, without the number itself
   const outcome = out.result ? (out.result.demo ? 'demo' : out.result.pending ? 'pending' : 'live') : (out.error ?? 'not-found');
-  if (!optedOutHeaders(req.headers)) countMetrics(eventKeys({ e: 'track', kind: outcome, provider: out.result && !out.result.demo ? out.result.provider : undefined }));
+  if (!optedOutHeaders(req.headers)) {
+    const keys = eventKeys({ e: 'track', kind: outcome, provider: out.result && !out.result.demo ? out.result.provider : undefined });
+    inBackground(() => countMetrics(keys)); // never holds the tracking answer
+  }
   if (out.result) return NextResponse.json({ ok: true, result: out.result, tried: out.tried }, { headers: { 'Cache-Control': 'no-store' } });
   const status = out.error === 'failed' ? 502 : out.error === 'not-covered' ? 422 : 404;
   return NextResponse.json({ ok: false, error: out.error ?? 'not-found', tried: out.tried }, { status, headers: { 'Cache-Control': 'no-store' } });

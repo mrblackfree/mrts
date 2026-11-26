@@ -118,6 +118,21 @@ body = (await res.json()) as { ok: boolean; revoked: string | null };
 revocation.resetRevocationForTest();
 ok('the next stored sign-out also saves the earlier one', body.revoked === 'stored' && !valid(busyA) && !valid(busyB) && valid(e), body);
 
+// ---- a damaged file is only ever repaired under the lock --------------------------------------------------------
+// while another process holds the lock (it may be writing a sign-out), a reader must not rewrite the file
+const beforeDamage = auth.issueSession().token;
+await new Promise((r) => setTimeout(r, 2));
+writeFileSync(file, '{"format":1,"notBefore":0,"revoked":{"x":"not a number"}}');
+writeFileSync(`${file}.lock`, 'held-by-another-process');
+revocation.resetRevocationForTest();
+ok('damaged + lock held: fails closed for earlier sessions', !valid(beforeDamage));
+ok('damaged + lock held: the file is left for the lock holder', readFileSync(file, 'utf8').includes('not a number') && readFileSync(`${file}.lock`, 'utf8') === 'held-by-another-process');
+unlinkSync(`${file}.lock`);
+ok('lock released: repaired on the next read, still closed for earlier sessions', !valid(beforeDamage) && !readFileSync(file, 'utf8').includes('not a number'));
+await new Promise((r) => setTimeout(r, 2));
+const afterRepair = auth.issueSession().token;
+ok('…and a new sign-in works', valid(afterRepair));
+
 // ---- read-only hosting: kept in memory -------------------------------------------------------------------------
 process.env.SETTINGS_READONLY = '1';
 revocation.resetRevocationForTest();

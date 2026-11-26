@@ -11,17 +11,21 @@ import {
   sameOrigin,
   sessionCookie,
   sessionExpiry,
+  signedSession,
 } from '@/lib/admin/auth';
 import { adminJson } from '@/lib/admin/http';
 import { revokeAllSessions, revokeSession } from '@/lib/admin/revocation';
 import { readBodyLimited } from '@/lib/http';
 import { clientKey } from '@/lib/rate-limit';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /** Session state for the admin page: whether the admin is enabled and whether this browser is signed in. */
-export function GET(req: Request) {
+export async function GET(req: Request)  {
+  // stored sign-outs matter only for a cookie that is validly signed; anything else is not signed in
+  if (signedSession(req)) await prepareRequest(['sessions']);
   const availability = adminAvailability();
   const expiresAt = sessionExpiry(req);
   return adminJson({ ...availability, authenticated: expiresAt !== null, expiresAt });
@@ -31,7 +35,7 @@ export function GET(req: Request) {
 const MAX_BODY_BYTES = MAX_PASSWORD * 8 + 256;
 
 /** Sign in with ADMIN_PASSWORD. */
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
   const availability = adminAvailability();
   if (!availability.enabled) return adminJson({ ok: false, error: 'admin-disabled', reason: availability.reason }, { status: 403 });
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });
@@ -63,14 +67,15 @@ export async function POST(req: Request) {
 /**
  * Sign out: the session is revoked on the server, not only removed from this browser, so a copied cookie stops
  * working too. `?all=1` signs out every session (all browsers and devices) and needs a signed-in session.
- * `revoked` says where the sign-out is kept: `stored` (data folder) or `memory` (this process only: read-only hosting,
- * or the data folder could not be updated).
+ * `revoked` says where the sign-out is kept: `stored` (data folder or Redis) or `memory` (this process only:
+ * read-only hosting, or the store could not be updated).
  */
-export function DELETE(req: Request) {
+export async function DELETE(req: Request)  {
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });
+  if (signedSession(req)) await prepareRequest(['sessions']);
   const all = new URL(req.url).searchParams.get('all') === '1';
   const session = currentSession(req);
   if (all && !session) return adminJson({ ok: false, error: 'unauthorized' }, { status: 401 });
-  const revoked = all ? revokeAllSessions(session!) : session ? revokeSession(session.nonce, session.expiresAt) : null;
+  const revoked = all ? await revokeAllSessions(session!) : session ? await revokeSession(session.nonce, session.expiresAt) : null;
   return adminJson({ ok: true, revoked }, { headers: { 'Set-Cookie': clearedCookie(req) } });
 }

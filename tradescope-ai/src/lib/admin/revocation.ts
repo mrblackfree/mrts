@@ -8,13 +8,22 @@
  * Kept in TRADESCOPE_DATA_DIR/admin-sessions.json (0600). Several processes may share that folder, so every change
  * is made under a lock file (read, change, write) and none can overwrite another's sign-out. What this process has
  * signed out is also kept in memory and always counts, so a sign-out that could not be saved still holds here.
- * Without writable storage (Vercel, read-only) memory is all there is: it does not survive a restart and is not
- * shared between instances — there, rotating ADMIN_SECRET is the way to end every session.
+ *
+ * With Redis (lib/store/kv, e.g. Vercel) the same document is the Redis key "admin-sessions", changed by
+ * compare-and-set. `loadRevocations()` (run by prepareRequest at the start of every API route) refreshes this
+ * instance's copy at most once a second, so `isRevoked` stays synchronous. Fails closed: when Redis has not
+ * answered for a minute, no session is accepted, since sign-outs on other instances would be unknown.
+ *
+ * Without any writable storage (read-only) memory is all there is: it does not survive a restart and is not shared
+ * between instances — there, rotating ADMIN_SECRET is the way to end every session.
  */
-import { chmodSync, closeSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { storageState } from '@/lib/settings';
+import { withFileLock } from '@/lib/file-lock';
+import { fileStorageState, recordStorageState } from '@/lib/settings';
 import { settingsDir } from '@/lib/settings/core.mjs';
+import { docBackend, readDoc, updateDoc } from '@/lib/store/docs';
+import { refresher } from '@/lib/store/refresh';
 
 interface State {
   format: 1;
@@ -32,12 +41,13 @@ const nowS = () => Math.floor(Date.now() / 1000);
 const nowMs = () => Date.now();
 const empty = (): State => ({ format: 1, notBefore: 0, revoked: Object.create(null) });
 
-/** How long a change waits for another process's change to finish. */
-const LOCK_WAIT_MS = 2000;
-/** A lock older than this was left by a process that died while holding it. */
-const LOCK_STALE_MS = 10_000;
-
 let memory: State = empty();
+
+const DOC = 'admin-sessions';
+/** Redis mode: this instance's copy of the shared document, and when it was last read successfully */
+let shared: { state: State; at: number } | null = null;
+const SHARED_TTL_MS = 1000;
+const SHARED_MAX_AGE_MS = 60_000;
 
 function clean(v: unknown): State {
   const s = v as Partial<State> | null;
@@ -45,7 +55,11 @@ function clean(v: unknown): State {
     throw new Error('unknown-format');
   }
   const revoked: Record<string, number> = Object.create(null);
-  for (const [k, exp] of Object.entries(s.revoked)) if (typeof exp === 'number' && Number.isFinite(exp)) revoked[k] = exp;
+  for (const [k, exp] of Object.entries(s.revoked)) {
+    // one damaged entry makes the whole document damaged: dropping it would quietly let that session back in
+    if (typeof exp !== 'number' || !Number.isFinite(exp)) throw new Error('unknown-format');
+    revoked[k] = exp;
+  }
   return { format: 1, notBefore: s.notBefore, revoked };
 }
 
@@ -80,84 +94,131 @@ function writeFile(state: State): boolean {
   }
 }
 
-/** The file's state, or null when there is none. A damaged file is set aside and every existing session ends. */
-function readFile(): State | null {
+/** The file as it is now, never writing: its state, null when there is none, or 'damaged'. */
+function readDisk(): State | null | 'damaged' {
   try {
     return clean(JSON.parse(readFileSync(file(), 'utf8')));
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    // fail closed; signing in again still works
-    try {
-      renameSync(file(), `${file()}.corrupt-${Date.now()}-${process.pid}`);
-    } catch {
-      /* nothing to keep */
-    }
-    const fresh = empty();
-    fresh.notBefore = nowMs();
-    writeFile(fresh);
-    return fresh;
+    return (e as NodeJS.ErrnoException).code === 'ENOENT' ? null : 'damaged';
   }
+}
+
+const failClosed = (): State => {
+  const fresh = empty();
+  fresh.notBefore = nowMs(); // every session issued so far ends; signing in again still works
+  return fresh;
+};
+
+/**
+ * The file's state, or null when there is none. Call only while holding the lock: a damaged file is set aside and
+ * replaced by a fail-closed one here, so the repair can never overwrite another process's sign-out.
+ */
+function readFileLocked(): State | null {
+  const disk = readDisk();
+  if (disk !== 'damaged') return disk;
+  try {
+    renameSync(file(), `${file()}.corrupt-${Date.now()}-${process.pid}`);
+  } catch {
+    /* nothing to keep */
+  }
+  const fresh = failClosed();
+  writeFile(fresh);
+  return fresh;
+}
+
+/** The file's state without holding the lock: a damaged file is repaired under the lock, or read as fail-closed. */
+function readFile(): State | null {
+  const disk = readDisk();
+  if (disk !== 'damaged') return disk;
+  let repaired: State | null = null;
+  // re-read under the lock: another process may have repaired it (or signed out) meanwhile
+  if (withFileLock(lockFile(), () => (repaired = readFileLocked()))) return repaired;
+  return failClosed();
+}
+
+function valid(raw: string): boolean {
+  try {
+    clean(JSON.parse(raw));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The shared document's text → state; a damaged one ends every session issued before now (fail closed). */
+function parseShared(raw: string | null): State {
+  if (raw === null) return empty();
+  if (valid(raw)) return clean(JSON.parse(raw));
+  const fresh = empty();
+  fresh.notBefore = nowMs();
+  return fresh;
+}
+
+/** Redis mode: reads the shared document; a damaged one is replaced once by its fail-closed state. Throws when Redis does not answer. */
+async function readShared(): Promise<State> {
+  let raw = await readDoc(DOC);
+  if (raw !== null && !valid(raw)) {
+    // replaced once, so every instance agrees on the cut-off; signing in again still works
+    const fresh = JSON.stringify(parseShared(raw));
+    try {
+      raw = (await updateDoc(DOC, (cur) => (cur !== null && !valid(cur) ? fresh : null))) ?? (await readDoc(DOC));
+    } catch {
+      /* still damaged: read as fail-closed below */
+    }
+  }
+  return parseShared(raw);
+}
+
+const sharedRefresh = refresher<State>({
+  read: readShared,
+  apply: (state) => {
+    shared = { state, at: Date.now() };
+  },
+  // no answer: keep the last copy; isRevoked fails closed once it is too old
+  ttlMs: SHARED_TTL_MS,
+});
+
+/** Redis mode: refreshes this instance's copy (at most once a second unless forced). No-op for the data folder. */
+export async function loadRevocations(force = false): Promise<void> {
+  if (docBackend() !== 'kv') return;
+  await sharedRefresh.refresh(force);
 }
 
 /** The current state: what every process has saved, plus what this process has signed out. */
 function read(): State {
-  if (!storageState().writable) return memory;
+  if (docBackend() === 'kv') return shared ? union(shared.state, memory) : memory;
+  if (!fileStorageState().writable) return memory;
   const disk = readFile();
   return disk ? union(disk, memory) : memory;
-}
-
-const sleep = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-
-/** Runs `fn` while holding the lock file; false when the lock could not be taken in time. */
-function withLock(fn: () => void): boolean {
-  try {
-    mkdirSync(settingsDir(), { recursive: true, mode: 0o700 });
-  } catch {
-    return false;
-  }
-  const deadline = Date.now() + LOCK_WAIT_MS;
-  for (;;) {
-    try {
-      closeSync(openSync(lockFile(), 'wx', 0o600));
-      break;
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') return false;
-      try {
-        if (Date.now() - statSync(lockFile()).mtimeMs > LOCK_STALE_MS) {
-          unlinkSync(lockFile());
-          continue;
-        }
-      } catch {
-        continue; // released meanwhile
-      }
-      if (Date.now() > deadline) return false;
-      sleep(5);
-    }
-  }
-  try {
-    fn();
-    return true;
-  } finally {
-    try {
-      unlinkSync(lockFile());
-    } catch {
-      /* already gone */
-    }
-  }
 }
 
 /**
  * Applies one change: in memory first (so it holds in this process whatever happens next), then to the file under
  * the lock, on top of what other processes saved meanwhile. 'memory' when the file could not be updated.
  */
-function update(change: (s: State) => void): RevocationStore {
+async function update(change: (s: State) => void): Promise<RevocationStore> {
   const mine = read();
   change(mine);
   memory = prune(union(memory, mine));
-  if (!storageState().writable) return 'memory';
+  if (docBackend() === 'kv') {
+    if (!recordStorageState().writable) return 'memory';
+    try {
+      const written = await updateDoc(DOC, (cur) => {
+        const base = parseShared(cur);
+        change(base);
+        return JSON.stringify(prune(union(base, memory)));
+      });
+      if (written !== null) sharedRefresh.set(clean(JSON.parse(written)));
+      return 'stored';
+    } catch {
+      console.warn('[admin] sign-out kept in this process only: Redis could not be updated');
+      return 'memory';
+    }
+  }
+  if (!fileStorageState().writable) return 'memory';
   let saved = false;
-  const locked = withLock(() => {
-    const disk = readFile() ?? empty();
+  const locked = withFileLock(lockFile(), () => {
+    const disk = readFileLocked() ?? empty();
     change(disk);
     saved = writeFile(prune(union(disk, memory)));
   });
@@ -168,19 +229,21 @@ function update(change: (s: State) => void): RevocationStore {
 
 /** True when a session issued at `issuedAtMs` (unix milliseconds) with `nonce` has been signed out. */
 export function isRevoked(nonce: string, issuedAtMs: number): boolean {
+  // Redis mode without a recent copy: sign-outs elsewhere are unknown, so no session is accepted
+  if (docBackend() === 'kv' && (!shared || Date.now() - shared.at > SHARED_MAX_AGE_MS)) return true;
   const s = read();
   return issuedAtMs < s.notBefore || Object.hasOwn(s.revoked, nonce);
 }
 
 /** Signs one session out until it would have expired. */
-export function revokeSession(nonce: string, expiresAt: number): RevocationStore {
+export function revokeSession(nonce: string, expiresAt: number): Promise<RevocationStore> {
   return update((s) => {
     s.revoked[nonce] = expiresAt;
   });
 }
 
 /** Ends every session issued so far, including the caller's own. */
-export function revokeAllSessions(current?: { nonce: string; expiresAt: number }): RevocationStore {
+export function revokeAllSessions(current?: { nonce: string; expiresAt: number }): Promise<RevocationStore> {
   // one millisecond past now, so a session issued in this very millisecond ends as well; a new sign-in cannot
   // complete within it
   const notBefore = nowMs() + 1;
@@ -193,4 +256,6 @@ export function revokeAllSessions(current?: { nonce: string; expiresAt: number }
 /** For tests: forget the in-memory state (as after a restart). */
 export function resetRevocationForTest(): void {
   memory = empty();
+  shared = null;
+  sharedRefresh.reset();
 }

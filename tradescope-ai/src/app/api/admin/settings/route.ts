@@ -1,5 +1,5 @@
 import { OFFICIAL } from '@/data/official';
-import { adminJson, requireAdmin } from '@/lib/admin/http';
+import { adminJson, authorizeAdmin } from '@/lib/admin/http';
 import { publicAiStatus } from '@/lib/ai-adapter';
 import { adminFields, settingsUpdatedAt, storageState, updateSettings } from '@/lib/settings';
 
@@ -29,15 +29,15 @@ function snapshot() {
 }
 
 /** Current settings (secrets masked) and system state. */
-export function GET(req: Request) {
-  const denied = requireAdmin(req, { mutating: false });
+export async function GET(req: Request)  {
+  const denied = await authorizeAdmin(req, { mutating: false });
   if (denied) return denied;
   return adminJson({ ok: true, ...snapshot() });
 }
 
 /** Save settings: body `{ values: { KEY: "value" | null } }` — null clears a saved value. */
-export async function PUT(req: Request) {
-  const denied = requireAdmin(req, { mutating: true });
+export async function PUT(req: Request)  {
+  const denied = await authorizeAdmin(req, { mutating: true });
   if (denied) return denied;
   let values: unknown;
   try {
@@ -46,7 +46,7 @@ export async function PUT(req: Request) {
     values = undefined;
   }
   if (!values || typeof values !== 'object' || Array.isArray(values)) return adminJson({ ok: false, error: 'bad-request' }, { status: 400 });
-  const result = updateSettings(values as Record<string, unknown>);
+  const result = await updateSettings(values as Record<string, unknown>);
   if (!result.ok) return adminJson({ ok: false, error: 'invalid', errors: result.errors, ...snapshot() }, { status: 400 });
   return adminJson({ ok: true, ...snapshot() });
 }

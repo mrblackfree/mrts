@@ -1,4 +1,4 @@
-import { adminJson, requireAdmin } from '@/lib/admin/http';
+import { adminJson, authorizeAdmin } from '@/lib/admin/http';
 import { chatCompletion, getAiConfig } from '@/lib/ai-adapter';
 import { todayIso } from '@/lib/format';
 import { getSetting } from '@/lib/settings';
@@ -123,8 +123,8 @@ const TESTS: Record<string, () => Promise<TestResult>> = {
 };
 
 /** Connectivity test for a saved key: body `{ target }` (see TESTS). Keys are never echoed. */
-export async function POST(req: Request) {
-  const denied = requireAdmin(req, { mutating: true });
+export async function POST(req: Request)  {
+  const denied = await authorizeAdmin(req, { mutating: true });
   if (denied) return denied;
   let target = '';
   try {

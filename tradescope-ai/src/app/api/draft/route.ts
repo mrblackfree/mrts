@@ -5,6 +5,7 @@ import { llmPolishEmail } from '@/lib/engine/llm';
 import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, priceForIncoterm } from '@/lib/engine/simulate';
 import { allowLlmCall, clientKey } from '@/lib/rate-limit';
 import type { DraftOptions, DraftResult, Lang, TradeProduct } from '@/lib/types';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -50,7 +51,8 @@ function sanitizeOptions(product: TradeProduct, raw: Partial<DraftOptions> | und
   };
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request)  {
+  await prepareRequest(['settings', 'verifications']);
   let parsedBody: unknown = {};
   try {
     parsedBody = await req.json();

@@ -23,6 +23,7 @@ import ExpertRequestDialog, { type ExpertContext } from './expert/ExpertRequestD
 import TradeJourney from './journey/TradeJourney';
 import { Button, cx } from './ui';
 import { useBusinessDay } from './useBusinessDay';
+import { useVerifications } from './useVerifications';
 
 /** The query's own amount and incoterm when the tariff calculator starts from a value converted to CIF. */
 function cifSource(report: AnalysisReport) {
@@ -63,7 +64,9 @@ function WorkspaceInner() {
   const [showExample, setShowExample] = useState(false);
   // re-applies the official layer at the day boundary so expired overrides drop out of an open dashboard
   const businessDay = useBusinessDay();
-  const trustScore = useMemo(() => overallTrustScore(), [businessDay]);
+  // verified values saved on the admin page apply here as soon as they are loaded
+  const { version: verifiedVersion } = useVerifications();
+  const trustScore = useMemo(() => overallTrustScore(), [businessDay, verifiedVersion]);
   const resultsRef = useRef<HTMLDivElement>(null);
   const requestId = useRef(0);
 
@@ -232,7 +235,16 @@ function WorkspaceInner() {
 
         <div ref={resultsRef} className="scroll-mt-20 space-y-5">
           {status === 'idle' && (
-            <Landing onPick={onPick} onOpenTrust={() => setTrustOpen(true)} onExpert={() => openExpert({ topic: t('expertsTopic'), serviceIds: [], source: 'landing' })} />
+            <Landing
+              onPick={onPick}
+              onOpenTrust={() => setTrustOpen(true)}
+              onExpert={() => openExpert({ topic: t('expertsTopic'), serviceIds: [], source: 'landing' })}
+              onPlan={(plan) => openExpert({ topic: t(plan === 'sub' ? 'planSubTopic' : 'planCaseTopic'), serviceIds: [], source: 'landing' })}
+              onStart={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                document.querySelector<HTMLTextAreaElement>('main textarea')?.focus({ preventScroll: true });
+              }}
+            />
           )}
           {status === 'loading' && <AnalysisProgress step={step} />}
           {status === 'done' && report && product && report.match.supported === false && (

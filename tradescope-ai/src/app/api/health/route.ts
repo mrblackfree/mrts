@@ -3,12 +3,15 @@ import { DATA_AS_OF, PRODUCTS, refreshOfficialLayer } from '@/data/kr-ph-trade-d
 import { OFFICIAL } from '@/data/official';
 import { publicAiStatus } from '@/lib/ai-adapter';
 import { getSetting } from '@/lib/settings';
+import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /** Liveness + capability probe (used by the header status bar and the Docker HEALTHCHECK). */
-export function GET() {
+export async function GET()  {
+  // bounded (PREPARE_BUDGET_MS, below the Docker health check's 5 s): storage trouble never fails liveness
+  await prepareRequest(['settings', 'verifications']);
   refreshOfficialLayer(); // report the same expiry state the analysis uses
   return NextResponse.json({
     status: 'ok',
