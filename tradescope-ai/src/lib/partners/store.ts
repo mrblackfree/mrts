@@ -96,7 +96,7 @@ function serialize(state: StoreFile): string {
   return JSON.stringify({ ...rest, custom: [...state.custom, ...keep] }, null, 1);
 }
 
-/** Read, change and write as one step; `change` returns false to write nothing. */
+/** Read, change and write as one step; `change` returns `{ write: false, out }` to write nothing. */
 async function mutate<T>(change: (st: StoreFile) => { write: boolean; out: T }): Promise<T> {
   let out!: T;
   await updateDoc(DOC, (raw) => {

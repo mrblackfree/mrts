@@ -70,7 +70,7 @@ function safeFallback(input: AnalyzeInput) {
 }
 
 export async function POST(req: Request)  {
-  await prepareRequest();
+  await prepareRequest(['settings', 'verifications']);
   let body: unknown = {};
   try {
     body = await req.json();
@@ -87,7 +87,7 @@ export async function POST(req: Request)  {
 
 /** GET is for sharing / testing: it never triggers a billable LLM call (crawlers, link previews). */
 export async function GET(req: Request)  {
-  await prepareRequest();
+  await prepareRequest(['settings', 'verifications']);
   const url = new URL(req.url);
   const input = parseInput({ query: url.searchParams.get('q') ?? '', direction: url.searchParams.get('dir') ?? '', lang: url.searchParams.get('lang') ?? '' });
   try {

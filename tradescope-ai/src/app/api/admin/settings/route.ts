@@ -1,8 +1,7 @@
 import { OFFICIAL } from '@/data/official';
-import { adminJson, requireAdmin } from '@/lib/admin/http';
+import { adminJson, authorizeAdmin } from '@/lib/admin/http';
 import { publicAiStatus } from '@/lib/ai-adapter';
 import { adminFields, settingsUpdatedAt, storageState, updateSettings } from '@/lib/settings';
-import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,16 +30,14 @@ function snapshot() {
 
 /** Current settings (secrets masked) and system state. */
 export async function GET(req: Request)  {
-  await prepareRequest();
-  const denied = requireAdmin(req, { mutating: false });
+  const denied = await authorizeAdmin(req, { mutating: false });
   if (denied) return denied;
   return adminJson({ ok: true, ...snapshot() });
 }
 
 /** Save settings: body `{ values: { KEY: "value" | null } }` — null clears a saved value. */
 export async function PUT(req: Request)  {
-  await prepareRequest();
-  const denied = requireAdmin(req, { mutating: true });
+  const denied = await authorizeAdmin(req, { mutating: true });
   if (denied) return denied;
   let values: unknown;
   try {

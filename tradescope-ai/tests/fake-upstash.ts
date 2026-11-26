@@ -14,6 +14,8 @@ export interface FakeUpstash {
   calls: string[][];
   /** make every request fail with this HTTP status (null = normal) */
   failWith: number | null;
+  /** answer every request this many milliseconds late (0 = at once) */
+  delayMs: number;
   close: () => Promise<void>;
 }
 
@@ -22,7 +24,7 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
   const hashes = new Map<string, Map<string, string>>();
   const expiries = new Map<string, number>();
   const calls: string[][] = [];
-  const state = { failWith: null as number | null };
+  const state = { failWith: null as number | null, delayMs: 0 };
   const hash = (k: string, create = false) => {
     let h = hashes.get(k);
     if (!h && create) hashes.set(k, (h = new Map()));
@@ -90,8 +92,10 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
   const server: Server = createServer((req, res) => {
     let body = '';
     req.on('data', (c) => (body += c));
-    req.on('end', () => {
+    req.on('end', async () => {
+      if (state.delayMs) await new Promise((r) => setTimeout(r, state.delayMs));
       const send = (status: number, obj: unknown) => {
+        if (res.destroyed) return;
         res.writeHead(status, { 'content-type': 'application/json' });
         res.end(JSON.stringify(obj));
       };
@@ -125,6 +129,12 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
     },
     set failWith(v) {
       state.failWith = v;
+    },
+    get delayMs() {
+      return state.delayMs;
+    },
+    set delayMs(v) {
+      state.delayMs = v;
     },
     close: () => new Promise<void>((r) => server.close(() => r())),
   };

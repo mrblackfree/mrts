@@ -13,16 +13,31 @@ export interface KvConfig {
   prefix: string;
 }
 
+const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
+
+/** A complete URL + token pair from one provider's variables, or null. */
+function pair(urlVar: string, tokenVar: string): { url: string; token: string } | null {
+  const url = (process.env[urlVar] ?? '').trim().replace(/\/+$/, '');
+  const token = (process.env[tokenVar] ?? '').trim();
+  return url && token ? { url, token } : null;
+}
+
+/**
+ * The Redis connection, or null. URL and token come as a pair from the same provider (Vercel's KV_REST_API_* first,
+ * then UPSTASH_REDIS_REST_*), never mixed. The token is sent with every request, so the URL must be HTTPS — plain
+ * HTTP only to this machine (a local test server).
+ */
 export function kvConfig(): KvConfig | null {
-  const url = (process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || '').trim().replace(/\/+$/, '');
-  const token = (process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || '').trim();
-  if (!url || !token) return null;
+  const p = pair('KV_REST_API_URL', 'KV_REST_API_TOKEN') ?? pair('UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN');
+  if (!p) return null;
+  let u: URL;
   try {
-    if (new URL(url).protocol !== 'https:' && process.env.NODE_ENV === 'production') return null;
+    u = new URL(p.url);
   } catch {
     return null;
   }
-  return { url, token, prefix: (process.env.KV_PREFIX ?? 'tradescope:').trim() };
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && LOOPBACK.has(u.hostname))) return null;
+  return { ...p, prefix: (process.env.KV_PREFIX ?? 'tradescope:').trim() };
 }
 
 export class KvError extends Error {}

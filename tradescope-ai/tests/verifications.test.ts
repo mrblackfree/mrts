@@ -1,5 +1,7 @@
 /* Verified values saved on the admin page: validated against the product, applied to the product data right
    away (score rises), public list carries only active entries, expiry and removal undo the effect. */
+import { readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { done, ok } from './assert';
 
 process.env.ADMIN_PASSWORD = 'correct-horse-battery';
@@ -78,8 +80,49 @@ ok('unknown id → 404', res.status === 404);
 
 // ---- an entry that has expired since it was saved no longer applies ------------------------------------------------
 const store = await import('@/lib/verifications/store');
-ok('expired entries are filtered', store.activeEntries([{ id: 'v-1', savedAt: '', entry: { ...entry, validUntil: '2001-01-01' } as never }]).length === 0);
-ok('entries naming something that no longer exists are filtered', store.activeEntries([{ id: 'v-2', savedAt: '', entry: { ...entry, target: { type: 'requirement', id: 'gone' } } as never }]).length === 0);
+const saved = (id: string, e: Record<string, unknown>) => ({ id, savedAt: '', entry: e as never });
+const past = { ...entry, verifiedAt: '2000-06-01' };
+ok('control: an old entry still valid today applies', store.activeEntries([saved('v-0', { ...past, validUntil: '2999-01-01' })]).length === 1);
+ok('expired entries are filtered (only the expiry differs)', store.activeEntries([saved('v-1', { ...past, validUntil: '2001-01-01' })]).length === 0);
+ok('entries naming something that no longer exists are filtered', store.activeEntries([saved('v-2', { ...entry, target: { type: 'requirement', id: 'gone' } })]).length === 0);
+const partnerEntry = (until: string) => ({ ...past, target: { type: 'partner', id: product.partners[0].id, license: 'LTO-2000-0451', licenseValidUntil: until } });
+ok('partner licence still valid: applies', store.activeEntries([saved('v-3', partnerEntry('2999-01-01'))]).length === 1);
+ok('partner licence expired: filtered, also from the public list', store.activeEntries([saved('v-4', partnerEntry('2001-01-01'))]).length === 0);
+
+// the runtime layer itself: a stored entry that has expired is not applied on reload
+const docFile = path.join(process.env.TRADESCOPE_DATA_DIR!, 'verifications.json');
+writeFileSync(docFile, JSON.stringify({ format: 1, items: [saved('v-exp', { ...past, validUntil: '2001-01-01' })] }));
+await store.loadVerifications(true);
+ok('reload: an expired stored entry leaves the product at its seed value', reqItem().level === 'seed' && scoreOf() === before);
+writeFileSync(docFile, JSON.stringify({ format: 1, items: [saved('v-ok', { ...past, validUntil: '2999-01-01' })] }));
+await store.loadVerifications(true);
+ok('reload: a valid stored entry is applied', reqItem().level === 'verified');
+
+// records this version cannot use are kept, never dropped by a later save or removal
+writeFileSync(docFile, JSON.stringify({ format: 1, items: [{ id: 'v-bad' }, 'junk', { id: 'v-notarget', entry: { productId: product.id } }, saved('v-ok', { ...past, validUntil: '2999-01-01' })] }));
+res = await route.GET(req('GET'));
+body = await json(res);
+ok('admin list shows only usable records (no crash on a record without a target)', res.status === 200 && body.items.length === 1 && body.items[0].id === 'v-ok', body);
+res = await route.POST(req('POST', { entry }));
+const afterAdd = JSON.parse(readFileSync(docFile, 'utf8')) as { items: unknown[] };
+ok('a save keeps the unusable records as they were', res.status === 200 && afterAdd.items.length === 5 && afterAdd.items.includes('junk') && afterAdd.items.some((i) => JSON.stringify(i) === '{"id":"v-bad"}'));
+res = await route.DELETE(req('DELETE', undefined, '?id=v-ok'));
+const afterRemove = JSON.parse(readFileSync(docFile, 'utf8')) as { items: unknown[] };
+ok('a removal keeps them too', res.status === 200 && afterRemove.items.length === 4 && afterRemove.items.includes('junk'));
+
+// a save is applied from the written document right away, newer than any read still in flight
+const inflight = store.loadVerifications(true);
+res = await route.POST(req('POST', { entry: { ...entry, reference: 'MEMO-2026-119' } }));
+await inflight;
+ok('a read that started before the save does not undo it', res.status === 200 && reqItem().level === 'verified');
+
+// ---- malformed targets are rejected, never read as defaults -------------------------------------------------------
+const tariffBase = { ...entry, target: { type: 'tariff', scheme: product.tariffs[0].scheme, rate: 0 } };
+ok('tariff without hs: main table', validateEntry(tariffBase, db.PRODUCTS).ok);
+for (const bad of [null, 5, '']) ok(`tariff with hs ${JSON.stringify(bad)}: rejected`, !validateEntry({ ...tariffBase, target: { ...tariffBase.target, hs: bad } }, db.PRODUCTS).ok);
+const lane = { ...entry, target: { type: 'logistics', index: 0, cost: [100, 200] } };
+ok('lane index 0 (a number): accepted', validateEntry(lane, db.PRODUCTS).ok);
+for (const bad of [null, '', true, '0']) ok(`lane index ${JSON.stringify(bad)}: rejected`, !validateEntry({ ...lane, target: { ...lane.target, index: bad } }, db.PRODUCTS).ok);
 
 // ---- read-only hosting -----------------------------------------------------------------------------------------------
 process.env.SETTINGS_READONLY = '1';

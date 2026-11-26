@@ -11,6 +11,7 @@ import {
   sameOrigin,
   sessionCookie,
   sessionExpiry,
+  signedSession,
 } from '@/lib/admin/auth';
 import { adminJson } from '@/lib/admin/http';
 import { revokeAllSessions, revokeSession } from '@/lib/admin/revocation';
@@ -23,7 +24,8 @@ export const dynamic = 'force-dynamic';
 
 /** Session state for the admin page: whether the admin is enabled and whether this browser is signed in. */
 export async function GET(req: Request)  {
-  await prepareRequest();
+  // stored sign-outs matter only for a cookie that is validly signed; anything else is not signed in
+  if (signedSession(req)) await prepareRequest(['sessions']);
   const availability = adminAvailability();
   const expiresAt = sessionExpiry(req);
   return adminJson({ ...availability, authenticated: expiresAt !== null, expiresAt });
@@ -34,7 +36,6 @@ const MAX_BODY_BYTES = MAX_PASSWORD * 8 + 256;
 
 /** Sign in with ADMIN_PASSWORD. */
 export async function POST(req: Request)  {
-  await prepareRequest();
   const availability = adminAvailability();
   if (!availability.enabled) return adminJson({ ok: false, error: 'admin-disabled', reason: availability.reason }, { status: 403 });
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });
@@ -70,8 +71,8 @@ export async function POST(req: Request)  {
  * read-only hosting, or the store could not be updated).
  */
 export async function DELETE(req: Request)  {
-  await prepareRequest();
   if (!sameOrigin(req)) return adminJson({ ok: false, error: 'bad-origin' }, { status: 403 });
+  if (signedSession(req)) await prepareRequest(['sessions']);
   const all = new URL(req.url).searchParams.get('all') === '1';
   const session = currentSession(req);
   if (all && !session) return adminJson({ ok: false, error: 'unauthorized' }, { status: 401 });

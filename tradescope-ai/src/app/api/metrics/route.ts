@@ -16,11 +16,12 @@ const ONCE = new Set(['visit', 'step_first', 'track_recheck2']);
 
 /** Body: `{ events: [{ e, … }] (≤10), ch? }`. Unknown events are dropped; the answer is always 204. */
 export async function POST(req: Request)  {
-  await prepareRequest();
   const parsed = await readJsonLimited(req, 2_000);
   if (!parsed.ok) return new NextResponse(null, { status: parsed.error === 'too-large' ? 413 : 400 });
   const done = () => new NextResponse(null, { status: 204, headers: { 'Cache-Control': 'no-store' } });
   if (optedOutHeaders(req.headers)) return done();
+  // only the proxy setting (client limits) is needed, and only for a request that will be counted
+  await prepareRequest(['settings']);
   const events = Array.isArray(parsed.body.events) ? parsed.body.events.slice(0, 10) : [];
   const channel = parseChannel(parsed.body.ch);
   const client = clientKey(req);

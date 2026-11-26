@@ -1,8 +1,7 @@
-import { adminJson, requireAdmin } from '@/lib/admin/http';
+import { adminJson, authorizeAdmin } from '@/lib/admin/http';
 import { readJsonLimited } from '@/lib/http';
 import { addFirm, listPartners, removeFirm, updateDeal, validateFirm, type DealPatch } from '@/lib/partners/store';
 import { storageState } from '@/lib/settings';
-import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -19,8 +18,7 @@ function readOnly() {
 
 /** Candidate and contracted law / customs firms per country, with their pipeline records. */
 export async function GET(req: Request)  {
-  await prepareRequest();
-  const denied = requireAdmin(req, { mutating: false });
+  const denied = await authorizeAdmin(req, { mutating: false });
   if (denied) return denied;
   try {
     return adminJson({ ok: true, partners: await listPartners(), writable: storageState().writable });
@@ -31,8 +29,7 @@ export async function GET(req: Request)  {
 
 /** Update a firm's pipeline record: body `{ id, deal: { status?, contactName?, contactEmail?, terms?, contractDate?, notes? } }`. */
 export async function PATCH(req: Request)  {
-  await prepareRequest();
-  const denied = requireAdmin(req, { mutating: true }) ?? readOnly();
+  const denied = (await authorizeAdmin(req, { mutating: true })) ?? readOnly();
   if (denied) return denied;
   const parsed = await readJsonLimited(req, 8_000);
   if (!parsed.ok) return adminJson({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
@@ -49,8 +46,7 @@ export async function PATCH(req: Request)  {
 
 /** Add a firm by hand: body `{ firm: { country, type, name, nameLocal?, city?, website?, practice?, why? } }`. */
 export async function POST(req: Request)  {
-  await prepareRequest();
-  const denied = requireAdmin(req, { mutating: true }) ?? readOnly();
+  const denied = (await authorizeAdmin(req, { mutating: true })) ?? readOnly();
   if (denied) return denied;
   const parsed = await readJsonLimited(req, 8_000);
   if (!parsed.ok) return adminJson({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
@@ -65,8 +61,7 @@ export async function POST(req: Request)  {
 
 /** Remove a firm added by hand: `?id=c-…`. Researched candidates are not removed (404); set them to "dropped" with PATCH. */
 export async function DELETE(req: Request)  {
-  await prepareRequest();
-  const denied = requireAdmin(req, { mutating: true }) ?? readOnly();
+  const denied = (await authorizeAdmin(req, { mutating: true })) ?? readOnly();
   if (denied) return denied;
   const id = new URL(req.url).searchParams.get('id') ?? '';
   try {

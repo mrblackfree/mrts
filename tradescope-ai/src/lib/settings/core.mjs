@@ -143,7 +143,9 @@ export function decodeSettings({ doc, problem = null }) {
       }
     }
   }
-  return { values, unreadable, updatedAt: doc.updatedAt ?? null, problem };
+  // a damaged or hand-edited document may hold anything here: only a real date string is passed on
+  const updatedAt = typeof doc.updatedAt === 'string' && !Number.isNaN(Date.parse(doc.updatedAt)) ? doc.updatedAt : null;
+  return { values, unreadable, updatedAt, problem };
 }
 
 /**

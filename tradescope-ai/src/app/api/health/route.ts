@@ -10,7 +10,8 @@ export const dynamic = 'force-dynamic';
 
 /** Liveness + capability probe (used by the header status bar and the Docker HEALTHCHECK). */
 export async function GET()  {
-  await prepareRequest();
+  // bounded (PREPARE_BUDGET_MS, below the Docker health check's 5 s): storage trouble never fails liveness
+  await prepareRequest(['settings', 'verifications']);
   refreshOfficialLayer(); // report the same expiry state the analysis uses
   return NextResponse.json({
     status: 'ok',

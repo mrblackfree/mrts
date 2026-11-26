@@ -12,6 +12,7 @@ import { CATEGORY_LABEL } from '@/data/official';
 import { LEVERS, projectTrust, type LeverKind } from '@/lib/trust/levers';
 import type { Lang, VerificationCategory } from '@/lib/types';
 import { Button, cx, ScoreRing } from '../ui';
+import { useBusinessDay } from '../useBusinessDay';
 
 type Field = { key: string; source: 'env' | 'admin' | 'default' | 'unset' };
 type TestResult = { ok: boolean; message: string; latencyMs: number; detail?: string };
@@ -128,8 +129,10 @@ export default function TrustHub({
   onUnauthorized: () => void;
 }) {
   const s = T[lang];
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- PRODUCTS is rebuilt in place; `version` marks it
-  const proj = useMemo(() => projectTrust(PRODUCTS, LEVERS), [version]);
+  // re-applies the official layer at the day boundary, so expired values leave the projection on an open page
+  const businessDay = useBusinessDay();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- PRODUCTS is rebuilt in place; `version` and the day mark it
+  const proj = useMemo(() => projectTrust(PRODUCTS, LEVERS), [version, businessDay]);
   const [tests, setTests] = useState<Record<string, TestResult | 'busy'>>({});
   const isSet = (k: string) => !!fields[k] && fields[k].source !== 'unset' && fields[k].source !== 'default';
 

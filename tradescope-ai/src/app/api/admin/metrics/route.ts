@@ -1,8 +1,7 @@
-import { adminJson, requireAdmin } from '@/lib/admin/http';
+import { adminJson, authorizeAdmin } from '@/lib/admin/http';
 import { listRequests } from '@/lib/consult/store';
 import { channelRows, hypothesisChecks, requestTally, type RequestTally } from '@/lib/metrics/hypotheses';
 import { metricsSummary } from '@/lib/metrics/store';
-import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,8 +19,7 @@ async function tally(from: string): Promise<RequestTally | undefined> {
 
 /** Validation metrics for the admin page: `?days=7|28|90|400` (default 28). */
 export async function GET(req: Request)  {
-  await prepareRequest();
-  const denied = requireAdmin(req, { mutating: false });
+  const denied = await authorizeAdmin(req, { mutating: false });
   if (denied) return denied;
   const asked = Number(new URL(req.url).searchParams.get('days'));
   const days = PERIODS.includes(asked) ? asked : 28;

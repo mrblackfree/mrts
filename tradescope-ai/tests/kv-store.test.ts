@@ -6,6 +6,8 @@ import { startFakeUpstash } from './fake-upstash';
 const fake = await startFakeUpstash();
 process.env.KV_REST_API_URL = fake.url;
 process.env.KV_REST_API_TOKEN = fake.token;
+// the assertions address `tradescope:*` keys: never pick up a KV_PREFIX from the environment
+process.env.KV_PREFIX = 'tradescope:';
 process.env.VERCEL = '1';
 process.env.ADMIN_PASSWORD = 'correct-horse-battery';
 process.env.ADMIN_SECRET = 'kv-store-test-secret-0123456789abcdef';
@@ -85,6 +87,77 @@ process.env.KV_REST_API_TOKEN = 'wrong';
 await settings.loadSettings(true);
 ok('wrong token: not writable', !settings.storageState().writable);
 process.env.KV_REST_API_TOKEN = fake.token;
+
+// ---- connection settings: a complete pair from one provider, HTTPS (plain HTTP to this machine only) ---------------
+const { kvConfig } = await import('@/lib/store/kv');
+const env = (vars: Record<string, string | undefined>, fn: () => void) => {
+  const saved = Object.fromEntries(Object.keys(vars).map((k) => [k, process.env[k]]));
+  for (const [k, v] of Object.entries(vars)) v === undefined ? delete process.env[k] : (process.env[k] = v);
+  try {
+    fn();
+  } finally {
+    for (const [k, v] of Object.entries(saved)) v === undefined ? delete process.env[k] : (process.env[k] = v);
+  }
+};
+const none = { KV_REST_API_URL: undefined, KV_REST_API_TOKEN: undefined, UPSTASH_REDIS_REST_URL: undefined, UPSTASH_REDIS_REST_TOKEN: undefined };
+env({ ...none, KV_REST_API_URL: 'https://a.upstash.io', UPSTASH_REDIS_REST_URL: 'https://b.upstash.io', UPSTASH_REDIS_REST_TOKEN: 'tb' }, () =>
+  ok('half a Vercel pair: the complete Upstash pair is used, never mixed', kvConfig()?.url === 'https://b.upstash.io' && kvConfig()?.token === 'tb'),
+);
+env({ ...none, KV_REST_API_TOKEN: 'ta' }, () => ok('a token alone: no Redis', kvConfig() === null));
+env({ ...none, KV_REST_API_URL: 'http://redis.example.com', KV_REST_API_TOKEN: 'ta', NODE_ENV: 'development' }, () =>
+  ok('plain HTTP to another host: refused even outside production (the token would travel in clear)', kvConfig() === null),
+);
+env({ ...none, KV_REST_API_URL: 'http://127.0.0.1:8079', KV_REST_API_TOKEN: 'ta', NODE_ENV: 'production' }, () => ok('plain HTTP to this machine: allowed', kvConfig() !== null));
+env({ ...none, KV_REST_API_URL: 'not a url', KV_REST_API_TOKEN: 'ta' }, () => ok('invalid URL: no Redis', kvConfig() === null));
+
+// ---- refresher: shared reads, and an older read never replaces a newer one ---------------------------------------
+const { refresher } = await import('@/lib/store/refresh');
+let reads = 0;
+const gates: Array<(v: string) => void> = [];
+let installed = '';
+const rf = refresher<string>({ read: () => (reads++, new Promise<string>((r) => gates.push(r))), apply: (v) => (installed = v), ttlMs: 60_000 });
+const first = rf.refresh();
+const second = rf.refresh();
+ok('concurrent callers share one read', reads === 1);
+const forced = rf.refresh(true);
+ok('force starts a new read', reads === 2);
+gates[1]('new');
+await forced;
+gates[0]('old');
+await Promise.all([first, second]);
+ok('the older read finishing last is discarded', installed === 'new');
+const third = rf.refresh(true);
+rf.set('written');
+gates[2]('stale');
+await third;
+ok('a value just written wins over a read still in flight', installed === 'written');
+await rf.refresh();
+ok('fresh within the TTL: no read', reads === 3);
+
+// ---- the per-request refresh is bounded: slow Redis never holds a request long ----------------------------------
+const { prepareRequest, PREPARE_BUDGET_MS } = await import('@/lib/store/prepare');
+settings.resetSettingsCacheForTest();
+fake.delayMs = 4000;
+let t0 = Date.now();
+await prepareRequest();
+const waited = Date.now() - t0;
+ok('slow Redis: the request goes on after the budget', waited >= PREPARE_BUDGET_MS - 50 && waited < PREPARE_BUDGET_MS + 1000, waited);
+const health = await import('@/app/api/health/route');
+settings.resetSettingsCacheForTest();
+t0 = Date.now();
+res = await health.GET();
+ok('health check answers within the Docker timeout while Redis hangs', res.status === 200 && Date.now() - t0 < 3000, Date.now() - t0);
+fake.delayMs = 0;
+await new Promise((r) => setTimeout(r, 4200)); // let the slow reads finish before closing
+
+// ---- admin routes: no storage read without a validly signed session --------------------------------------------
+settings.resetSettingsCacheForTest();
+let before = fake.calls.length;
+res = await partnersRoute.GET(new Request('http://localhost/api/admin/partners', { headers: { cookie: `${auth.SESSION_COOKIE}=forged.token.value` } }));
+ok('forged cookie: 401 without touching Redis', res.status === 401 && fake.calls.length === before);
+before = fake.calls.length;
+res = await partnersRoute.GET(new Request('http://localhost/api/admin/partners'));
+ok('no cookie: 401 without touching Redis', res.status === 401 && fake.calls.length === before);
 
 await fake.close();
 done('kv store');

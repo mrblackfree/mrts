@@ -67,8 +67,10 @@ export default function Verifications({ lang, writable, version, onApplied, onUn
     const res = await fetch('/api/admin/verifications', { credentials: 'same-origin' }).catch(() => null);
     if (res?.status === 401) return onUnauthorized();
     const j = (await res?.json().catch(() => null)) as { ok?: boolean; items?: Saved[]; error?: string } | null;
-    if (j?.ok && j.items) setItems(j.items);
-    else setError(`${s.failed}${j?.error ? ` (${j.error})` : ''}`);
+    if (j?.ok && j.items) {
+      setItems(j.items);
+      setError('');
+    } else setError(`${s.failed}${j?.error ? ` (${j.error})` : ''}`);
   }, [onUnauthorized, s.failed]);
   useEffect(() => {
     load();

@@ -49,7 +49,9 @@ export function validateEntry(input: unknown, products: TradeProduct[], today: s
   let target: OverrideEntry['target'] | null = null;
   switch (t.type) {
     case 'tariff': {
-      const hs = typeof t.hs === 'string' && t.hs ? t.hs : undefined;
+      // left out = the product's main tariff table; anything present must name one of its HS tables
+      const hs = t.hs === undefined ? undefined : typeof t.hs === 'string' && t.hs ? t.hs : null;
+      if (hs === null) errors.push('target.hs: an HS code string, or leave it out');
       const table = hs ? product.tariffsByHs?.[hs]?.tariffs : product.tariffs;
       if (hs && !table) errors.push(`target.hs: ${hs} is not an HS tariff table of this product`);
       if (typeof t.scheme !== 'string' || !SCHEMES.includes(t.scheme)) errors.push('target.scheme: MFN | AKFTA | RCEP | KRPH');
@@ -90,7 +92,8 @@ export function validateEntry(input: unknown, products: TradeProduct[], today: s
       break;
     }
     case 'logistics': {
-      const index = Number(t.index);
+      // a JSON number only: null, "" or true must not quietly become lane 0 or 1
+      const index = typeof t.index === 'number' ? t.index : NaN;
       if (!Number.isInteger(index) || index < 0 || index >= product.logistics.length) errors.push('target.index: not a lane of this product');
       if (t.cost === undefined && t.transitDays === undefined) errors.push('target: cost and/or transitDays');
       if (t.cost !== undefined && !isRange(t.cost, 100_000)) errors.push('target.cost: [min, max] 0–100000');

@@ -52,7 +52,7 @@ function sanitizeOptions(product: TradeProduct, raw: Partial<DraftOptions> | und
 }
 
 export async function POST(req: Request)  {
-  await prepareRequest();
+  await prepareRequest(['settings', 'verifications']);
   let parsedBody: unknown = {};
   try {
     parsedBody = await req.json();

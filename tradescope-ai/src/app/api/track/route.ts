@@ -16,7 +16,7 @@ const allow = windowLimiter({ perClient: 30, overall: 300, windowMs: 60 * 60 * 1
 
 /** Body: { reference, kind: "container" | "bl" | "booking", carrier?, productId?, mode: "shipping" | "customs" }. */
 export async function POST(req: Request)  {
-  await prepareRequest();
+  await prepareRequest(['settings', 'verifications']);
   const parsed = await readJsonLimited(req, 4_000);
   if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
   const body = parsed.body;

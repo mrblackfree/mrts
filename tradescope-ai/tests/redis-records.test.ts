@@ -7,6 +7,8 @@ import { startFakeUpstash } from './fake-upstash';
 const fake = await startFakeUpstash();
 process.env.KV_REST_API_URL = fake.url;
 process.env.KV_REST_API_TOKEN = fake.token;
+// the assertions address `tradescope:*` keys: never pick up a KV_PREFIX from the environment
+process.env.KV_PREFIX = 'tradescope:';
 process.env.VERCEL = '1';
 process.env.ADMIN_PASSWORD = 'correct-horse-battery';
 process.env.ADMIN_SECRET = 'redis-records-test-secret-0123456789ab';

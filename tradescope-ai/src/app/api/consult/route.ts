@@ -22,7 +22,7 @@ const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 
 /** Whether this server can take requests online, and the fallback contact otherwise. */
 export async function GET()  {
-  await prepareRequest();
+  await prepareRequest(['settings']);
   const contact = getSetting('CONSULT_CONTACT_EMAIL') ?? null;
   const accepting = recordStorageState().writable || !!webhookUrl();
   return NextResponse.json({ ok: true, accepting, contact }, { headers: { 'Cache-Control': 'no-store' } });
@@ -30,7 +30,7 @@ export async function GET()  {
 
 /** A trader asks TradeScope to arrange a local expert. Body: { name, company?, email, phone?, productId?, topic, serviceIds[], message?, lang, consent, website (honeypot) }. */
 export async function POST(req: Request)  {
-  await prepareRequest();
+  await prepareRequest(['settings']);
   const parsed = await readJsonLimited(req, MAX_BODY_BYTES);
   if (!parsed.ok) return NextResponse.json({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
   const body = parsed.body;

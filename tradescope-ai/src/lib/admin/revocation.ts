@@ -23,6 +23,7 @@ import { withFileLock } from '@/lib/file-lock';
 import { fileStorageState, recordStorageState } from '@/lib/settings';
 import { settingsDir } from '@/lib/settings/core.mjs';
 import { docBackend, readDoc, updateDoc } from '@/lib/store/docs';
+import { refresher } from '@/lib/store/refresh';
 
 interface State {
   format: 1;
@@ -126,19 +127,11 @@ function parseShared(raw: string | null): State {
   return fresh;
 }
 
-/** Redis mode: refreshes this instance's copy (at most once a second unless forced). No-op for the data folder. */
-export async function loadRevocations(force = false): Promise<void> {
-  if (docBackend() !== 'kv') return;
-  if (!force && shared && Date.now() - shared.at < SHARED_TTL_MS) return;
-  let raw: string | null;
-  try {
-    raw = await readDoc(DOC);
-  } catch {
-    return; // keep the last copy; isRevoked fails closed once it is too old
-  }
+/** Redis mode: reads the shared document; a damaged one is replaced once by its fail-closed state. Throws when Redis does not answer. */
+async function readShared(): Promise<State> {
+  let raw = await readDoc(DOC);
   if (raw !== null && !valid(raw)) {
-    // a damaged document is replaced once by its fail-closed state, so every instance agrees on the cut-off;
-    // signing in again still works
+    // replaced once, so every instance agrees on the cut-off; signing in again still works
     const fresh = JSON.stringify(parseShared(raw));
     try {
       raw = (await updateDoc(DOC, (cur) => (cur !== null && !valid(cur) ? fresh : null))) ?? (await readDoc(DOC));
@@ -146,7 +139,22 @@ export async function loadRevocations(force = false): Promise<void> {
       /* still damaged: read as fail-closed below */
     }
   }
-  shared = { state: parseShared(raw), at: Date.now() };
+  return parseShared(raw);
+}
+
+const sharedRefresh = refresher<State>({
+  read: readShared,
+  apply: (state) => {
+    shared = { state, at: Date.now() };
+  },
+  // no answer: keep the last copy; isRevoked fails closed once it is too old
+  ttlMs: SHARED_TTL_MS,
+});
+
+/** Redis mode: refreshes this instance's copy (at most once a second unless forced). No-op for the data folder. */
+export async function loadRevocations(force = false): Promise<void> {
+  if (docBackend() !== 'kv') return;
+  await sharedRefresh.refresh(force);
 }
 
 /** The current state: what every process has saved, plus what this process has signed out. */
@@ -173,7 +181,7 @@ async function update(change: (s: State) => void): Promise<RevocationStore> {
         change(base);
         return JSON.stringify(prune(union(base, memory)));
       });
-      if (written !== null) shared = { state: clean(JSON.parse(written)), at: Date.now() };
+      if (written !== null) sharedRefresh.set(clean(JSON.parse(written)));
       return 'stored';
     } catch {
       console.warn('[admin] sign-out kept in this process only: Redis could not be updated');
@@ -222,4 +230,5 @@ export function revokeAllSessions(current?: { nonce: string; expiresAt: number }
 export function resetRevocationForTest(): void {
   memory = empty();
   shared = null;
+  sharedRefresh.reset();
 }

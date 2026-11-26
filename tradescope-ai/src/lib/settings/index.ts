@@ -9,6 +9,7 @@
 import { accessSync, constants, mkdirSync } from 'node:fs';
 import { docBackend, updateDoc, readDoc } from '@/lib/store/docs';
 import { kvConfig } from '@/lib/store/kv';
+import { refresher } from '@/lib/store/refresh';
 import { decodeSettings, masterSecret, parseSettingsDoc, patchSettingsDoc, readSettings, settingsDir, settingsFile, settingsFileProblem, settingsMtime, writeSettings } from './core.mjs';
 import { SECRET_KEYS, SETTING_INDEX, SETTINGS, validateSetting, type SettingDef } from './schema';
 
@@ -17,26 +18,36 @@ type Stored = { values: Record<string, string>; unreadable: string[]; updatedAt:
 let cache: (Stored & { mtime: number; checkedAt: number }) | null = null;
 
 /** Redis copy: refreshed by loadSettings(); `problem` when the stored document cannot be used. */
-let kvCache: (Stored & { loadedAt: number; problem: 'file-corrupt' | 'kv-error' | null }) | null = null;
-const KV_TTL_MS = 1500;
+type KvCopy = Stored & { problem: 'file-corrupt' | 'kv-error' | null };
+let kvCache: KvCopy | null = null;
+
+const decodeKv = (raw: string | null): KvCopy => {
+  const decoded = decodeSettings(parseSettingsDoc(raw));
+  return { values: decoded.values, unreadable: decoded.unreadable, updatedAt: decoded.updatedAt, problem: decoded.problem === 'file-corrupt' ? 'file-corrupt' : null };
+};
+const kvRefresh = refresher<KvCopy>({
+  read: async () => decodeKv(await readDoc('settings')),
+  apply: (copy) => {
+    kvCache = copy;
+  },
+  // keep serving the last good copy; saving is refused until Redis answers again
+  onError: () => {
+    kvCache = { values: kvCache?.values ?? {}, unreadable: kvCache?.unreadable ?? [], updatedAt: kvCache?.updatedAt ?? null, problem: 'kv-error' };
+  },
+  ttlMs: 1500,
+});
 
 /** Refreshes the Redis copy of the settings (no-op for the data folder). Call at the start of a request. */
 export async function loadSettings(force = false): Promise<void> {
   if (docBackend() !== 'kv') return;
-  if (!force && kvCache && Date.now() - kvCache.loadedAt < KV_TTL_MS) return;
-  try {
-    const decoded = decodeSettings(parseSettingsDoc(await readDoc('settings')));
-    kvCache = { values: decoded.values, unreadable: decoded.unreadable, updatedAt: decoded.updatedAt, problem: decoded.problem === 'file-corrupt' ? 'file-corrupt' : null, loadedAt: Date.now() };
-  } catch {
-    // keep serving the last good copy; saving is refused until Redis answers again
-    kvCache = { values: kvCache?.values ?? {}, unreadable: kvCache?.unreadable ?? [], updatedAt: kvCache?.updatedAt ?? null, problem: 'kv-error', loadedAt: Date.now() };
-  }
+  await kvRefresh.refresh(force);
 }
 
 /** For tests: forget the Redis copy. */
 export function resetSettingsCacheForTest(): void {
   kvCache = null;
   cache = null;
+  kvRefresh.reset();
 }
 
 /** Saved values, re-read when the file changes (checked at most once per second). */
@@ -196,19 +207,21 @@ export async function updateSettings(patch: Record<string, unknown>): Promise<{ 
   if (!st.writable) return { ok: false, errors: { _storage: st.reason } };
   try {
     if (docBackend() === 'kv') {
-      await updateDoc('settings', (raw) => {
+      const written = await updateDoc('settings', (raw) => {
         const parsed = parseSettingsDoc(raw);
         // never overwrite a document we could not read: that would drop every saved value and rotate the salt
         if (parsed.problem) throw new Error(parsed.problem);
         return JSON.stringify(patchSettingsDoc(parsed.doc, clean, SECRET_KEYS));
       });
+      // the document just written is the current one: no re-read, and no older read in flight can replace it
+      if (written !== null) kvRefresh.set(decodeKv(written));
     } else writeSettings(clean, SECRET_KEYS);
   } catch (e) {
+    if (docBackend() === 'kv') await loadSettings(true);
     const msg = (e as Error).message;
     return { ok: false, errors: { _storage: msg === 'file-unreadable' || msg === 'file-corrupt' ? msg : docBackend() === 'kv' ? 'kv-error' : 'fs-error' } };
   } finally {
     cache = null;
-    if (docBackend() === 'kv') await loadSettings(true);
   }
   return { ok: true };
 }

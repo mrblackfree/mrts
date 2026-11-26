@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { activeEntries, listVerifications } from '@/lib/verifications/store';
-import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,7 +10,6 @@ export const dynamic = 'force-dynamic';
  * reference, verifier, date); nothing internal.
  */
 export async function GET() {
-  await prepareRequest();
   try {
     return NextResponse.json({ ok: true, entries: activeEntries(await listVerifications()) }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {

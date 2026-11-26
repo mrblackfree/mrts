@@ -1,8 +1,7 @@
 import { getProduct } from '@/data/kr-ph-trade-db';
-import { adminJson, requireAdmin } from '@/lib/admin/http';
+import { adminJson, authorizeAdmin } from '@/lib/admin/http';
 import { CONSULT_STATUSES, listRequests, updateStatus, type ConsultStatus } from '@/lib/consult/store';
 import { readJsonLimited } from '@/lib/http';
-import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -16,8 +15,7 @@ const withProduct = async () =>
 
 /** Expert-service requests, newest first. */
 export async function GET(req: Request)  {
-  await prepareRequest();
-  const denied = requireAdmin(req, { mutating: false });
+  const denied = await authorizeAdmin(req, { mutating: false });
   if (denied) return denied;
   try {
     return adminJson({ ok: true, requests: await withProduct() });
@@ -28,8 +26,7 @@ export async function GET(req: Request)  {
 
 /** Change a request's status: body `{ id, status }`. */
 export async function PATCH(req: Request)  {
-  await prepareRequest();
-  const denied = requireAdmin(req, { mutating: true });
+  const denied = await authorizeAdmin(req, { mutating: true });
   if (denied) return denied;
   const parsed = await readJsonLimited(req, 2_000);
   if (!parsed.ok) return adminJson({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
