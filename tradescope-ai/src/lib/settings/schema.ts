@@ -8,7 +8,7 @@
 import type { Bilingual } from '@/lib/types';
 
 export type SettingType = 'secret' | 'text' | 'url' | 'number' | 'boolean';
-export type SettingGroup = 'ai' | 'data' | 'links' | 'service' | 'tracking' | 'limits';
+export type SettingGroup = 'ai' | 'data' | 'links' | 'service' | 'pricing' | 'tracking' | 'limits';
 
 export interface SettingDef {
   key: string;
@@ -194,6 +194,72 @@ export const SETTINGS: SettingDef[] = [
     placeholder: 'experts@example.com',
   },
 
+  // ---- pricing plans (요금제): shown on the landing page, payment happens on the linked checkout page ----
+  {
+    key: 'PRICE_CASE_KRW',
+    env: ['PRICE_CASE_KRW'],
+    group: 'pricing',
+    type: 'number',
+    scope: 'runtime',
+    label: b('건당 요금 (원, 시작가)', 'Per-case price (KRW, from)'),
+    help: b(
+      '현지 전문가 대행 1건의 시작가(VAT 별도). 기관 수수료는 실비로 따로 받습니다. 비우면 「견적 후 안내」로 표시합니다.',
+      'Starting price of one expert case (excl. VAT); agency fees are charged at cost. Empty shows “quoted on request”.',
+    ),
+    placeholder: '예: 490000',
+    min: 0,
+    max: 10_000_000_000,
+  },
+  {
+    key: 'PRICE_SUB_MONTHLY_KRW',
+    env: ['PRICE_SUB_MONTHLY_KRW'],
+    group: 'pricing',
+    type: 'number',
+    scope: 'runtime',
+    label: b('구독 월 요금 (원)', 'Subscription per month (KRW)'),
+    help: b('구독 요금제의 월 요금(VAT 별도). 비우면 「문의」로 표시합니다.', 'Monthly subscription price (excl. VAT). Empty shows “contact us”.'),
+    placeholder: '예: 99000',
+    min: 0,
+    max: 10_000_000_000,
+  },
+  {
+    key: 'PRICE_SUB_YEARLY_KRW',
+    env: ['PRICE_SUB_YEARLY_KRW'],
+    group: 'pricing',
+    type: 'number',
+    scope: 'runtime',
+    label: b('구독 연 요금 (원, 선택)', 'Subscription per year (KRW, optional)'),
+    help: b('연간 결제 금액. 넣으면 월 요금과 함께 「연 결제 시」로 표시합니다.', 'Price when paid yearly; shown next to the monthly price when set.'),
+    placeholder: '예: 990000',
+    min: 0,
+    max: 100_000_000_000,
+  },
+  {
+    key: 'CHECKOUT_CASE_URL',
+    env: ['CHECKOUT_CASE_URL'],
+    group: 'pricing',
+    type: 'url',
+    scope: 'runtime',
+    httpsOnly: true,
+    label: b('건당 결제 링크', 'Per-case checkout link'),
+    help: b(
+      '토스페이먼츠 링크페이·Stripe Payment Link 등 결제 페이지 주소(https). 비우면 버튼이 견적 요청 양식을 엽니다.',
+      'Checkout page address (https) — e.g. a Toss Payments or Stripe payment link. Empty: the button opens the quote request form.',
+    ),
+    placeholder: 'https://…',
+  },
+  {
+    key: 'CHECKOUT_SUB_URL',
+    env: ['CHECKOUT_SUB_URL'],
+    group: 'pricing',
+    type: 'url',
+    scope: 'runtime',
+    httpsOnly: true,
+    label: b('구독 결제 링크', 'Subscription checkout link'),
+    help: b('구독(정기결제) 페이지 주소(https). 비우면 버튼이 구독 문의 양식을 엽니다.', 'Subscription (recurring) checkout address (https). Empty: the button opens an enquiry form.'),
+    placeholder: 'https://…',
+  },
+
   // ---- container / cargo tracking (화물 추적) ----
   {
     key: 'TRACK_SHIPSGO_TOKEN',
@@ -331,6 +397,7 @@ export function validateSetting(def: SettingDef, raw: string): { ok: true; value
       try {
         const u = new URL(v);
         if (u.protocol !== 'https:' && u.protocol !== 'http:') return { ok: false, error: 'not-http-url' };
+        if (def.httpsOnly && u.protocol !== 'https:') return { ok: false, error: 'not-https-url' };
       } catch {
         return { ok: false, error: 'not-a-url' };
       }

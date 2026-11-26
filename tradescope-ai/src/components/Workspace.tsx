@@ -232,7 +232,16 @@ function WorkspaceInner() {
 
         <div ref={resultsRef} className="scroll-mt-20 space-y-5">
           {status === 'idle' && (
-            <Landing onPick={onPick} onOpenTrust={() => setTrustOpen(true)} onExpert={() => openExpert({ topic: t('expertsTopic'), serviceIds: [], source: 'landing' })} />
+            <Landing
+              onPick={onPick}
+              onOpenTrust={() => setTrustOpen(true)}
+              onExpert={() => openExpert({ topic: t('expertsTopic'), serviceIds: [], source: 'landing' })}
+              onPlan={(plan) => openExpert({ topic: t(plan === 'sub' ? 'planSubTopic' : 'planCaseTopic'), serviceIds: [], source: 'landing' })}
+              onStart={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                document.querySelector<HTMLTextAreaElement>('main textarea')?.focus({ preventScroll: true });
+              }}
+            />
           )}
           {status === 'loading' && <AnalysisProgress step={step} />}
           {status === 'done' && report && product && report.match.supported === false && (

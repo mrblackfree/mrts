@@ -1,31 +1,6 @@
 'use client';
 
-import {
-  AlertTriangle,
-  ArrowLeft,
-  CheckCircle2,
-  CirclePause,
-  CircleX,
-  Cpu,
-  Database,
-  FlaskConical,
-  Gauge,
-  Hourglass,
-  Info,
-  KeyRound,
-  LayoutDashboard,
-  Link2,
-  Loader2,
-  Lock,
-  LogOut,
-  PlugZap,
-  Radar,
-  ScanSearch,
-  Server,
-  ShieldCheck,
-  Trash2,
-  UserRoundCheck,
-} from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, CirclePause, CircleX, Cpu, CreditCard, Database, FlaskConical, Gauge, Hourglass, Info, KeyRound, LayoutDashboard, Link2, Loader2, Lock, LogOut, PlugZap, Radar, ScanSearch, Server, ShieldCheck, Trash2, UserRoundCheck } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EXPERT_INDEX } from '@/data/experts';
 import { SETTINGS, type SettingDef, type SettingGroup } from '@/lib/settings/schema';
@@ -77,13 +52,14 @@ const S = {
     wrongPassword: '비밀번호가 올바르지 않습니다.',
     tooMany: '시도가 너무 많습니다. 15분 뒤 다시 시도하세요.',
     networkError: '서버에 연결할 수 없습니다.',
-    menu: { overview: '개요', validation: '가설 검증', ai: 'AI 엔진', data: '공식 데이터 키', service: '전문가 서비스', tracking: '컨테이너 추적', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
+    menu: { overview: '개요', validation: '가설 검증', ai: 'AI 엔진', data: '공식 데이터 키', service: '전문가 서비스', pricing: '요금제', tracking: '컨테이너 추적', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
     sectionSub: {
       overview: '현재 상태와 남은 설정을 한눈에 봅니다.',
       validation: '사이트에서 측정하는 가설(H3·H7·H8·H9)을 비즈니스 모델 캔버스의 기준으로 판정합니다. 익명 집계만 사용합니다.',
       ai: 'OpenAI 호환 LLM을 연결합니다. 저장 즉시 다음 요청부터 적용됩니다.',
       data: '공식 데이터 동기화(npm run data:sync)에 쓰는 키입니다.',
       service: '「전문가에게 맡기기」로 들어온 요청을 확인하고 담당 전문가를 배정합니다. 알림 웹훅과 대체 연락처를 설정합니다.',
+      pricing: '메인 페이지 「요금제」의 건당·구독 가격과 결제 링크입니다. 저장 즉시 적용되고, 결제는 링크한 결제 페이지(토스페이먼츠·Stripe 등)에서 이루어집니다. 링크가 없으면 버튼이 견적·문의 양식을 엽니다.',
       tracking: '조회 순서: 선사 공식 API(Hapag-Lloyd·CMA CGM, 무료) → ShipsGo(유료, 전 선사) · 한국 수입 통관은 UNI-PASS(무료). 키가 없는 소스는 건너뛰고, 하나도 없으면 예시 타임라인을 보여 줍니다.',
       links: '신뢰도 센터의 제보·편집 버튼 주소입니다. 저장 즉시 적용됩니다.',
       limits: 'LLM 비용 상한과 접속자 식별 방식입니다. 저장 즉시 적용됩니다.',
@@ -199,13 +175,14 @@ const S = {
     wrongPassword: 'Incorrect password.',
     tooMany: 'Too many attempts. Try again in 15 minutes.',
     networkError: 'Cannot reach the server.',
-    menu: { overview: 'Overview', validation: 'Hypothesis checks', ai: 'AI engine', data: 'Official data keys', service: 'Expert service', tracking: 'Container tracking', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
+    menu: { overview: 'Overview', validation: 'Hypothesis checks', ai: 'AI engine', data: 'Official data keys', service: 'Expert service', pricing: 'Pricing', tracking: 'Container tracking', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
     sectionSub: {
       overview: 'Current state and what is left to configure.',
       validation: 'The hypotheses the site measures (H3, H7, H8, H9), judged against the business model canvas thresholds. Aggregate counts only.',
       ai: 'Connect an OpenAI-compatible LLM. Takes effect from the next request.',
       data: 'Keys used by the official data sync (npm run data:sync).',
       service: 'Review requests sent through “Hand it to an expert” and assign an expert. Set the notification webhook and fallback contact.',
+      pricing: 'Per-case and subscription prices and checkout links for the landing page “Pricing” section. Takes effect immediately; payment happens on the linked checkout page (Toss Payments, Stripe…). Without a link the buttons open the quote / enquiry form.',
       tracking: 'Lookup order: carrier APIs (Hapag-Lloyd, CMA CGM, free) → ShipsGo (paid, all carriers); customs progress for imports into Korea via UNI-PASS (free). Sources without a key are skipped; with none, an example timeline is shown.',
       links: 'Targets of the Trust Center feedback and edit buttons. Takes effect immediately.',
       limits: 'LLM cost caps and how clients are identified. Takes effect immediately.',
@@ -323,6 +300,7 @@ const SECTIONS: Array<{ id: Section; icon: React.ReactNode }> = [
   { id: 'ai', icon: <Cpu className="size-4" /> },
   { id: 'data', icon: <Database className="size-4" /> },
   { id: 'service', icon: <UserRoundCheck className="size-4" /> },
+  { id: 'pricing', icon: <CreditCard className="size-4" /> },
   { id: 'tracking', icon: <Radar className="size-4" /> },
   { id: 'links', icon: <Link2 className="size-4" /> },
   { id: 'limits', icon: <Gauge className="size-4" /> },
@@ -593,7 +571,7 @@ function Dashboard({
         {section === 'overview' && <Overview s={s} lang={lang} snap={snap} fields={fields} expiresAt={expiresAt} go={setSection} onLogoutAll={onLogoutAll} />}
         {section === 'validation' && <Validation lang={lang} onUnauthorized={onUnauthorized} />}
         {section === 'service' && <ConsultRequests lang={lang} onUnauthorized={onUnauthorized} />}
-        {(section === 'ai' || section === 'data' || section === 'service' || section === 'tracking' || section === 'links' || section === 'limits') && (
+        {(section === 'ai' || section === 'data' || section === 'service' || section === 'pricing' || section === 'tracking' || section === 'links' || section === 'limits') && (
           <GroupForm key={section} s={s} lang={lang} group={section} fields={fields} writable={writable} setSnap={setSnap} onUnauthorized={onUnauthorized} />
         )}
         {section === 'deploy' && <Deploy s={s} lang={lang} snap={snap} />}

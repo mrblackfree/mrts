@@ -1,11 +1,13 @@
 'use client';
 
-import { ArrowDownRight, ArrowRight, ArrowUpRight, ClipboardCheck, Handshake, MessageSquareText, Ship, ShieldCheck, UserRoundCheck } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Check, ClipboardCheck, ExternalLink, Handshake, MessageSquareText, Ship, ShieldCheck, UserRoundCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { CORRIDORS } from '@/data/corridors';
 import { EXPERT_INDEX } from '@/data/experts';
 import { KR_PH_OVERVIEW, PRODUCTS } from '@/data/kr-ph-trade-db';
 import { formatPct, formatUsd, trend, yoy } from '@/lib/format';
+import type { PublicPricing } from '@/lib/pricing';
+import { STATIC_PREVIEW } from '@/lib/preview';
 import { bestTariff, mfnTariff } from '@/lib/engine/simulate';
 import type { Direction } from '@/lib/types';
 import { Flag } from './Flag';
@@ -18,6 +20,7 @@ export const LANDING_SECTIONS = [
   { id: 'how', key: 'navHow' },
   { id: 'products', key: 'navProducts' },
   { id: 'experts', key: 'navExperts' },
+  { id: 'pricing', key: 'navPricing' },
   { id: 'markets', key: 'navMarkets' },
   { id: 'trade', key: 'navTrade' },
 ] as const;
@@ -220,6 +223,110 @@ function ExpertBand({ onExpert }: { onExpert: () => void }) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+const PLAN_TEXT = {
+  ko: {
+    free: { name: '무료', tag: '바로 시작', price: '₩0', unit: '', cta: '무료로 분석하기', features: ['품목 분석 · 관세·FTA 비교', '7단계 거래 진행 가이드 · PDF 리포트', '제안 메일 · Proforma Invoice', '데이터 신뢰도 센터'] },
+    case: { name: '건당', tag: '맡길 때만', unit: '/ 건부터', quote: '견적 후 안내', cta: '결제하기', ctaQuote: '견적 요청', features: ['국가별 계약 법무법인 · 관세법인 연결', 'FDA·BAI 인허가 · 수입자 등록 · 통관 대행 중 1건', '착수 전 범위 · 기간 · 금액 확정', '완료까지 담당 매니저가 진행 공유'] },
+    sub: { name: '구독', tag: '거래가 잦다면', unit: '/ 월', yearly: '연 결제', quote: '문의', cta: '구독하기', ctaQuote: '구독 문의', features: ['전문가 요청 우선 배정 · 전담 매니저', '실제 선사·통관 소스로 화물 추적', '선적·통관 단계 진행 알림', '월간 규정 · 시장 업데이트'] },
+    note: 'VAT 별도 · 기관 수수료(FDA·BAI·BOC 등)는 실비 별도 · 결제는 연결된 결제 페이지에서 진행됩니다.',
+  },
+  en: {
+    free: { name: 'Free', tag: 'Start now', price: '₩0', unit: '', cta: 'Analyse for free', features: ['Product analysis · duty & FTA comparison', '7-step trade guide · PDF report', 'Proposal email · proforma invoice', 'Data Trust Center'] },
+    case: { name: 'Per case', tag: 'Only when you hand it over', unit: '/ case, from', quote: 'Quoted on request', cta: 'Check out', ctaQuote: 'Request a quote', features: ['Contracted law & customs firms in each country', 'One case: FDA/BAI permit, importer registration or clearance', 'Scope, timing and price fixed before work starts', 'A case manager keeps you updated to the end'] },
+    sub: { name: 'Subscription', tag: 'For frequent trade', unit: '/ month', yearly: 'billed yearly', quote: 'Contact us', cta: 'Subscribe', ctaQuote: 'Ask about plans', features: ['Priority on expert requests · dedicated manager', 'Cargo tracking from real carrier & customs sources', 'Shipment and clearance progress alerts', 'Monthly regulation & market update'] },
+    note: 'Excl. VAT · agency fees (FDA, BAI, BOC…) at cost · payment happens on the linked checkout page.',
+  },
+};
+
+const krw = (n: number) => `₩${n.toLocaleString('ko-KR')}`;
+
+function Pricing({ onStart, onPlan }: { onStart: () => void; onPlan: (plan: 'case' | 'sub') => void }) {
+  const { t, lang } = useI18n();
+  const L = PLAN_TEXT[lang];
+  const [pricing, setPricing] = useState<PublicPricing | null>(null);
+  useEffect(() => {
+    if (STATIC_PREVIEW) return;
+    let alive = true;
+    fetch('/api/pricing')
+      .then((r) => r.json())
+      .then((j) => alive && j?.ok && setPricing(j.pricing))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const casePrice = pricing?.perCase.price ?? null;
+  const subMonthly = pricing?.subscription.monthly ?? null;
+  const subYearly = pricing?.subscription.yearly ?? null;
+  const plans = [
+    { id: 'free' as const, name: L.free.name, tag: L.free.tag, price: L.free.price, unit: '', extra: null as string | null, features: L.free.features, cta: L.free.cta, href: null as string | null, featured: false },
+    { id: 'case' as const, name: L.case.name, tag: L.case.tag, price: casePrice ? krw(casePrice) : L.case.quote, unit: casePrice ? L.case.unit : '', extra: null, features: L.case.features, cta: pricing?.perCase.checkoutUrl ? L.case.cta : L.case.ctaQuote, href: pricing?.perCase.checkoutUrl ?? null, featured: false },
+    { id: 'sub' as const, name: L.sub.name, tag: L.sub.tag, price: subMonthly ? krw(subMonthly) : L.sub.quote, unit: subMonthly ? L.sub.unit : '', extra: subYearly ? `${L.sub.yearly} ${krw(subYearly)}` : null, features: L.sub.features, cta: pricing?.subscription.checkoutUrl ? L.sub.cta : L.sub.ctaQuote, href: pricing?.subscription.checkoutUrl ?? null, featured: true },
+  ];
+  return (
+    <section id="pricing" aria-labelledby="pricing-title" className="scroll-mt-24">
+      <SectionHead id="pricing" eyebrow={t('pricingEyebrow')} title={t('pricingTitle')} sub={t('pricingSub')} />
+      <ul className="mt-8 grid gap-3 lg:grid-cols-3">
+        {plans.map((pl) => (
+          <li
+            key={pl.id}
+            className={cx(
+              'relative flex min-w-0 flex-col rounded-[24px] border p-5 sm:p-6',
+              pl.featured ? 'border-ink-900 bg-ink-900 text-white shadow-soft dark:border-white/20 dark:bg-white/[0.06]' : 'border-slate-200/80 bg-white shadow-hairline dark:border-white/[0.07] dark:bg-[#0c121d]',
+            )}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <h3 className={cx('text-[17px] font-bold tracking-[-0.02em]', pl.featured ? 'text-white' : 'text-slate-900 dark:text-white')}>{pl.name}</h3>
+              <span className={cx('rounded-full px-2.5 py-0.5 text-[11px] font-bold', pl.featured ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-600 dark:bg-white/[0.06] dark:text-slate-300')}>{pl.tag}</span>
+            </div>
+            <p className="mt-5 flex flex-wrap items-baseline gap-x-1.5">
+              <span className={cx('text-[30px] font-bold leading-none tracking-[-0.03em] tabular-nums', pl.featured ? 'text-white' : 'text-slate-900 dark:text-white')}>{pl.price}</span>
+              {pl.unit && <span className={cx('text-[13px] font-medium', pl.featured ? 'text-white/70' : 'text-slate-500 dark:text-slate-400')}>{pl.unit}</span>}
+            </p>
+            <p className={cx('mt-1.5 h-4 text-[12px] tabular-nums', pl.featured ? 'text-white/60' : 'text-slate-400')}>{pl.extra ?? ''}</p>
+            <ul className="mt-5 grid gap-2.5">
+              {pl.features.map((f) => (
+                <li key={f} className={cx('flex items-start gap-2 break-keep text-[13.5px] leading-snug', pl.featured ? 'text-white/85' : 'text-slate-600 dark:text-slate-300')}>
+                  <Check className={cx('mt-0.5 size-4 shrink-0', pl.featured ? 'text-brand-300' : 'text-brand-600 dark:text-brand-400')} aria-hidden />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-auto pt-6">
+              {pl.href ? (
+                <a
+                  href={pl.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cx(
+                    'inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-semibold transition-colors',
+                    pl.featured ? 'bg-white text-ink-900 hover:bg-white/90' : 'bg-ink-900 text-white hover:bg-ink-800 dark:bg-white dark:text-ink-900',
+                  )}
+                >
+                  {pl.cta}
+                  <ExternalLink className="size-4" aria-hidden />
+                </a>
+              ) : (
+                <Button
+                  variant={pl.featured ? 'secondary' : pl.id === 'free' ? 'primary' : 'secondary'}
+                  size="lg"
+                  className="w-full"
+                  onClick={() => (pl.id === 'free' ? onStart() : onPlan(pl.id))}
+                >
+                  {pl.cta}
+                  <ArrowRight className="size-4" aria-hidden />
+                </Button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 break-keep text-[12px] leading-relaxed text-slate-400 dark:text-slate-500">{L.note}</p>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 /** The live corridor and the next ones — the coming-soon cards are shown only, nothing behind them yet. */
 function Markets() {
   const { t, p } = useI18n();
@@ -327,12 +434,25 @@ function TradeSnapshot({ onOpenTrust }: { onOpenTrust: () => void }) {
   );
 }
 
-export default function Landing({ onPick, onExpert, onOpenTrust }: { onPick: (productId: string) => void; onExpert: () => void; onOpenTrust: () => void }) {
+export default function Landing({
+  onPick,
+  onExpert,
+  onOpenTrust,
+  onStart,
+  onPlan,
+}: {
+  onPick: (productId: string) => void;
+  onExpert: () => void;
+  onOpenTrust: () => void;
+  onStart: () => void;
+  onPlan: (plan: 'case' | 'sub') => void;
+}) {
   return (
     <div className="rise-in space-y-20 pt-8 sm:space-y-24 sm:pt-12">
       <HowItWorks />
       <ProductPicker onPick={onPick} />
       <ExpertBand onExpert={onExpert} />
+      <Pricing onStart={onStart} onPlan={onPlan} />
       <Markets />
       <TradeSnapshot onOpenTrust={onOpenTrust} />
     </div>
