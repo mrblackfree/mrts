@@ -75,6 +75,26 @@ export interface Requirement {
   /** attached by the official-data layer */
   linkCheck?: LinkCheck;
   reviewed?: { source: string; reference: string; verifiedBy: string; verifiedAt: string };
+  /** attached by the official-data layer: the law the requirement rests on, read in an official text */
+  legalBasis?: LegalBasis;
+}
+
+/**
+ * The statute or regulation a requirement rests on, matched against its official text (src/data/official/legal-bases).
+ * A matched legal basis is a cross-check, not a legal review: it shows the rule exists and says what the
+ * requirement claims, while how it applies to a given shipment still needs a lawyer or broker.
+ */
+export interface LegalBasis {
+  /** instrument and article, e.g. 수입식품안전관리 특별법 제5조 */
+  citation: Bilingual;
+  /** official text a reader can open */
+  url: string;
+  /** operative text as read (an official English translation counts) */
+  quote: string;
+  /** where the text was read */
+  source: string;
+  /** YYYY-MM-DD */
+  checkedAt: string;
 }
 
 export interface YearValue {

@@ -73,6 +73,7 @@ export default function ChecklistPanel({ product, onExpert }: { product: TradePr
                               <Badge tone={r.mandatory ? 'red' : 'slate'}>{r.mandatory ? t('mandatory') : t('optional')}</Badge>
                               <Badge>{REQ_CATEGORY_LABEL[r.category][lang]}</Badge>
                               {r.reviewed && <LevelBadge level="verified" title={`${r.reviewed.source} · ${r.reviewed.verifiedBy} · ${r.reviewed.verifiedAt}`} />}
+                              {!r.reviewed && r.legalBasis && <LevelBadge level="crosscheck" title={`${t('legalBasis')}: ${p(r.legalBasis.citation)}`} />}
                               {r.leadDays ? (
                                 <Badge tone="amber">
                                   <Clock className="size-3" />
@@ -117,6 +118,18 @@ export default function ChecklistPanel({ product, onExpert }: { product: TradePr
                                     : t('linkBroken')} ·{' '}
                             {r.linkCheck.checkedAt.slice(0, 10)}
                           </p>
+                        )}
+                        {r.legalBasis && (
+                          <div className="mt-2 rounded-lg bg-slate-50 p-2 ring-1 ring-inset ring-slate-200 dark:bg-white/[0.03] dark:ring-white/[0.07]">
+                            <p className="font-bold text-slate-600 dark:text-slate-200">
+                              {t('legalBasis')}: {p(r.legalBasis.citation)}
+                            </p>
+                            <blockquote className="mt-1 border-l-2 border-slate-300 pl-2 text-[11px] italic text-slate-500 dark:border-white/20 dark:text-slate-400">{r.legalBasis.quote}</blockquote>
+                            <a href={r.legalBasis.url} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-brand-700 hover:underline dark:text-brand-400">
+                              {t('legalBasisOpen')} · {r.legalBasis.source} <ExternalLink className="size-3" />
+                            </a>
+                            <p className="mt-1 text-[10.5px] text-slate-400">{t('legalBasisNote').replace('{date}', r.legalBasis.checkedAt)}</p>
+                          </div>
                         )}
                         {r.reviewed && (
                           <p className="mt-1 text-[10.5px] font-semibold text-violet-700 dark:text-violet-300">
