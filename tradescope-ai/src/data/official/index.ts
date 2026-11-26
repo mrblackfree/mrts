@@ -486,16 +486,19 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     conflict: pc?.status === 'outlier' ? b(`시드 단가가 공식 통관 단가의 ${pc.ratio}배 — 견적으로 재확인 필요`, `Seed price is ${pc.ratio}× the official unit value — confirm with a quotation`) : undefined,
   });
 
-  // 6) score: every category weighs the same; inside a category items are averaged
-  const byCat = new Map<VerificationCategory, number[]>();
-  for (const it of items) {
-    verification.counts[it.level] += 1;
-    byCat.set(it.category, [...(byCat.get(it.category) ?? []), LEVEL_VALUE[it.level]]);
-  }
-  const catScores = [...byCat.values()].map((v) => v.reduce((s, x) => s + x, 0) / v.length);
-  verification.score = Math.round((catScores.reduce((s, x) => s + x, 0) / catScores.length) * 100);
+  // 6) score
+  for (const it of items) verification.counts[it.level] += 1;
+  verification.score = scoreOf(items);
   p.verification = verification;
   return p;
+}
+
+/** Trust score 0–100: every category weighs the same; inside a category items are averaged. */
+export function scoreOf(items: Pick<VerificationItem, 'category' | 'level'>[]): number {
+  const byCat = new Map<VerificationCategory, number[]>();
+  for (const it of items) byCat.set(it.category, [...(byCat.get(it.category) ?? []), LEVEL_VALUE[it.level]]);
+  const catScores = [...byCat.values()].map((v) => v.reduce((s, x) => s + x, 0) / v.length);
+  return catScores.length ? Math.round((catScores.reduce((s, x) => s + x, 0) / catScores.length) * 100) : 0;
 }
 
 /** Per-category breakdown used by the trust center. */

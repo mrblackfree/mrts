@@ -11,8 +11,9 @@
  * Without writable storage (Vercel, read-only) memory is all there is: it does not survive a restart and is not
  * shared between instances — there, rotating ADMIN_SECRET is the way to end every session.
  */
-import { chmodSync, closeSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { withFileLock } from '@/lib/file-lock';
 import { storageState } from '@/lib/settings';
 import { settingsDir } from '@/lib/settings/core.mjs';
 
@@ -31,11 +32,6 @@ const lockFile = () => `${file()}.lock`;
 const nowS = () => Math.floor(Date.now() / 1000);
 const nowMs = () => Date.now();
 const empty = (): State => ({ format: 1, notBefore: 0, revoked: Object.create(null) });
-
-/** How long a change waits for another process's change to finish. */
-const LOCK_WAIT_MS = 2000;
-/** A lock older than this was left by a process that died while holding it. */
-const LOCK_STALE_MS = 10_000;
 
 let memory: State = empty();
 
@@ -106,46 +102,6 @@ function read(): State {
   return disk ? union(disk, memory) : memory;
 }
 
-const sleep = (ms: number) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-
-/** Runs `fn` while holding the lock file; false when the lock could not be taken in time. */
-function withLock(fn: () => void): boolean {
-  try {
-    mkdirSync(settingsDir(), { recursive: true, mode: 0o700 });
-  } catch {
-    return false;
-  }
-  const deadline = Date.now() + LOCK_WAIT_MS;
-  for (;;) {
-    try {
-      closeSync(openSync(lockFile(), 'wx', 0o600));
-      break;
-    } catch (e) {
-      if ((e as NodeJS.ErrnoException).code !== 'EEXIST') return false;
-      try {
-        if (Date.now() - statSync(lockFile()).mtimeMs > LOCK_STALE_MS) {
-          unlinkSync(lockFile());
-          continue;
-        }
-      } catch {
-        continue; // released meanwhile
-      }
-      if (Date.now() > deadline) return false;
-      sleep(5);
-    }
-  }
-  try {
-    fn();
-    return true;
-  } finally {
-    try {
-      unlinkSync(lockFile());
-    } catch {
-      /* already gone */
-    }
-  }
-}
-
 /**
  * Applies one change: in memory first (so it holds in this process whatever happens next), then to the file under
  * the lock, on top of what other processes saved meanwhile. 'memory' when the file could not be updated.
@@ -156,7 +112,7 @@ function update(change: (s: State) => void): RevocationStore {
   memory = prune(union(memory, mine));
   if (!storageState().writable) return 'memory';
   let saved = false;
-  const locked = withLock(() => {
+  const locked = withFileLock(lockFile(), () => {
     const disk = readFile() ?? empty();
     change(disk);
     saved = writeFile(prune(union(disk, memory)));

@@ -170,8 +170,23 @@ function ProductPicker({ onPick }: { onPick: (productId: string) => void }) {
 // ---------------------------------------------------------------------------------------------------------------
 const FEATURED_SERVICES = ['ph-fda-food', 'ph-bai-petfood', 'ph-customs-broker', 'ph-importer-partner'];
 
+type PublicPartner = { country: string; type: 'law' | 'customs'; name: string; city: string; website: string };
+
 function ExpertBand({ onExpert }: { onExpert: () => void }) {
   const { t, p } = useI18n();
+  // contracted firms only (set on /admin → 파트너 관리); nothing is shown before a contract is signed
+  const [partners, setPartners] = useState<PublicPartner[]>([]);
+  useEffect(() => {
+    if (STATIC_PREVIEW) return;
+    let alive = true;
+    fetch('/api/partners')
+      .then((r) => r.json())
+      .then((j) => alive && Array.isArray(j?.partners) && setPartners(j.partners.slice(0, 8)))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
   return (
     <section id="experts" aria-labelledby="experts-title" className="scroll-mt-24">
       <div className="relative isolate overflow-hidden rounded-[32px] bg-ink-900 px-6 py-10 text-white shadow-float sm:px-10 sm:py-12 dark:bg-[#0d1626] dark:ring-1 dark:ring-white/[0.08]">
@@ -193,6 +208,20 @@ function ExpertBand({ onExpert }: { onExpert: () => void }) {
                 {t('expertsCta')}
               </button>
             </div>
+            {partners.length > 0 && (
+              <div className="mt-7">
+                <p className="text-[12px] font-semibold text-slate-400">{t('expertsPartners')}</p>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {partners.map((x) => (
+                    <li key={`${x.country}-${x.name}`} className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-3 py-1 text-[12.5px] font-medium text-slate-200 ring-1 ring-inset ring-white/10">
+                      <Flag code={x.country} />
+                      {x.name}
+                      <span className="text-slate-400">· {x.type === 'law' ? t('partnerLaw') : t('partnerCustoms')}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
           <div>
             <ul className="grid gap-2">
