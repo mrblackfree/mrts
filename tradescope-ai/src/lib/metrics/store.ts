@@ -168,34 +168,37 @@ const KV_TIMEOUT_MS = 1500;
 const PIPELINE_CHUNK = 100;
 
 /**
- * Adds the counts to today's hashes. Keys already there always count; a new key only while its budget for the day
- * lasts (checked just before writing, so requests racing at the very limit can pass it by a few keys).
+ * Adds counts to one day hash in a single atomic step, so the daily key budget holds under concurrent requests:
+ * keys already there always count; a new key only while room remains. ARGV: budget, expiry (unix s), then
+ * key/increment pairs.
  */
+const COUNT_SCRIPT = `local room = tonumber(ARGV[1]) - redis.call('HLEN', KEYS[1])
+local wrote = 0
+for i = 3, #ARGV, 2 do
+  if redis.call('HEXISTS', KEYS[1], ARGV[i]) == 1 then
+    redis.call('HINCRBY', KEYS[1], ARGV[i], ARGV[i + 1])
+    wrote = 1
+  elseif room > 0 then
+    redis.call('HINCRBY', KEYS[1], ARGV[i], ARGV[i + 1])
+    room = room - 1
+    wrote = 1
+  end
+end
+if wrote == 1 then redis.call('EXPIREAT', KEYS[1], ARGV[2]) end
+return wrote`;
+
+/** Adds the counts to today's hashes (one script per hash, both in one request). */
 async function countInRedis(keys: string[]): Promise<void> {
   const date = today();
   const want = new Map<string, number>();
   for (const k of keys) want.set(k, (want.get(k) ?? 0) + 1);
-  const groups = [false, true]
-    .map((channel) => ({ channel, hash: dayHash(date, channel), keys: [...want.keys()].filter((k) => isChannelKey(k) === channel) }))
-    .filter((g) => g.keys.length);
-  const seen = await kvPipeline(groups.flatMap((g) => [['HLEN', g.hash], ['HMGET', g.hash, ...g.keys]]), KV_TIMEOUT_MS);
-  const writes: Array<Array<string | number>> = [];
-  groups.forEach((g, i) => {
-    let room = (g.channel ? MAX_CHANNEL_KEYS_PER_DAY : MAX_OTHER_KEYS_PER_DAY) - Number(seen[2 * i] ?? 0);
-    const existing = Array.isArray(seen[2 * i + 1]) ? (seen[2 * i + 1] as unknown[]) : [];
-    let wrote = false;
-    g.keys.forEach((k, j) => {
-      const known = existing[j] !== null && existing[j] !== undefined;
-      if (!known) {
-        if (room <= 0) return;
-        room--;
-      }
-      writes.push(['HINCRBY', g.hash, k, want.get(k)!]);
-      wrote = true;
-    });
-    if (wrote) writes.push(['EXPIREAT', g.hash, expiresAt(date)]);
+  const commands = [false, true].flatMap((channel) => {
+    const ks = [...want.keys()].filter((k) => isChannelKey(k) === channel);
+    if (!ks.length) return [];
+    const budget = channel ? MAX_CHANNEL_KEYS_PER_DAY : MAX_OTHER_KEYS_PER_DAY;
+    return [['EVAL', COUNT_SCRIPT, 1, dayHash(date, channel), budget, expiresAt(date), ...ks.flatMap((k) => [k, want.get(k)!])]];
   });
-  if (writes.length) await kvPipeline(writes, KV_TIMEOUT_MS);
+  await kvPipeline(commands, KV_TIMEOUT_MS);
 }
 
 async function daysFromRedis(dates: string[]): Promise<Days> {

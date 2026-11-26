@@ -42,6 +42,25 @@ export function kvConfig(): KvConfig | null {
 
 export class KvError extends Error {}
 
+/** When Redis last failed and last answered (unix ms), across every request of this instance. */
+let lastFailure = 0;
+let lastSuccess = 0;
+const UNHEALTHY_FOR_MS = 60_000;
+
+/**
+ * False while Redis's latest answer on this instance was a failure (within the last minute) — so a form can say it is
+ * not taking requests instead of accepting one and failing to store it. Any successful command clears it.
+ */
+export function kvHealthy(): boolean {
+  return !(lastFailure > lastSuccess && Date.now() - lastFailure < UNHEALTHY_FOR_MS);
+}
+
+/** For tests: forget the health history. */
+export function resetKvHealthForTest(): void {
+  lastFailure = 0;
+  lastSuccess = 0;
+}
+
 async function post(pathSuffix: string, payload: unknown, timeoutMs: number): Promise<unknown> {
   const cfg = kvConfig();
   if (!cfg) throw new KvError('kv-not-configured');
@@ -58,8 +77,10 @@ async function post(pathSuffix: string, payload: unknown, timeoutMs: number): Pr
     const body = (await res.json().catch(() => null)) as unknown;
     const error = body && typeof body === 'object' && !Array.isArray(body) ? (body as { error?: string }).error : undefined;
     if (!res.ok || !body || error) throw new KvError(error ? 'kv-error' : `kv-http-${res.status}`);
+    lastSuccess = Date.now();
     return body;
   } catch (e) {
+    lastFailure = Date.now();
     if (e instanceof KvError) throw e;
     throw new KvError((e as Error).name === 'AbortError' ? 'kv-timeout' : 'kv-unreachable');
   } finally {

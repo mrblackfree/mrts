@@ -40,17 +40,18 @@ const b = await consultStore.appendRequest({ ...input, name: 'Lee' });
 fake.hashes.get(HASH)!.set('TS-DAMAGED', '{"id":"TS-DAMAGED","name":"half');
 let list = await consultStore.listRequests();
 ok('newest first, damaged record skipped', list.length === 2 && list[0].id === b.id && list[1].id === a.id, list.map((r) => r.id));
+const beforeStatus = JSON.parse(fake.hashes.get(HASH)!.get(a.id)!) as Record<string, unknown>;
 ok('status change', (await consultStore.updateStatus(a.id, 'contacted')) && (await consultStore.listRequests()).find((r) => r.id === a.id)?.status === 'contacted');
-const after = JSON.parse(fake.hashes.get(HASH)!.get(a.id)!);
-ok('only the status changed', after.name === 'Kim' && after.createdAt === a.createdAt && after.message === 'm');
+const afterStatus = JSON.parse(fake.hashes.get(HASH)!.get(a.id)!) as Record<string, unknown>;
+ok('only the status changed (every other field identical)', JSON.stringify({ ...afterStatus, status: beforeStatus.status }) === JSON.stringify(beforeStatus), { beforeStatus, afterStatus });
 ok('damaged record kept as it was', fake.hashes.get(HASH)!.get('TS-DAMAGED') === '{"id":"TS-DAMAGED","name":"half');
 ok('unknown id → false', (await consultStore.updateStatus('TS-NOPE0000', 'done')) === false);
 ok('damaged record → false, untouched', (await consultStore.updateStatus('TS-DAMAGED', 'done')) === false && fake.hashes.get(HASH)!.get('TS-DAMAGED')!.endsWith('half'));
 
 // the public route takes requests on Vercel without a webhook now
 const body = { name: 'Park', email: 'park@example.com', consent: true, serviceIds: ['ph-fda-food'], topic: 'FDA', lang: 'ko' };
-const post = async () => {
-  const res = await consultRoute.POST(new Request('http://localhost/api/consult', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-forwarded-for': '203.0.113.9' }, body: JSON.stringify(body) }));
+const post = async (ip = '203.0.113.9') => {
+  const res = await consultRoute.POST(new Request('http://localhost/api/consult', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-forwarded-for': ip }, body: JSON.stringify(body) }));
   return { status: res.status, json: (await res.json()) as Record<string, unknown> };
 };
 ok('GET: accepting on Vercel with Redis, no webhook', ((await (await consultRoute.GET()).json()) as { accepting: boolean }).accepting === true);
@@ -58,8 +59,29 @@ let r = await post();
 ok('POST stored in Redis', r.status === 200 && typeof r.json.id === 'string' && fake.hashes.get(HASH)!.has(r.json.id as string), r);
 fake.failWith = 503;
 r = await post();
-fake.failWith = null;
 ok('Redis down, no webhook → 503 storage-error (the trader is told, nothing is claimed)', r.status === 503 && r.json.error === 'storage-error', r);
+ok('…and the form now says it is not taking requests', ((await (await consultRoute.GET()).json()) as { accepting: boolean }).accepting === false);
+
+// with a webhook, a request still reaches the team while Redis is down
+const kvModule = await import('@/lib/store/kv');
+const realFetch = globalThis.fetch;
+let hooks = 0;
+globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+  if (String(url).startsWith('https://hooks.example/')) {
+    hooks++;
+    return new Response('', { status: 200 });
+  }
+  return realFetch(url, init);
+}) as typeof fetch;
+process.env.CONSULT_WEBHOOK_URL = 'https://hooks.example/consult';
+r = await post('203.0.113.10');
+ok('Redis known down + webhook: delivered by webhook only', r.status === 200 && hooks === 1, r);
+kvModule.resetKvHealthForTest(); // Redis looks healthy, then the save fails
+r = await post('203.0.113.11');
+ok('save fails + webhook: falls back to the webhook instead of failing', r.status === 200 && hooks === 2, r);
+delete process.env.CONSULT_WEBHOOK_URL;
+globalThis.fetch = realFetch;
+fake.failWith = null;
 
 // ---- admin sign-outs ------------------------------------------------------------------------------------------
 const DOC = 'tradescope:admin-sessions';
@@ -74,7 +96,7 @@ ok('fails closed before the first load (sign-outs elsewhere unknown)', !valid(s1
 await prepareRequest();
 ok('after loading an empty store: valid', valid(s1));
 
-let res = await sessionRoute.DELETE(withCookie(s1, { method: 'DELETE' }));
+let res: Response = await sessionRoute.DELETE(withCookie(s1, { method: 'DELETE' }));
 let out = (await res.json()) as { revoked: string | null };
 ok('sign-out stored in Redis', out.revoked === 'stored' && Object.keys(JSON.parse(fake.data.get(DOC)!).revoked).length === 1, out);
 ok('signed-out cookie rejected here', !valid(s1));
@@ -129,6 +151,24 @@ revocation.resetRevocationForTest();
 await revocation.loadRevocations();
 ok('…signing in again works, on any instance', valid(s6));
 
+// one damaged expiry value makes the whole document damaged (never quietly lets that session back in)
+const s7 = auth.issueSession().token;
+await new Promise((r) => setTimeout(r, 3));
+fake.data.set(DOC, JSON.stringify({ format: 1, notBefore: 0, revoked: { abc: 'not a number' } }));
+revocation.resetRevocationForTest();
+await revocation.loadRevocations();
+ok('a damaged entry fails closed for earlier sessions', !valid(s7) && JSON.parse(fake.data.get(DOC)!).notBefore > 0);
+await new Promise((r) => setTimeout(r, 3));
+const s8 = auth.issueSession().token;
+ok('…signing in again works', valid(s8));
+
+// read-only flag: request statuses cannot be changed either
+const adminConsult = await import('@/app/api/admin/consult/route');
+process.env.SETTINGS_READONLY = '1';
+res = await adminConsult.PATCH(withCookie(s8, { method: 'PATCH', body: JSON.stringify({ id: b.id, status: 'done' }), headers: { 'content-type': 'application/json' } }, `${ORIGIN}/api/admin/consult`));
+ok('read-only: status change refused (409), record untouched', res.status === 409 && JSON.parse(fake.hashes.get(HASH)!.get(b.id)!).status === 'new');
+delete process.env.SETTINGS_READONLY;
+
 // ---- metrics --------------------------------------------------------------------------------------------------
 const day = new Date().toISOString().slice(0, 10);
 const H = `tradescope:metrics:${day}`;
@@ -159,6 +199,20 @@ await metrics.countMetrics(Array.from({ length: 1100 }, (_, i) => `k${i}`));
 ok('at most 1000 other keys a day', fake.hashes.get(H)!.size === 1000);
 await metrics.countMetrics(['a', 'ch:kotra:visit']);
 ok('existing keys still count at the cap', fake.hashes.get(H)!.get('a') === '3' && fake.hashes.get(HC)!.get('ch:kotra:visit') === '2');
+
+// concurrent requests at the edge of the budget: admission and count are one atomic step
+fake.hashes.delete(HC);
+await metrics.countMetrics(Array.from({ length: 995 }, (_, i) => `ch:base${i}:visit`));
+await Promise.all(Array.from({ length: 5 }, (_, r) => metrics.countMetrics(Array.from({ length: 10 }, (_, i) => `ch:r${r}x${i}:visit`))));
+ok('concurrent requests never pass the 1000-key budget', fake.hashes.get(HC)!.size === 1000, fake.hashes.get(HC)!.size);
+
+// retention: a day's hash is gone once it leaves the 400-day window
+const realNowS = Math.floor(Date.now() / 1000);
+fake.clockOffsetS = until - realNowS - 60;
+ok('a minute before the end of the window: still there', (await metrics.metricsSummary(1)).totals.a === 3);
+fake.clockOffsetS = until - realNowS + 1;
+ok('past the window: Redis has dropped the day', (await metrics.metricsSummary(1)).daily.length === 0 && !fake.hashes.has(H));
+fake.clockOffsetS = 0;
 
 // the beacon route writes to Redis
 fake.hashes.delete(H);

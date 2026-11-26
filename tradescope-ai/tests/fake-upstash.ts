@@ -1,6 +1,7 @@
-// Helper of the tests (not a test by itself): a minimal Upstash-compatible REST server — strings (GET, SET, DEL, the
-// compare-and-set EVAL script of lib/store/kv), hashes (HSET, HSETNX, HGET, HMGET, HGETALL, HLEN, HINCRBY), EXPIREAT
-// and the /pipeline endpoint — so the Redis paths run without a real database.
+// Helper of the tests (not a test by itself): a minimal Upstash-compatible REST server — strings (GET, SET, DEL),
+// hashes (HSET, HSETNX, HGET, HMGET, HGETALL, HLEN, HEXISTS, HINCRBY), EXPIREAT with real expiry (on a clock that
+// tests can move), the /pipeline endpoint, and the two EVAL scripts the app sends (compare-and-set in lib/store/kv,
+// the metric count in lib/metrics/store), emulated command by command — so the Redis paths run without a database.
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
@@ -16,6 +17,8 @@ export interface FakeUpstash {
   failWith: number | null;
   /** answer every request this many milliseconds late (0 = at once) */
   delayMs: number;
+  /** seconds added to the real clock when deciding whether a key has expired */
+  clockOffsetS: number;
   close: () => Promise<void>;
 }
 
@@ -24,7 +27,16 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
   const hashes = new Map<string, Map<string, string>>();
   const expiries = new Map<string, number>();
   const calls: string[][] = [];
-  const state = { failWith: null as number | null, delayMs: 0 };
+  const state = { failWith: null as number | null, delayMs: 0, clockOffsetS: 0 };
+  const nowS = () => Math.floor(Date.now() / 1000) + state.clockOffsetS;
+  const purgeExpired = () => {
+    for (const [k, at] of expiries) {
+      if (at > nowS()) continue;
+      data.delete(k);
+      hashes.delete(k);
+      expiries.delete(k);
+    }
+  };
   const hash = (k: string, create = false) => {
     let h = hashes.get(k);
     if (!h && create) hashes.set(k, (h = new Map()));
@@ -34,22 +46,49 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
   const run = (cmd: unknown): Reply => {
     if (!Array.isArray(cmd) || !cmd.every((x) => typeof x === 'string')) return { error: 'bad command' };
     calls.push(cmd);
+    purgeExpired();
     const [op, ...args] = cmd as string[];
     switch (op.toUpperCase()) {
       case 'GET':
         return { result: data.get(args[0]) ?? null };
       case 'SET':
         data.set(args[0], args[1]);
+        expiries.delete(args[0]); // SET clears a key's expiry, as in Redis
         return { result: 'OK' };
-      case 'DEL':
-        return { result: data.delete(args[0]) || hashes.delete(args[0]) ? 1 : 0 };
+      case 'DEL': {
+        const hit = data.delete(args[0]) || hashes.delete(args[0]);
+        expiries.delete(args[0]);
+        return { result: hit ? 1 : 0 };
+      }
       case 'EVAL': {
-        const [script, , key, mustNotExist, expected, next] = args;
-        if (!script.includes("redis.call('GET', KEYS[1])")) return { error: 'unknown script' };
-        const cur = data.get(key);
-        const okToSet = mustNotExist === '1' ? cur === undefined : cur === expected;
-        if (okToSet) data.set(key, next);
-        return { result: okToSet ? 1 : 0 };
+        const [script, , key, ...argv] = args;
+        if (script.includes("redis.call('GET', KEYS[1])")) {
+          const [mustNotExist, expected, next] = argv;
+          const cur = data.get(key);
+          const okToSet = mustNotExist === '1' ? cur === undefined : cur === expected;
+          if (okToSet) {
+            data.set(key, next);
+            expiries.delete(key);
+          }
+          return { result: okToSet ? 1 : 0 };
+        }
+        if (script.includes("redis.call('HEXISTS', KEYS[1], ARGV[i])")) {
+          // the metric count script, step for step: budget, expiry, then key/increment pairs
+          const [budget, expireAt, ...pairs] = argv;
+          let room = Number(budget) - (hash(key)?.size ?? 0);
+          let wrote = false;
+          for (let i = 0; i + 1 < pairs.length; i += 2) {
+            const exists = hash(key)?.has(pairs[i]) ?? false;
+            if (!exists && room <= 0) continue;
+            if (!exists) room--;
+            const h = hash(key, true)!;
+            h.set(pairs[i], String(Number(h.get(pairs[i]) ?? '0') + Number(pairs[i + 1])));
+            wrote = true;
+          }
+          if (wrote) expiries.set(key, Number(expireAt));
+          return { result: wrote ? 1 : 0 };
+        }
+        return { error: 'unknown script' };
       }
       case 'HSET': {
         const h = hash(args[0], true)!;
@@ -74,6 +113,8 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
         return { result: [...(hash(args[0])?.entries() ?? [])].flat() };
       case 'HLEN':
         return { result: hash(args[0])?.size ?? 0 };
+      case 'HEXISTS':
+        return { result: hash(args[0])?.has(args[1]) ? 1 : 0 };
       case 'HINCRBY': {
         const h = hash(args[0], true)!;
         const cur = Number(h.get(args[1]) ?? '0');
@@ -135,6 +176,12 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
     },
     set delayMs(v) {
       state.delayMs = v;
+    },
+    get clockOffsetS() {
+      return state.clockOffsetS;
+    },
+    set clockOffsetS(v) {
+      state.clockOffsetS = v;
     },
     close: () => new Promise<void>((r) => server.close(() => r())),
   };

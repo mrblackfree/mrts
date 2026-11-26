@@ -55,7 +55,11 @@ function clean(v: unknown): State {
     throw new Error('unknown-format');
   }
   const revoked: Record<string, number> = Object.create(null);
-  for (const [k, exp] of Object.entries(s.revoked)) if (typeof exp === 'number' && Number.isFinite(exp)) revoked[k] = exp;
+  for (const [k, exp] of Object.entries(s.revoked)) {
+    // one damaged entry makes the whole document damaged: dropping it would quietly let that session back in
+    if (typeof exp !== 'number' || !Number.isFinite(exp)) throw new Error('unknown-format');
+    revoked[k] = exp;
+  }
   return { format: 1, notBefore: s.notBefore, revoked };
 }
 

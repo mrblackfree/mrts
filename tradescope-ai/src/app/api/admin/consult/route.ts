@@ -2,6 +2,7 @@ import { getProduct } from '@/data/kr-ph-trade-db';
 import { adminJson, authorizeAdmin } from '@/lib/admin/http';
 import { CONSULT_STATUSES, listRequests, updateStatus, type ConsultStatus } from '@/lib/consult/store';
 import { readJsonLimited } from '@/lib/http';
+import { recordStorageState } from '@/lib/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,8 @@ export async function GET(req: Request)  {
 export async function PATCH(req: Request)  {
   const denied = await authorizeAdmin(req, { mutating: true });
   if (denied) return denied;
+  const st = recordStorageState();
+  if (!st.writable) return adminJson({ ok: false, error: 'read-only', reason: st.reason }, { status: 409 });
   const parsed = await readJsonLimited(req, 2_000);
   if (!parsed.ok) return adminJson({ ok: false, error: parsed.error === 'too-large' ? 'too-large' : 'bad-request' }, { status: parsed.error === 'too-large' ? 413 : 400 });
   const body = parsed.body;
