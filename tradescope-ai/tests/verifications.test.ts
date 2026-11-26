@@ -24,7 +24,9 @@ const product = db.PRODUCTS.find((p) => p.requirements.length > 0 && p.partners.
 const scoreOf = () => db.getProduct(product.id)!.verification!.score;
 const before = scoreOf();
 const reqItem = () => db.getProduct(product.id)!.verification!.items.find((i) => i.key === `req:${product.requirements[0].id}`)!;
-ok('requirement starts unverified', reqItem().level === 'seed');
+// the starting level is the seed or, when its law was matched in an official text, a cross-check — never verified
+const reqBase = reqItem().level;
+ok('requirement starts below verified', reqBase === 'seed' || reqBase === 'crosscheck');
 
 const entry = { productId: product.id, target: { type: 'requirement', id: product.requirements[0].id }, source: 'Law firm review memo', reference: 'MEMO-2026-118', verifiedBy: 'Partner law firm (PH)', verifiedAt: today };
 
@@ -63,7 +65,7 @@ ok('public list carries the active entry', body.entries.length === 1 && body.ent
 
 // a second instance (fresh module state) applies the same entries on its first request
 db.applyRuntimeOverrides([]);
-ok('reset: back to seed', reqItem().level === 'seed');
+ok('reset: back to the starting level', reqItem().level === reqBase);
 const { loadVerifications } = await import('@/lib/verifications/store');
 await loadVerifications(true);
 ok('loaded again from the store', reqItem().level === 'verified');
@@ -74,7 +76,7 @@ body = await json(res);
 ok('admin list', body.items.length === 1 && body.items[0].id === savedId && body.writable === true);
 res = await route.DELETE(req('DELETE', undefined, `?id=${savedId}`));
 ok('removed', res.status === 200);
-ok('effect undone', reqItem().level === 'seed' && scoreOf() === before);
+ok('effect undone', reqItem().level === reqBase && scoreOf() === before);
 res = await route.DELETE(req('DELETE', undefined, '?id=v-000000000000'));
 ok('unknown id → 404', res.status === 404);
 
@@ -93,7 +95,7 @@ ok('partner licence expired: filtered', store.activeEntries([saved('v-4', partne
 const docFile = path.join(process.env.TRADESCOPE_DATA_DIR!, 'verifications.json');
 writeFileSync(docFile, JSON.stringify({ format: 1, items: [saved('v-exp', { ...past, validUntil: '2001-01-01' })] }));
 await store.loadVerifications(true);
-ok('reload: an expired stored entry leaves the product at its seed value', reqItem().level === 'seed' && scoreOf() === before);
+ok('reload: an expired stored entry leaves the product at its starting level', reqItem().level === reqBase && scoreOf() === before);
 writeFileSync(docFile, JSON.stringify({ format: 1, items: [saved('v-ok', { ...past, validUntil: '2999-01-01' })] }));
 await store.loadVerifications(true);
 ok('reload: a valid stored entry is applied', reqItem().level === 'verified');

@@ -54,7 +54,7 @@ const SAVED = (() => {
 })();
 const configured = (name) => process.env[name]?.trim() || SAVED[name]?.trim() || undefined;
 const DB_FILE = path.join(ROOT, 'src/data/kr-ph-trade-db.ts');
-const LINK_FILES = [DB_FILE, path.join(ROOT, 'src/data/official/roadmap.ts')];
+const LINK_FILES = [DB_FILE, path.join(ROOT, 'src/data/official/roadmap.ts'), path.join(ROOT, 'src/data/official/legal-bases.ts')];
 const OVERRIDES_FILE = path.join(ROOT, 'src/data/verified-overrides.json');
 const OUT_FILE = path.join(ROOT, 'src/data/official/snapshot.json');
 

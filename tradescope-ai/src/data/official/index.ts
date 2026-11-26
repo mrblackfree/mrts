@@ -18,6 +18,7 @@
  */
 import overridesJson from '../verified-overrides.json';
 import snapshotJson from './snapshot.json';
+import { legalBasisFor } from './legal-bases';
 import { todayIso } from '@/lib/format';
 import type {
   Bilingual,
@@ -426,7 +427,11 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
 
   // 4) link checks ---------------------------------------------------------------
   const links = SNAP.links ?? {};
-  for (const r of p.requirements) r.linkCheck = links[r.url];
+  for (const r of p.requirements) {
+    r.linkCheck = links[r.url];
+    const lb = legalBasisFor(r.id, p.id);
+    if (lb) r.legalBasis = lb;
+  }
   for (const pt of p.partners) pt.linkCheck = links[pt.website];
 
   // 5) verification items -------------------------------------------------------
@@ -470,13 +475,19 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
         : undefined,
   });
   for (const r of p.requirements) {
+    const lb = r.legalBasis;
     items.push({
       key: `req:${r.id}`,
       category: 'requirements',
       label: r.title,
-      level: r.reviewed ? 'verified' : 'seed',
-      source: r.reviewed ? `${r.reviewed.source} · ${r.reviewed.verifiedBy}` : undefined,
-      checkedAt: r.reviewed?.verifiedAt ?? r.linkCheck?.checkedAt,
+      // a law matched in its official text is a cross-check; only a lawyer's review makes it verified
+      level: r.reviewed ? 'verified' : lb ? 'crosscheck' : 'seed',
+      source: r.reviewed ? `${r.reviewed.source} · ${r.reviewed.verifiedBy}` : lb ? lb.source : undefined,
+      checkedAt: r.reviewed?.verifiedAt ?? lb?.checkedAt ?? r.linkCheck?.checkedAt,
+      detail:
+        !r.reviewed && lb
+          ? b(`근거 법령 원문 대조: ${lb.citation.ko} · 적용 여부는 변호사·관세사 검토 전`, `Legal basis matched in the official text: ${lb.citation.en} · how it applies is not yet reviewed by a lawyer or broker`)
+          : undefined,
     });
   }
   for (const pt of p.partners) {
