@@ -24,6 +24,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readSettings } from '../src/lib/settings/core.mjs';
+import { CARRY_OVER_DAYS, mergeLinkResult } from './link-state.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -489,22 +490,28 @@ async function syncLinks(snapshot) {
   const src = (await Promise.all(LINK_FILES.map((f) => readFile(f, 'utf8')))).join('\n');
   const urls = [...new Set([...src.matchAll(/https?:\/\/[^'"\s`)]+/g)].map((m) => m[0]))];
   const results = {};
+  const prevLinks = snapshot.links ?? {};
+  const carried = [];
   const queue = [...urls];
   await Promise.all(
     Array.from({ length: 6 }, async () => {
       while (queue.length) {
         const u = queue.shift();
-        results[u] = { ...(await checkLink(u)), checkedAt: new Date().toISOString() };
+        // no answer from this network says nothing about the link: keep a recent answered check (see link-state.mjs)
+        const merged = mergeLinkResult(prevLinks[u], { ...(await checkLink(u)), checkedAt: new Date().toISOString() });
+        results[u] = merged.result;
+        if (merged.carried) carried.push(u);
       }
     }),
   );
   const counts = Object.values(results).reduce((acc, r) => ((acc[r.state] = (acc[r.state] ?? 0) + 1), acc), {});
   log(`  links: ${urls.length} checked`, counts);
+  if (carried.length) log(`  links: ${carried.length} unreachable from this network — kept the last answered check:\n    ${carried.join('\n    ')}`);
   snapshot.sources.links = {
     status: 'ok',
     fetchedAt: new Date().toISOString(),
     counts,
-    note: 'protected = site answered but blocks automated clients (401/403/429); unavailable = server error (5xx, may be bot protection or downtime); unreachable = no answer from the checker network.',
+    note: `protected = site answered but blocks automated clients (401/403/429); unavailable = server error (5xx, may be bot protection or downtime); unreachable = no answer from the checker network. A link that answered within the last ${CARRY_OVER_DAYS} days keeps that check while it is unreachable.`,
   };
   snapshot.links = results;
 }

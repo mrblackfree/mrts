@@ -237,7 +237,7 @@ ADMIN_SECRET=<openssl rand -base64 32 결과>
 | World Bank WITS TRAINS (PREF) | ✅ 자동 (키 불필요) | 필리핀이 한국산에 실제 적용한 특혜세율(2021, 당시 유일 협정 AKFTA)로 AKFTA 검증 — 조미김·라면 5→0% 보정, 수출 4품목 AKFTA "공식 API" 등급 |
 | 공식 통관 단가 | ✅ 자동 (키 불필요) | Comtrade 금액/순중량(USD/kg)으로 시드 단가 교차검증 (0.5~2배 범위면 교차검증 등급) |
 | HS6 코드 유효성 | ✅ 자동 | 공식 HS6 세번 존재 확인 → 교차검증(분류 판단 확정은 사전심사) |
-| 링크 점검 | ✅ 자동 | 61개 URL을 ok / protected(봇 차단) / unreachable / broken으로 분류 |
+| 링크 점검 | ✅ 자동 | 소스·근거 법령의 URL(79개)을 ok / protected(봇 차단) / unavailable / unreachable / broken으로 분류. 점검 위치의 네트워크에서 응답이 없을 뿐(unreachable)인 링크는 60일 안의 마지막 응답 결과를 유지합니다(GitHub 미국 러너에서 한국 정부 사이트가 막히는 경우 등) |
 | 관세청 월별 수출입실적 | 🔑 키만 넣으면 자동 | data.go.kr 「관세청_품목별 국가별 수출입실적(GW)」 → `DATA_GO_KR_SERVICE_KEY` |
 | 관세청 과세환율 | 🔑 키만 넣으면 자동 | data.go.kr 「관세청_관세환율정보(GW)」 → 원화 관세 표시 |
 | 10단위 FTA 협정세율 | ✍️ 검증 입력 | UNI-PASS 「관세율(협정·탄력)」/ 관세청 FTA 포털 / 필리핀 Tariff Finder 조회 → overrides |
@@ -458,7 +458,7 @@ npm test               # tests/*.test.ts — 품목 검색·수치 근거 검사
 
 `npm test`는 네트워크 없이 돕니다. 추적 어댑터는 공개 명세에 맞춘 고정 응답과 가짜 `fetch`로, 요청 저장소는 테스트마다 새로 만든 임시 데이터 폴더로 확인합니다.
 
-GitHub Actions(저장소 루트): [`../.github/workflows/tradescope-ci.yml`](../.github/workflows/tradescope-ci.yml)은 PR마다 검증·타입체크·테스트·빌드를 실행하고, [`../.github/workflows/tradescope-data-sync.yml`](../.github/workflows/tradescope-data-sync.yml)은 매주 월요일 공식 데이터를 동기화해 데이터가 바뀌면 PR을 생성합니다. 원천 동기화가 실패하면 PR을 만들지 않으며, 실패한 원천은 이전 값을 유지합니다.
+GitHub Actions(저장소 루트): [`../.github/workflows/tradescope-ci.yml`](../.github/workflows/tradescope-ci.yml)은 PR마다 검증·타입체크·테스트·빌드를 실행하고, [`../.github/workflows/tradescope-data-sync.yml`](../.github/workflows/tradescope-data-sync.yml)은 매주 월요일 공식 데이터를 동기화해 데이터가 바뀌면 PR을 생성합니다. 원천 동기화가 실패하면 PR을 만들지 않으며, 실패한 원천은 이전 값을 유지합니다. PR을 만들려면 저장소 *Settings → Actions → General → Workflow permissions*에서 「Allow GitHub Actions to create and approve pull requests」를 켜야 합니다. 꺼져 있으면 동기화 브랜치만 푸시하고, 작업 요약(Job summary)에 변경 내역과 PR 생성 링크를 남긴 뒤 실패로 표시합니다.
 
 Docker Compose는 v2.24 이상이 필요합니다(선택형 `env_file`).
 
