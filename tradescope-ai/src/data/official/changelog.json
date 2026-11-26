@@ -3,6 +3,54 @@
   "entries": [
     {
       "date": "2026-11-26",
+      "productId": "banana-chips",
+      "field": "RCEP",
+      "from": "30%",
+      "to": "33.8%",
+      "source": "RCEP 협정 부속서 I 한국 양허표(아세안용) · 부속서 3A 품목별 원산지기준 (RCEP 사무국) · HSK 2008.99.9000 · 2026년 = 5년차"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "banana-chips",
+      "field": "RCEP 원산지기준",
+      "from": "CC or RVC 40%",
+      "to": "CC",
+      "source": "RCEP 협정 부속서 I 한국 양허표(아세안용) · 부속서 3A 품목별 원산지기준 (RCEP 사무국) · HS 2008.99"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "dried-mango",
+      "field": "RCEP",
+      "from": "30%",
+      "to": "33.8%",
+      "source": "RCEP 협정 부속서 I 한국 양허표(아세안용) · 부속서 3A 품목별 원산지기준 (RCEP 사무국) · HSK 2008.99.9000 · 2026년 = 5년차"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "dried-mango",
+      "field": "RCEP 원산지기준",
+      "from": "CC or RVC 40%",
+      "to": "CC",
+      "source": "RCEP 협정 부속서 I 한국 양허표(아세안용) · 부속서 3A 품목별 원산지기준 (RCEP 사무국) · HS 2008.99"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "coconut-oil",
+      "field": "RCEP",
+      "from": "3%",
+      "to": "1.5% (정제유; 그 밖의 것 0%)",
+      "source": "RCEP 협정 부속서 I 한국 양허표(아세안용) · 부속서 3A 품목별 원산지기준 (RCEP 사무국) · HSK 1513.19.1000/.9000 · 2026년 = 5년차"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "coconut-oil",
+      "field": "RCEP 원산지기준",
+      "from": "CTH or RVC 40%",
+      "to": "CC",
+      "source": "RCEP 협정 부속서 I 한국 양허표(아세안용) · 부속서 3A 품목별 원산지기준 (RCEP 사무국) · HS 1513.19"
+    },
+    {
+      "date": "2026-11-26",
       "productId": "seasoned-laver",
       "field": "KRPH",
       "from": "0%",
