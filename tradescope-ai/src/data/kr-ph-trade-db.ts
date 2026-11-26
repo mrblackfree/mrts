@@ -893,8 +893,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
     bestFta: {
       scheme: 'AKFTA',
       reason: b(
-        'AKFTA·한-필 FTA 모두 0%로 동일 — 필리핀 코코넛 수출사의 Form AK 발급 경험이 풍부해 서류 리스크가 가장 낮은 AKFTA 우선 권장. 코프라(1203)→오일(1513) 세번변경으로 원산지 충족 용이.',
-        'AKFTA and KR-PH FTA are both 0% — prefer AKFTA because PH coconut exporters routinely issue Form AK (lowest paperwork risk). Copra (1203) → oil (1513) satisfies the CTH rule.',
+        'AKFTA·RCEP·한-필 FTA 모두 0% (필리핀 관세위원회 Tariff Finder 2026년 고시값) — 필리핀 세관·바이어에게 가장 익숙한 Form AK 우선 권장. AKFTA 원산지기준은 역내부가가치 40% 또는 세번 변경(CTH).',
+        'AKFTA, RCEP and the KR-PH FTA are all 0% (2026 rates in the PH Tariff Commission Tariff Finder) — prefer Form AK, the most familiar to PH customs and buyers. The AKFTA rule is RVC 40% or a change of heading (CTH).',
       ),
     },
     requirements: krFoodImportRequirements({
@@ -1115,16 +1115,16 @@ const SEED_PRODUCTS: TradeProduct[] = [
     ],
     tariffs: [
       { scheme: 'MFN', rate: 10, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
-      { scheme: 'AKFTA', rate: 0, roo: 'CTH (originating laver) or RVC 40%', certificate: CERT.ak, note: b('WITS 공식 특혜세율(필리핀→한국산)과 일치', 'Matches the WITS official PH preferential rate for Korean goods') },
-      { scheme: 'RCEP', rate: 10, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
-      { scheme: 'KRPH', rate: 0, roo: 'CTH (wholly obtained laver)', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
+      { scheme: 'AKFTA', rate: 0, roo: 'RVC 40% (laver of 1212.21 wholly obtained in a Party)', certificate: CERT.ak, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값 — 0%. 단, 상호주의(R) 품목이라 한국 측 민감품목이면 10% 적용 가능', "PH Tariff Commission Tariff Finder, 2026 rate — 0%; reciprocity item (R): 10% may apply if sensitive on Korea's side") },
+      { scheme: 'RCEP', rate: 0, roo: 'CC', certificate: CERT.rcep, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
+      { scheme: 'KRPH', rate: 10, roo: 'RVC 40% or CC', certificate: CERT.krph, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값 — 2026년 감축 없음(10%)', 'PH Tariff Commission Tariff Finder, 2026 rate — no reduction in 2026 (10%)') },
     ],
     tariffMeta: TARIFF_META_PH,
     bestFta: {
-      scheme: 'AKFTA',
+      scheme: 'RCEP',
       reason: b(
-        '한-아세안 FTA 0%는 필리핀이 실제 한국산에 적용한 공식 특혜세율(WITS)로 확인됨 — MFN 10% 대비 과세가격의 10%p 절감. 한-필 FTA도 0%로 예상되나 아직 미검증이므로 Form AK를 기본으로, 국산 김(완전생산) 사용 시 어느 협정이든 원산지 충족이 확실.',
-        'The ASEAN-Korea FTA 0% is confirmed as the official preferential rate the Philippines applied to Korean goods (WITS) — saving 10 pp vs MFN 10%. The KR-PH FTA is likely 0% too but unverified, so use Form AK by default; Korean-harvested laver meets origin under either agreement.',
+        'RCEP 0% 권장 — 필리핀 관세위원회 Tariff Finder 2026년 고시값. 원산지기준이 류 변경(CC)이라 수입 원초(1212.21)를 써도 충족. AKFTA도 0%지만 상호주의(R) 품목이라 한국 측 민감품목이면 10%가 적용될 수 있고, 한-필 FTA는 2026년에 감축이 없어 10%(MFN과 동일)입니다.',
+        'RCEP 0% recommended — 2026 rate in the PH Tariff Commission Tariff Finder. The rule is a change of chapter (CC), met even with imported raw laver (1212.21). AKFTA is also 0% but is a reciprocity item (R), so 10% can apply if the line is sensitive on Korea\'s side; the KR-PH FTA has no reduction in 2026 (10%, same as MFN).',
       ),
     },
     requirements: phFoodRequirements([
@@ -1344,9 +1344,9 @@ const SEED_PRODUCTS: TradeProduct[] = [
     ],
     tariffs: [
       { scheme: 'MFN', rate: 7, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
-      { scheme: 'AKFTA', rate: 0, roo: 'CTSH or RVC 40%', certificate: CERT.ak, note: b('일반품목 철폐 완료', 'Normal-track elimination complete') },
-      { scheme: 'RCEP', rate: 5, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
-      { scheme: 'KRPH', rate: 0, roo: 'CTSH or RVC 40%', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
+      { scheme: 'AKFTA', rate: 0, roo: 'RVC 40% or CTH', certificate: CERT.ak, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
+      { scheme: 'RCEP', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
+      { scheme: 'KRPH', rate: 0, roo: 'RVC 40% or CTH', certificate: CERT.krph, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
     ],
     tariffMeta: TARIFF_META_PH,
     bestFta: {
@@ -1616,15 +1616,15 @@ const SEED_PRODUCTS: TradeProduct[] = [
     tariffs: [
       { scheme: 'MFN', rate: 15, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
       { scheme: 'AKFTA', rate: 0, roo: 'CTH (wheat flour 1101 → 1902 qualifies) or RVC 40%', certificate: CERT.ak, note: b('WITS 공식 특혜세율(필리핀→한국산)과 일치', 'Matches the WITS official PH preferential rate for Korean goods') },
-      { scheme: 'RCEP', rate: 10, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('단계 철폐 중', 'Phasing out') },
-      { scheme: 'KRPH', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
+      { scheme: 'RCEP', rate: 0, roo: 'CC', certificate: CERT.rcep, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
+      { scheme: 'KRPH', rate: 0, roo: 'RVC 40% or CTH', certificate: CERT.krph, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
     ],
     tariffMeta: TARIFF_META_PH,
     bestFta: {
       scheme: 'AKFTA',
       reason: b(
-        '한-아세안 FTA 0%는 필리핀이 실제 한국산 라면에 적용한 공식 특혜세율(WITS)로 확인됨 — MFN 15% 대비 15%p 절감. 수입 밀가루(1101) 사용 시에도 세번변경(CTH)으로 원산지 충족. 한-필 FTA 세율은 미검증이므로 Form AK 우선.',
-        'The ASEAN-Korea FTA 0% is confirmed as the official preferential rate the Philippines applied to Korean ramen (WITS) — saving 15 pp vs MFN. Imported wheat flour (1101) still meets the CTH rule. The KR-PH FTA rate is unverified, so prefer Form AK.',
+        'AKFTA·RCEP·한-필 FTA 모두 0% (필리핀 관세위원회 Tariff Finder 2026년 고시값, AHTN 1902.30.40) — MFN 15% 대비 15%p 절감. 수입 밀가루(1101)를 써도 세번 변경(CTH)으로 원산지 충족. 가장 익숙한 Form AK 우선.',
+        'AKFTA, RCEP and the KR-PH FTA are all 0% (2026 rates in the PH Tariff Commission Tariff Finder, AHTN 1902.30.40) — 15 pp below MFN. Imported wheat flour (1101) still meets the change-of-heading rule. Prefer the familiar Form AK.',
       ),
     },
     requirements: phFoodRequirements([
@@ -1834,16 +1834,16 @@ const SEED_PRODUCTS: TradeProduct[] = [
     ],
     tariffs: [
       { scheme: 'MFN', rate: 1, roo: '-', certificate: CERT.none, note: b('도어락(8301.40) — 바닥재는 HS 3918.10 탭', 'Door locks (8301.40) — flooring has its own HS 3918.10 tab') },
-      { scheme: 'AKFTA', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('일반품목 철폐 완료', 'Normal-track elimination complete') },
-      { scheme: 'RCEP', rate: 1, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('MFN 이하로 상한 — 양허세율 확인 필요', 'Capped at MFN — confirm the scheduled rate') },
-      { scheme: 'KRPH', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
+      { scheme: 'AKFTA', rate: 0, roo: 'RVC 40% or CTH', certificate: CERT.ak, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
+      { scheme: 'RCEP', rate: 0, roo: 'CTSH or RVC 40%', certificate: CERT.rcep, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
+      { scheme: 'KRPH', rate: 0, roo: 'RVC 40% or CTH', certificate: CERT.krph, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
     ],
     tariffMeta: TARIFF_META_PH,
     bestFta: {
       scheme: 'AKFTA',
       reason: b(
-        '도어락(8301.40)은 필리핀 MFN이 1%로 FTA 절감 효과가 미미 — 원산지 서류 비용 대비 실익을 따져볼 것. AKFTA 0%는 WITS 공식 특혜세율로 확인됨. 중국산 부품 비중이 높으면 BOM 기준 RVC 40% 판정 필수. 함께 수출하는 바닥재(3918.10)는 세율 구조가 전혀 달라 별도 탭에서 계산.',
-        'Door locks (8301.40) carry only 1% PH MFN, so FTA savings are marginal — weigh them against CO paperwork. AKFTA 0% is confirmed by WITS; with many Chinese parts a BOM-based RVC 40% check is essential. Flooring (3918.10) shipped alongside has a completely different duty profile — see its own tab.',
+        '도어락(AHTN 8301.40.20)은 필리핀 MFN이 1%로 FTA 절감 효과가 미미 — 원산지 서류 비용 대비 실익을 따져볼 것. AKFTA·RCEP·한-필 FTA 모두 0% (Tariff Finder 2026년 고시값). 중국산 부품 비중이 높으면 BOM 기준 RVC 40% 판정 필수. 함께 수출하는 바닥재(3918.10)는 세율 구조가 전혀 달라 별도 탭에서 계산.',
+        'Door locks (AHTN 8301.40.20) carry only 1% PH MFN, so FTA savings are marginal — weigh them against CO paperwork. AKFTA, RCEP and the KR-PH FTA are all 0% (Tariff Finder 2026 rates); with many Chinese parts a BOM-based RVC 40% check is essential. Flooring (3918.10) shipped alongside has a completely different duty profile — see its own tab.',
       ),
     },
     tariffsByHs: {
@@ -1852,14 +1852,14 @@ const SEED_PRODUCTS: TradeProduct[] = [
         tariffs: [
           { scheme: 'MFN', rate: 15, roo: '-', certificate: CERT.none, note: b('필리핀 MFN — WITS 2023 공식값과 일치', 'PH MFN — matches WITS 2023 official value') },
           { scheme: 'AKFTA', rate: 12, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('필리핀 민감품목 — WITS 공식 특혜세율과 일치', 'PH sensitive item — matches the WITS official preferential rate') },
-          { scheme: 'RCEP', rate: 12, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('시드 — 양허표 확인 필요', 'Seed — confirm in the schedule') },
-          { scheme: 'KRPH', rate: 12, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('시드(미검증) — AKFTA와 동일 가정, 양허표 확인 필요', 'Seed (unverified) — assumed equal to AKFTA, confirm in the schedule') },
+          { scheme: 'RCEP', rate: 5, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
+          { scheme: 'KRPH', rate: 10, roo: 'RVC 40% or CTH', certificate: CERT.krph, note: b('필리핀 관세위원회 Tariff Finder 2026년 고시값', 'PH Tariff Commission Tariff Finder, 2026 rate') },
         ],
         bestFta: {
-          scheme: 'AKFTA',
+          scheme: 'RCEP',
           reason: b(
-            '바닥재는 필리핀 민감품목이라 AKFTA도 12%(MFN 15% 대비 3%p 절감)로 공식 확인됨. 한-필 FTA·RCEP 양허세율이 더 낮을 수 있으므로 Tariff Finder(PH-KR FTA)에서 AHTN 3918.10 연차 세율을 반드시 확인 — 절세 여지가 가장 큰 항목.',
-            'Flooring is a PH sensitive item, so even AKFTA is officially 12% (3 pp below MFN 15%). The KR-PH FTA or RCEP schedule may be lower — check AHTN 3918.10 year-by-year rates in the Tariff Finder (PH-KR FTA); this is where the savings potential is largest.',
+            'RCEP 5% 권장 — 필리핀 관세위원회 Tariff Finder 2026년 고시값(AHTN 3918.10.11/.19). MFN 15% 대비 10%p 절감으로 이 품목에서 절세 효과가 가장 큼. 한-필 FTA는 10%, AKFTA는 민감품목이라 12%. 세율이 해마다 내려가므로 선적 연도 세율을 다시 확인하세요.',
+            'RCEP 5% recommended — 2026 rate in the PH Tariff Commission Tariff Finder (AHTN 3918.10.11/.19), 10 pp below MFN 15% and the largest saving here. The KR-PH FTA is 10% and AKFTA 12% (sensitive item). Rates step down yearly, so re-check the rate for the shipment year.',
           ),
         },
       },
