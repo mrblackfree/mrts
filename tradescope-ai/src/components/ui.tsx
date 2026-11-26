@@ -296,7 +296,7 @@ const LEVEL_STYLE: Record<VerificationLevel, { tone: 'green' | 'violet' | 'brand
   seed: { tone: 'amber', key: 'lvSeed' },
 };
 
-/** Verification level chip: 공식 API · 전문가 검증 · 교차검증 · 시드 */
+/** Verification level chip: 공식 출처 · 전문가 검증 · 교차검증 · 시드 */
 export function LevelBadge({ level, title, className }: { level: VerificationLevel; title?: string; className?: string }) {
   const { t } = useI18n();
   const st = LEVEL_STYLE[level];

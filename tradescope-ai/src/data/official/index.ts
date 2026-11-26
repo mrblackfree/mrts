@@ -114,7 +114,8 @@ export interface OverrideEntry {
   /**
    * What the check was. Left out: confirmed by an expert or partner (customs broker, law firm, forwarder…) — shown
    * as "expert-verified". 'official': read from an official published schedule or register without a professional
-   * opinion — shown as "official", never as expert-verified. Both count fully in the trust score.
+   * opinion — shown as "official", never as expert-verified. Both count fully in the trust score. Tariff entries
+   * only: the validators reject it on any other target.
    */
   basis?: 'official';
 }

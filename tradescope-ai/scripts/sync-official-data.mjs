@@ -549,6 +549,7 @@ async function validateOverrides(snapshot) {
     if (e.verifiedAt && !isDate(e.verifiedAt)) errors.push(`${at} verifiedAt must be YYYY-MM-DD`);
     if (e.validUntil !== undefined && !isDate(e.validUntil)) errors.push(`${at} validUntil must be YYYY-MM-DD`);
     if (e.basis !== undefined && e.basis !== 'official') errors.push(`${at} basis must be 'official' or left out`);
+    else if (e.basis !== undefined && e.target?.type !== 'tariff') errors.push(`${at} basis is only for tariff entries`);
     for (const k of ['source', 'reference', 'verifiedBy']) if (placeholder(e[k])) errors.push(`${at} ${k} looks like a placeholder`);
     const t = e.target ?? {};
     switch (t.type) {

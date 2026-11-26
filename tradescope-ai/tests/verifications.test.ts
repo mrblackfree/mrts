@@ -134,6 +134,7 @@ const tariffEntry = { productId: 'banana-chips', target: { type: 'tariff', schem
 const withBasis = validateEntry({ ...tariffEntry, basis: 'official' }, db.PRODUCTS);
 ok("basis 'official' is accepted and kept", withBasis.ok && (withBasis as { entry: { basis?: string } }).entry.basis === 'official');
 ok('any other basis is rejected', !validateEntry({ ...tariffEntry, basis: 'expert' }, db.PRODUCTS).ok);
+ok('basis only on tariff entries (a requirement with basis is rejected)', !validateEntry({ ...entry, basis: 'official' }, db.PRODUCTS).ok);
 const akftaItem = () => db.getProduct('banana-chips')!.verification!.items.find((i) => i.key === 'tariff:AKFTA')!;
 const akftaRate = () => db.getProduct('banana-chips')!.tariffs.find((t) => t.scheme === 'AKFTA')!;
 db.applyRuntimeOverrides([withBasis.ok ? withBasis.entry : (null as never)]);
