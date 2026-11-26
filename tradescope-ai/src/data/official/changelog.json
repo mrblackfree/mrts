@@ -4,6 +4,102 @@
     {
       "date": "2026-11-26",
       "productId": "banana-chips",
+      "field": "KRPH",
+      "from": "36% (기준세율 가정)",
+      "to": "32.4% (2026 = 3년차)",
+      "source": "FTA 관세특례법 시행령 별표 (국가법령정보센터) 별표 17의8 · HSK 2008.99.9000"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "banana-chips",
+      "field": "RCEP",
+      "from": "33.8% (5년차로 계산)",
+      "to": "36% (필리핀산 4년차)",
+      "source": "FTA 관세특례법 시행령 별표 (국가법령정보센터) 별표 17의6 주2 — 필리핀산 1년차는 한-필 RCEP 발효(2023.6.2) 연도"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "banana-chips",
+      "field": "최적 협정",
+      "from": "RCEP",
+      "to": "KRPH (32.4%)",
+      "source": "KRPH 32.4% · RCEP 36% · AKFTA 36% 비교"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "banana-chips",
+      "field": "MFN",
+      "from": "45% (WITS 교차검증)",
+      "to": "45% (관세법 별표, 공식)",
+      "source": "관세법 별표 관세율표 2008.99 「6. 기타」"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "dried-mango",
+      "field": "KRPH",
+      "from": "36% (기준세율 가정)",
+      "to": "32.4% (2026 = 3년차)",
+      "source": "FTA 관세특례법 시행령 별표 (국가법령정보센터) 별표 17의8 · HSK 2008.99.9000"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "dried-mango",
+      "field": "RCEP",
+      "from": "33.8% (5년차로 계산)",
+      "to": "36% (필리핀산 4년차)",
+      "source": "FTA 관세특례법 시행령 별표 (국가법령정보센터) 별표 17의6 주2 — 필리핀산 1년차는 한-필 RCEP 발효(2023.6.2) 연도"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "dried-mango",
+      "field": "최적 협정",
+      "from": "RCEP",
+      "to": "KRPH (32.4%)",
+      "source": "KRPH 32.4% · RCEP 36% · AKFTA 36% 비교"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "dried-mango",
+      "field": "MFN",
+      "from": "45% (WITS 교차검증)",
+      "to": "45% (관세법 별표, 공식)",
+      "source": "관세법 별표 관세율표 2008.99 「6. 기타」"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "coconut-oil",
+      "field": "RCEP",
+      "from": "1.5% (정제유, 5년차)",
+      "to": "1.8% (정제유, 필리핀산 4년차) · 그 밖의 것 0%",
+      "source": "FTA 관세특례법 시행령 별표 (국가법령정보센터) 별표 17의6 주2"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "coconut-oil",
+      "field": "KRPH",
+      "from": "2.1% (균등 감축 가정)",
+      "to": "2.1% (시행령 별표 17의8 확인)",
+      "source": "FTA 관세특례법 시행령 별표 (국가법령정보센터) 별표 17의8 · HSK 1513.19"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "coconut-oil",
+      "field": "AKFTA 근거",
+      "from": "R(PH) 상호주의 추정",
+      "to": "시행령 별표 5 필리핀 제한 품목 — 상호대응세율(최대 MFN 3%)",
+      "source": "FTA 관세특례법 시행령 별표 (국가법령정보센터) 별표 4·5"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "banana-chips",
+      "field": "HS 0803.90 KRPH",
+      "from": "12% (균등 감축 가정)",
+      "to": "12% (시행령 별표 17의8 확인)",
+      "source": "FTA 관세특례법 시행령 별표 (국가법령정보센터) 별표 17의8"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "banana-chips",
       "field": "AKFTA",
       "from": "5% (민감품목 감축 가정)",
       "to": "36% (초민감 B그룹)",
