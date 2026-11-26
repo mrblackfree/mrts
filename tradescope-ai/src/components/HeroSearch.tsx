@@ -2,6 +2,7 @@
 
 import { ArrowRight, Check, Loader2, Search } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
+import { COMING_SOON } from '@/data/corridors';
 import { DEMO_SCENARIOS } from '@/data/kr-ph-trade-db';
 import type { Direction } from '@/lib/types';
 import { Flag } from './Flag';
@@ -156,6 +157,16 @@ export default function HeroSearch({ query, direction, loading, activeDemo, comp
           {t('countryPH')}
           <span aria-hidden className="h-3 w-px bg-slate-200 dark:bg-white/15" />
           <span className="text-brand-700 dark:text-brand-300">{t('corridorLive')}</span>
+        </p>
+        {/* next corridors: shown only, nothing behind them yet */}
+        <p className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[12px] font-medium text-slate-400 dark:text-slate-500">
+          <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-white dark:bg-white/90 dark:text-slate-900">{t('comingSoon')}</span>
+          {COMING_SOON.map((c) => (
+            <span key={c.code} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+              <Flag code={c.code} className="opacity-80 grayscale-[35%]" />
+              {p(c.name)}
+            </span>
+          ))}
         </p>
         <h1 className="mt-6 text-balance break-keep text-[32px] font-bold leading-[1.15] tracking-[-0.04em] text-slate-900 sm:text-[52px] dark:text-white">
           {t('heroTitleLead')}

@@ -2,6 +2,7 @@
 
 import { ArrowDownRight, ArrowRight, ArrowUpRight, ClipboardCheck, Handshake, MessageSquareText, Ship, ShieldCheck, UserRoundCheck } from 'lucide-react';
 import { useState } from 'react';
+import { CORRIDORS } from '@/data/corridors';
 import { EXPERT_INDEX } from '@/data/experts';
 import { KR_PH_OVERVIEW, PRODUCTS } from '@/data/kr-ph-trade-db';
 import { formatPct, formatUsd, trend, yoy } from '@/lib/format';
@@ -17,6 +18,7 @@ export const LANDING_SECTIONS = [
   { id: 'how', key: 'navHow' },
   { id: 'products', key: 'navProducts' },
   { id: 'experts', key: 'navExperts' },
+  { id: 'markets', key: 'navMarkets' },
   { id: 'trade', key: 'navTrade' },
 ] as const;
 
@@ -218,6 +220,54 @@ function ExpertBand({ onExpert }: { onExpert: () => void }) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+/** The live corridor and the next ones — the coming-soon cards are shown only, nothing behind them yet. */
+function Markets() {
+  const { t, p } = useI18n();
+  return (
+    <section id="markets" aria-labelledby="markets-title" className="scroll-mt-24">
+      <SectionHead id="markets" eyebrow={t('marketsEyebrow')} title={t('marketsTitle')} sub={t('marketsSub')} />
+      <ul className="mt-8 grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-5">
+        {CORRIDORS.map((c) => {
+          const live = c.status === 'live';
+          return (
+            <li
+              key={c.code}
+              aria-label={`${p(c.name)} · ${live ? t('marketLive') : t('comingSoon')}`}
+              className={cx(
+                'relative flex min-w-0 flex-col rounded-[22px] border p-4 sm:p-5',
+                live
+                  ? 'col-span-2 border-brand-300 bg-white shadow-soft ring-1 ring-brand-500/15 lg:col-span-1 dark:border-brand-400/40 dark:bg-[#0c121d]'
+                  : 'border-dashed border-slate-300/90 bg-slate-50/60 dark:border-white/15 dark:bg-white/[0.02]',
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 dark:text-slate-400">
+                  <Flag code="KR" className={live ? '' : 'opacity-70 grayscale-[40%]'} />
+                  <span aria-hidden>↔</span>
+                  <Flag code={c.code} className={cx('h-[1.05em]', live ? '' : 'opacity-70 grayscale-[40%]')} />
+                </span>
+                <span
+                  className={cx(
+                    'rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em]',
+                    live ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-300' : 'bg-slate-900 text-white dark:bg-white/90 dark:text-slate-900',
+                  )}
+                >
+                  {live ? t('marketLive') : t('comingSoon')}
+                </span>
+              </div>
+              <p className={cx('mt-4 text-[17px] font-bold tracking-[-0.02em]', live ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400')}>{p(c.name)}</p>
+              <p className="mt-1 break-keep text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">{p(c.agreements)}</p>
+              {live && <p className="mt-3 break-keep text-[12.5px] font-medium leading-relaxed text-brand-800 dark:text-brand-200">{t('marketLiveNote')}</p>}
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-3 text-[12px] text-slate-400 dark:text-slate-500">{t('marketsNote')}</p>
+    </section>
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 function TradeSnapshot({ onOpenTrust }: { onOpenTrust: () => void }) {
   const { t, p } = useI18n();
   const ex = KR_PH_OVERVIEW.krExportsToPh;
@@ -283,6 +333,7 @@ export default function Landing({ onPick, onExpert, onOpenTrust }: { onPick: (pr
       <HowItWorks />
       <ProductPicker onPick={onPick} />
       <ExpertBand onExpert={onExpert} />
+      <Markets />
       <TradeSnapshot onOpenTrust={onOpenTrust} />
     </div>
   );

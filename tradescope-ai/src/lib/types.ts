@@ -385,6 +385,9 @@ export interface ProformaInvoice {
   portOfDischarge: string;
   payment: string;
   leadTime: string;
+  /** country of origin of the goods */
+  origin: string;
+  currency: 'USD';
   lines: ProformaLine[];
   total: number;
   remarks: string[];

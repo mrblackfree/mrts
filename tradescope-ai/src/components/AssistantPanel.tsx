@@ -1,16 +1,16 @@
 'use client';
 
-import { AlertTriangle, Bot, ExternalLink, FileText, Mail, MapPin, Send, Sparkles, Star, Target, Wand2, X } from 'lucide-react';
+import { AlertTriangle, Bot, ExternalLink, Mail, MapPin, Send, Sparkles, Star, Target, Wand2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog';
-import { formatNumber, formatUsd } from '@/lib/format';
 import { PARTNER_TYPE_LABEL, type DictKey } from '@/lib/i18n';
-import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, partnerFactors, priceForIncoterm, priceOnBasis, proformaToText } from '@/lib/engine/simulate';
+import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, partnerFactors, priceForIncoterm, priceOnBasis } from '@/lib/engine/simulate';
 import type { DraftOptions, EmailDraft, Lang, Partner, QueryIntent, TradeProduct } from '@/lib/types';
 import { STATIC_PREVIEW } from '@/lib/preview';
 import { useI18n } from './I18nProvider';
 import { Badge, Button, buttonClass, CopyButton, copyText, cx, ProgressBar, ScoreRing, Segmented } from './ui';
 import { Flag } from './Flag';
+import InvoicePreview from './InvoicePreview';
 
 interface Props {
   product: TradeProduct;
@@ -376,78 +376,8 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                   {notice && <p className="px-4 pb-3 text-xs font-medium text-amber-600 dark:text-amber-400">{notice}</p>}
                 </div>
 
-                {/* Proforma invoice */}
-                <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-hairline dark:border-white/[0.07] dark:bg-white/[0.02]">
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/60 px-4 py-2.5 dark:border-white/[0.06] dark:bg-white/[0.02]">
-                    <span className="inline-flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
-                      <FileText className="size-4 text-brand-500" />
-                      {t('piTitle')}
-                    </span>
-                    <CopyButton text={proformaToText(draft.pi)} label={t('copyPi')} />
-                  </div>
-                  <div className="space-y-3 p-4 text-xs">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <p className="text-base font-extrabold tracking-wide text-slate-900 dark:text-white">PROFORMA INVOICE</p>
-                      <p className="font-mono text-slate-500">{draft.pi.number}</p>
-                    </div>
-                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                      {[
-                        ['Seller', draft.pi.seller],
-                        ['Buyer', draft.pi.buyer],
-                        ['Date', draft.pi.date],
-                        ['Valid until', draft.pi.validUntil],
-                        ['Terms', draft.pi.incoterm],
-                        ['Payment', draft.pi.payment],
-                        ['Port of loading', draft.pi.portOfLoading],
-                        ['Port of discharge', draft.pi.portOfDischarge],
-                      ].map(([k, v]) => (
-                        <div key={k} className="min-w-0">
-                          <dt className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{k}</dt>
-                          <dd className="font-semibold text-slate-700 dark:text-slate-200">{v}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                    <div className="thin-scroll overflow-x-auto">
-                      <table className="w-full min-w-[460px] text-left">
-                        <thead>
-                          <tr className="border-y border-slate-200 text-[10px] uppercase tracking-wide text-slate-400 dark:border-white/10">
-                            <th className="py-1.5">Description</th>
-                            <th className="py-1.5">HS</th>
-                            <th className="py-1.5 text-right">Qty</th>
-                            <th className="py-1.5 text-right">Unit price</th>
-                            <th className="py-1.5 text-right">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {draft.pi.lines.map((l, i) => (
-                            <tr key={i} className="border-b border-slate-100 dark:border-white/[0.07]">
-                              <td className="py-1.5 pr-2 font-medium text-slate-700 dark:text-slate-200">{l.description}</td>
-                              <td className="py-1.5 font-mono text-slate-500">{l.hsCode}</td>
-                              <td className="py-1.5 text-right tabular-nums">
-                                {formatNumber(l.quantity)} {l.unit}
-                              </td>
-                              <td className="py-1.5 text-right tabular-nums">{formatUsd(l.unitPrice, { decimals: 2 })}</td>
-                              <td className="py-1.5 text-right font-semibold tabular-nums">{formatUsd(l.amount, { decimals: 2 })}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                        <tfoot>
-                          <tr>
-                            <td colSpan={4} className="pt-2 text-right text-[11px] font-bold uppercase text-slate-500">
-                              Total (USD)
-                            </td>
-                            <td className="pt-2 text-right text-sm font-extrabold tabular-nums text-slate-900 dark:text-white">{formatUsd(draft.pi.total, { decimals: 2 })}</td>
-                          </tr>
-                        </tfoot>
-                      </table>
-                    </div>
-                    <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-slate-500 dark:text-slate-400">
-                      {draft.pi.remarks.map((r, i) => (
-                        <li key={i}>{r}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+                {/* Proforma invoice: a finished A4 document */}
+                <InvoicePreview pi={draft.pi} mineIsSeller={partner.role !== 'seller'} signatoryName={options.senderName} />
               </div>
             )
           )}
