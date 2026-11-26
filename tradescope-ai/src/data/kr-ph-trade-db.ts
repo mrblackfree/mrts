@@ -12,7 +12,7 @@
  */
 import type { Bilingual, Requirement, SourceMeta, TariffRate, TradeProduct } from '@/lib/types';
 import { todayIso } from '@/lib/format';
-import { applyOfficialLayer, OFFICIAL } from './official';
+import { applyOfficialLayer, OFFICIAL, setRuntimeOverrides, type OverrideEntry } from './official';
 
 const b = (ko: string, en: string): Bilingual => ({ ko, en });
 
@@ -2081,14 +2081,28 @@ let layerBuiltOn = todayIso();
  * Re-applies the official layer when the calendar day changes, so `validUntil` expiry also takes effect in
  * long-running servers (browsers rebuild on every page load). Arrays are updated in place for importers.
  */
-export function refreshOfficialLayer(): void {
+export function refreshOfficialLayer(force = false): void {
   const day = todayIso();
-  if (day === layerBuiltOn) return;
+  if (day === layerBuiltOn && !force) return;
   layerBuiltOn = day;
   const fresh = SEED_PRODUCTS.map(applyOfficialLayer);
   PRODUCTS.splice(0, PRODUCTS.length, ...fresh);
   for (const k of Object.keys(PRODUCT_INDEX)) delete PRODUCT_INDEX[k];
   for (const p of fresh) PRODUCT_INDEX[p.id] = p;
+}
+
+let runtimeKey = '';
+/**
+ * Applies verified values saved on the admin page (already validated server-side) and rebuilds the products in
+ * place when they changed. Used by the server on each request and by the browser after loading /api/verifications.
+ */
+export function applyRuntimeOverrides(entries: OverrideEntry[]): boolean {
+  const key = JSON.stringify(entries);
+  if (key === runtimeKey) return false;
+  runtimeKey = key;
+  setRuntimeOverrides(entries);
+  refreshOfficialLayer(true);
+  return true;
 }
 
 export function getProduct(id: string): TradeProduct | undefined {

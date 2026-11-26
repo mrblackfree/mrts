@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown, Clock, ExternalLink, History, KeyRound, Link2, Map as MapIcon, PenLine, RefreshCw, ShieldCheck, TriangleAlert, X, Zap } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog';
 import { PRODUCTS } from '@/data/kr-ph-trade-db';
 import changelogJson from '@/data/official/changelog.json';
@@ -56,7 +56,8 @@ export default function DataTrustCenter({
   const { t, p, lang } = useI18n();
   const [open, setOpen] = useState<string | null>(focusProductId ?? null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const overall = useMemo(overallTrustScore, []);
+  // computed on every render: verified values saved on the admin page can change it while the page is open
+  const overall = overallTrustScore();
   // once /api/health has answered, the server's value wins (null = cleared on /admin); the build-time value only
   // covers the moment before it loads
   const feedbackUrl = links ? links.feedbackUrl : process.env.NEXT_PUBLIC_DATA_FEEDBACK_URL;

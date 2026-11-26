@@ -32,7 +32,7 @@ const T = {
     status: { ok: '연결됨', partial: '일부 반영', error: '오류', off: '미연결', key: '키 등록됨', nokey: '키 없음', keyOptional: '키 선택 사항', partner: '계약 파트너 필요' },
     setKey: '키 입력',
     openPartners: '파트너 관리',
-    viaHelper: '신뢰도 센터 → 검증값 입력 도우미',
+    enterVerified: '검증값 입력',
     test: '연결 테스트',
     testing: '확인 중…',
     other: '기능 연결 (신뢰도 점수에는 영향 없음)',
@@ -61,7 +61,7 @@ const T = {
     status: { ok: 'Connected', partial: 'Partly reflected', error: 'Error', off: 'Not connected', key: 'Key saved', nokey: 'No key', keyOptional: 'Key optional', partner: 'Needs a contracted partner' },
     setKey: 'Enter key',
     openPartners: 'Partners',
-    viaHelper: 'Trust Center → verified-value helper',
+    enterVerified: 'Enter verified value',
     test: 'Test connection',
     testing: 'Checking…',
     other: 'Feature connections (no effect on the trust score)',
@@ -114,16 +114,22 @@ export default function TrustHub({
   fields,
   sources,
   go,
+  version,
+  onVerify,
   onUnauthorized,
 }: {
   lang: Lang;
   fields: Record<string, Field>;
   sources: Record<string, string | null>;
   go: (to: HubTarget) => void;
+  /** changes when saved verified values were applied — projections are recomputed */
+  version: number;
+  onVerify: () => void;
   onUnauthorized: () => void;
 }) {
   const s = T[lang];
-  const proj = useMemo(() => projectTrust(PRODUCTS, LEVERS), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- PRODUCTS is rebuilt in place; `version` marks it
+  const proj = useMemo(() => projectTrust(PRODUCTS, LEVERS), [version]);
   const [tests, setTests] = useState<Record<string, TestResult | 'busy'>>({});
   const isSet = (k: string) => !!fields[k] && fields[k].source !== 'unset' && fields[k].source !== 'default';
 
@@ -274,7 +280,12 @@ export default function TrustHub({
                       {s.openPartners}
                     </Button>
                   )}
-                  {l.section === 'trust-center' && <span className="text-[12px] text-slate-500">{s.viaHelper}</span>}
+                  {l.kind === 'expert' && (
+                    <Button size="xs" variant="primary" onClick={onVerify}>
+                      <ShieldCheck className="size-3.5" aria-hidden />
+                      {s.enterVerified}
+                    </Button>
+                  )}
                   {l.getKey && !isSet(l.settings?.[0] ?? '') && (
                     <a href={l.getKey.url} target="_blank" rel="noopener noreferrer" className="text-[12px] font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">
                       {l.getKey.label[lang]} ↗

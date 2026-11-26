@@ -30,7 +30,16 @@ const PRODUCT_SCOPED = ['partnerId', 'reqId', 'lane', 'code', 'hs'];
  * `editUrl` is the server-resolved edit link, or null for no link. Only while it is still undefined (not loaded yet)
  * is the build-time NEXT_PUBLIC_OVERRIDES_EDIT_URL used.
  */
-export default function OverrideHelper({ defaultProductId, editUrl: editUrlProp }: { defaultProductId?: string; editUrl?: string | null }) {
+export default function OverrideHelper({
+  defaultProductId,
+  editUrl: editUrlProp,
+  onSave,
+}: {
+  defaultProductId?: string;
+  editUrl?: string | null;
+  /** admin page: saves the entry on the server (applied right away); resolves to an error message or null */
+  onSave?: (entry: unknown) => Promise<string | null>;
+}) {
   const { p, lang } = useI18n();
   const [productId, setProductId] = useState(defaultProductId && PRODUCTS.some((x) => x.id === defaultProductId) ? defaultProductId : PRODUCTS[0].id);
   const [type, setType] = useState<TargetType>('tariff');
@@ -44,6 +53,8 @@ export default function OverrideHelper({ defaultProductId, editUrl: editUrlProp 
   const hsTables = Object.entries(product.tariffsByHs ?? {});
   const tariffTable = f.hs && product.tariffsByHs?.[f.hs] ? product.tariffsByHs[f.hs].tariffs : product.tariffs;
   const editUrl = editUrlProp !== undefined ? editUrlProp : process.env.NEXT_PUBLIC_OVERRIDES_EDIT_URL;
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
   // expiry checks follow the calendar, also in a page left open past midnight
   const today = useBusinessDay();
 
@@ -306,18 +317,46 @@ export default function OverrideHelper({ defaultProductId, editUrl: editUrlProp 
         ) : (
           <p className="mt-2 flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
             <ClipboardCheck className="size-3.5" />
-            {lang === 'ko' ? '형식 검증 통과 — verified-overrides.json의 entries 배열에 붙여넣으세요' : 'Valid — paste into the entries array of verified-overrides.json'}
+            {onSave
+              ? lang === 'ko'
+                ? '형식 검증 통과 — 저장하면 바로 반영됩니다'
+                : 'Valid — saving applies it right away'
+              : lang === 'ko'
+                ? '형식 검증 통과 — verified-overrides.json의 entries 배열에 붙여넣으세요'
+                : 'Valid — paste into the entries array of verified-overrides.json'}
           </p>
         )}
         <div className="mt-2 flex flex-wrap items-center gap-2">
+          {onSave && (
+            <button
+              type="button"
+              disabled={saving || missing.length > 0 || invalid.length > 0}
+              onClick={async () => {
+                setSaving(true);
+                setSaveMsg(null);
+                const err = await onSave(JSON.parse(entry));
+                setSaving(false);
+                setSaveMsg(err ? { ok: false, text: err } : { ok: true, text: lang === 'ko' ? '저장했습니다 — 사이트에 바로 반영됩니다' : 'Saved — applied on the site right away' });
+                if (!err) setF((o) => ({ verifiedAt: o.verifiedAt, verifiedBy: o.verifiedBy, source: o.source, scheme: o.scheme }));
+              }}
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-ink-900 px-3 text-[12px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-ink-900"
+            >
+              {saving ? '…' : lang === 'ko' ? '저장하고 바로 반영' : 'Save & apply'}
+            </button>
+          )}
           {missing.length === 0 && invalid.length === 0 && <CopyButton text={entry} />}
           {editUrl && (
             <a href={editUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline dark:text-brand-400">
               verified-overrides.json {lang === 'ko' ? '편집' : 'edit'} <ExternalLink className="size-3" />
             </a>
           )}
-          <span className="text-[11px] text-slate-400">npm run data:validate</span>
+          {!onSave && <span className="text-[11px] text-slate-400">npm run data:validate</span>}
         </div>
+        {saveMsg && (
+          <p role="status" className={cx('mt-2 text-[12px] font-semibold', saveMsg.ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300')}>
+            {saveMsg.text}
+          </p>
+        )}
       </div>
     </div>
   );

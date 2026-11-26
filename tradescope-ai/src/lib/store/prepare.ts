@@ -4,7 +4,8 @@
  * data folder, which is read directly.
  */
 import { loadSettings } from '@/lib/settings';
+import { loadVerifications } from '@/lib/verifications/store';
 
 export async function prepareRequest(): Promise<void> {
-  await loadSettings();
+  await Promise.all([loadSettings(), loadVerifications()]);
 }

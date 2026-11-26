@@ -23,6 +23,7 @@ import ExpertRequestDialog, { type ExpertContext } from './expert/ExpertRequestD
 import TradeJourney from './journey/TradeJourney';
 import { Button, cx } from './ui';
 import { useBusinessDay } from './useBusinessDay';
+import { useVerifications } from './useVerifications';
 
 /** The query's own amount and incoterm when the tariff calculator starts from a value converted to CIF. */
 function cifSource(report: AnalysisReport) {
@@ -63,7 +64,9 @@ function WorkspaceInner() {
   const [showExample, setShowExample] = useState(false);
   // re-applies the official layer at the day boundary so expired overrides drop out of an open dashboard
   const businessDay = useBusinessDay();
-  const trustScore = useMemo(() => overallTrustScore(), [businessDay]);
+  // verified values saved on the admin page apply here as soon as they are loaded
+  const { version: verifiedVersion } = useVerifications();
+  const trustScore = useMemo(() => overallTrustScore(), [businessDay, verifiedVersion]);
   const resultsRef = useRef<HTMLDivElement>(null);
   const requestId = useRef(0);
 

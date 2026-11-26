@@ -95,7 +95,7 @@ interface Snapshot {
 
 type PrefEntry = WitsEntry & { partner: number; hs6: string; prefLines: number };
 
-type OverrideTarget =
+export type OverrideTarget =
   | { type: 'tariff'; scheme: string; rate: number; roo?: string; hs?: string }
   | { type: 'hs'; code: string; ruling: string }
   | { type: 'partner'; id: string; license: string; licenseValidUntil?: string }
@@ -103,7 +103,7 @@ type OverrideTarget =
   | { type: 'logistics'; index: number; cost?: [number, number]; transitDays?: [number, number] }
   | { type: 'pricing'; unitPrice?: number; moq?: number };
 
-interface OverrideEntry {
+export interface OverrideEntry {
   productId: string;
   target: OverrideTarget;
   source: string;
@@ -116,15 +116,27 @@ interface OverrideEntry {
 const SNAP = snapshotJson as unknown as Snapshot;
 const OVERRIDES = ((overridesJson as unknown as { entries?: OverrideEntry[] }).entries ?? []).filter(Boolean);
 
+/**
+ * Verified values saved on the admin page (validated server-side), applied after the shipped ones so a newer
+ * verification of the same datum wins. Set through setRuntimeOverrides(); see lib/verifications.
+ */
+let RUNTIME: OverrideEntry[] = [];
+export function setRuntimeOverrides(entries: OverrideEntry[]): void {
+  RUNTIME = entries.filter(Boolean);
+}
+const allOverrides = () => (RUNTIME.length ? [...OVERRIDES, ...RUNTIME] : OVERRIDES);
+
 export const OFFICIAL = {
   generatedAt: SNAP.generatedAt,
   sources: SNAP.sources ?? {},
   overview: SNAP.comtrade?.overview,
   fx: SNAP.kcs?.fx ?? null,
   links: SNAP.links ?? {},
-  overrideCount: OVERRIDES.length,
+  get overrideCount() {
+    return allOverrides().length;
+  },
   /** overrides that are currently applied (entry not expired; partner licence not expired) */
-  activeOverrideCount: () => OVERRIDES.filter((e) => isActive(e) && licenceActive(e)).length,
+  activeOverrideCount: () => allOverrides().filter((e) => isActive(e) && licenceActive(e)).length,
 };
 
 const ymd = (iso?: string) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : undefined);
@@ -342,7 +354,7 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
 
   // 3) human-verified overrides ------------------------------------------------
   let rooVerified: string | undefined;
-  for (const e of OVERRIDES.filter((o) => o.productId === p.id && isActive(o))) {
+  for (const e of allOverrides().filter((o) => o.productId === p.id && isActive(o))) {
     const stamp = `${e.source} · ${e.verifiedBy} · ${e.verifiedAt}`;
     const tg = e.target;
     if (tg.type === 'tariff') {

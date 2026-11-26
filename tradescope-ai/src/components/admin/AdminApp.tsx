@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EXPERT_INDEX } from '@/data/experts';
 import { SETTINGS, type SettingDef, type SettingGroup } from '@/lib/settings/schema';
 import Partners from './Partners';
+import Verifications from './Verifications';
+import { useVerifications } from '../useVerifications';
 import TrustHub from './TrustHub';
 import type { Lang } from '@/lib/types';
 import { I18nProvider, useI18n } from '../I18nProvider';
@@ -26,7 +28,7 @@ interface Snapshot {
 }
 type Session = { enabled: boolean; reason?: 'not-set' | 'too-short' | 'too-long' | 'secret-too-short'; authenticated: boolean; expiresAt: number | null };
 type TestResult = { ok: boolean; message: string; latencyMs: number; detail?: string };
-type Section = 'overview' | 'connect' | 'validation' | SettingGroup | 'partners' | 'deploy';
+type Section = 'overview' | 'connect' | 'verify' | 'validation' | SettingGroup | 'partners' | 'deploy';
 
 // ---------------------------------------------------------------------------
 // strings
@@ -54,10 +56,11 @@ const S = {
     wrongPassword: '비밀번호가 올바르지 않습니다.',
     tooMany: '시도가 너무 많습니다. 15분 뒤 다시 시도하세요.',
     networkError: '서버에 연결할 수 없습니다.',
-    menu: { overview: '개요', connect: 'API 연결 · 신뢰도', partners: '파트너 관리', validation: '가설 검증', ai: 'AI 엔진', data: '공식 데이터 키', service: '전문가 서비스', pricing: '요금제', tracking: '컨테이너 추적', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
+    menu: { overview: '개요', connect: 'API 연결 · 신뢰도', verify: '검증 입력', partners: '파트너 관리', validation: '가설 검증', ai: 'AI 엔진', data: '공식 데이터 키', service: '전문가 서비스', pricing: '요금제', tracking: '컨테이너 추적', links: '신뢰도 센터 링크', limits: '호출 한도·보안', deploy: '배포·환경' } as Record<Section, string>,
     sectionSub: {
       overview: '현재 상태와 남은 설정을 한눈에 봅니다.',
       connect: '연결한 API와 파트너 검증이 데이터 신뢰도를 얼마나 올리는지 미리 보고, 키를 바로 입력·테스트합니다.',
+      verify: '계약 파트너가 확인해 준 값을 넣으면 검증 후 바로 반영되어 데이터 신뢰도가 오릅니다.',
       partners: '국가별 법무법인(인허가·요건 검토·계약)과 관세법인(통관·FTA·HS)을 후보부터 계약까지 관리합니다. 「계약」으로 바꾼 곳만 사이트에 표시됩니다(이름·국가·도시·웹사이트).',
       validation: '사이트에서 측정하는 가설(H3·H7·H8·H9)을 비즈니스 모델 캔버스의 기준으로 판정합니다. 익명 집계만 사용합니다.',
       ai: 'OpenAI 호환 LLM을 연결합니다. 저장 즉시 다음 요청부터 적용됩니다.',
@@ -180,10 +183,11 @@ const S = {
     wrongPassword: 'Incorrect password.',
     tooMany: 'Too many attempts. Try again in 15 minutes.',
     networkError: 'Cannot reach the server.',
-    menu: { overview: 'Overview', connect: 'Connections & trust', partners: 'Partners', validation: 'Hypothesis checks', ai: 'AI engine', data: 'Official data keys', service: 'Expert service', pricing: 'Pricing', tracking: 'Container tracking', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
+    menu: { overview: 'Overview', connect: 'Connections & trust', verify: 'Verified values', partners: 'Partners', validation: 'Hypothesis checks', ai: 'AI engine', data: 'Official data keys', service: 'Expert service', pricing: 'Pricing', tracking: 'Container tracking', links: 'Trust Center links', limits: 'Limits & security', deploy: 'Deployment' } as Record<Section, string>,
     sectionSub: {
       overview: 'Current state and what is left to configure.',
       connect: 'See how much each API and partner verification raises the data trust score, then enter and test keys right here.',
+      verify: 'Values confirmed by contracted partners are checked and applied right away, raising the data trust score.',
       partners: 'Law firms (permits, requirement reviews, contracts) and customs firms (clearance, FTA, HS) per country, from candidates to contracts. Only firms set to “Contracted” appear on the site (name, country, city, website).',
       validation: 'The hypotheses the site measures (H3, H7, H8, H9), judged against the business model canvas thresholds. Aggregate counts only.',
       ai: 'Connect an OpenAI-compatible LLM. Takes effect from the next request.',
@@ -305,6 +309,7 @@ const isPresetValue = (key: ManualKey, v: string | null | undefined) => !!v && P
 const SECTIONS: Array<{ id: Section; icon: React.ReactNode }> = [
   { id: 'overview', icon: <LayoutDashboard className="size-4" /> },
   { id: 'connect', icon: <PlugZap className="size-4" /> },
+  { id: 'verify', icon: <ShieldCheck className="size-4" /> },
   { id: 'validation', icon: <FlaskConical className="size-4" /> },
   { id: 'ai', icon: <Cpu className="size-4" /> },
   { id: 'data', icon: <Database className="size-4" /> },
@@ -542,6 +547,8 @@ function Dashboard({
   onLogoutAll: () => Promise<boolean>;
 }) {
   const [section, setSection] = useState<Section>('overview');
+  // verified values saved here apply to this page's product data too (projections, scores)
+  const { version: verifiedVersion, reload: reloadVerified } = useVerifications();
   const fields = useMemo(() => Object.fromEntries(snap.fields.map((f) => [f.key, f])), [snap]);
   const writable = snap.storage.writable;
   const ro = !snap.storage.writable ? snap.storage : null;
@@ -580,7 +587,10 @@ function Dashboard({
 
         {section === 'overview' && <Overview s={s} lang={lang} snap={snap} fields={fields} expiresAt={expiresAt} go={setSection} onLogoutAll={onLogoutAll} />}
         {section === 'connect' && (
-          <TrustHub lang={lang} fields={fields} sources={snap.officialData.sources} go={(to) => setSection(to)} onUnauthorized={onUnauthorized} />
+          <TrustHub lang={lang} fields={fields} sources={snap.officialData.sources} version={verifiedVersion} go={(to) => setSection(to === 'partners' ? 'partners' : to)} onVerify={() => setSection('verify')} onUnauthorized={onUnauthorized} />
+        )}
+        {section === 'verify' && (
+          <Verifications lang={lang} writable={snap.storage.writable} version={verifiedVersion} onApplied={reloadVerified} onUnauthorized={onUnauthorized} />
         )}
         {section === 'partners' && <Partners lang={lang} onUnauthorized={onUnauthorized} />}
         {section === 'validation' && <Validation lang={lang} onUnauthorized={onUnauthorized} />}
