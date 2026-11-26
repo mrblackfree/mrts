@@ -23,9 +23,11 @@ const rate = (id: string, scheme: string, hs?: string) => {
   return (hs ? p.tariffsByHs![hs].tariffs : p.tariffs).find((x) => x.scheme === scheme)!;
 };
 ok("banana chips: Korea's AKFTA rate is the official 36%", rate('banana-chips', 'AKFTA').rate === 36 && rate('banana-chips', 'AKFTA').level === 'official');
-ok('banana chips: RCEP is recommended and its rule of origin is official', getProduct('banana-chips')!.bestFta.scheme === 'RCEP' && getProduct('banana-chips')!.verification!.items.find((i) => i.key === 'roo')!.level === 'official');
+ok('banana chips: the KR-PH FTA (32.4%, decree annex) is recommended and its rule of origin is official', getProduct('banana-chips')!.bestFta.scheme === 'KRPH' && rate('banana-chips', 'KRPH').rate === 32.4 && getProduct('banana-chips')!.verification!.items.find((i) => i.key === 'roo')!.level === 'official');
+ok('banana chips: RCEP for Philippine goods is year 4 in 2026 (36%)', rate('banana-chips', 'RCEP').rate === 36 && rate('banana-chips', 'RCEP').level === 'official');
+ok('banana chips: MFN 45% is official (Customs Act schedule)', rate('banana-chips', 'MFN').rate === 45 && rate('banana-chips', 'MFN').level === 'official');
 ok('dried mango: unsweetened 0804.50 is AKFTA 24% (official)', rate('dried-mango', 'AKFTA', '0804.50.2000').rate === 24 && rate('dried-mango', 'AKFTA', '0804.50.2000').level === 'official');
 ok('coconut oil: crude 1513.11 is 0% under all three agreements (official)', ['AKFTA', 'RCEP', 'KRPH'].every((s) => rate('coconut-oil', s, '1513.11.0000').rate === 0 && rate('coconut-oil', s, '1513.11.0000').level === 'official'));
-ok('rates not printed in a schedule stay at the seed level', rate('banana-chips', 'KRPH').level === undefined && rate('coconut-oil', 'KRPH').level === undefined);
+ok('rates not printed as one value stay at the seed level', rate('coconut-oil', 'AKFTA').level === undefined && rate('coconut-oil', 'RCEP').level === undefined);
 
 done('tariff tables');

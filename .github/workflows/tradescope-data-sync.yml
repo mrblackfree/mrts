@@ -62,12 +62,14 @@ jobs:
       - name: Detect real data changes (ignore timestamps)
         id: diff
         run: |
-          strip='del(.. | .fetchedAt?, .checkedAt?) | del(.generatedAt)'
+          # Timestamps, link-check tallies and the ok↔protected flip (a site answering 200 one week and 403 to bots the
+          # next) are not data changes; a link that breaks, recovers or starts failing still is.
+          strip='del(.. | .fetchedAt?, .checkedAt?) | del(.generatedAt) | del(.sources.links.counts, .sources.links.note) | .links |= map_values(del(.status) | .state |= (if . == "protected" then "ok" else . end))'
           git show HEAD:tradescope-ai/src/data/official/snapshot.json | jq -S "$strip" > "$RUNNER_TEMP/old.json"
           jq -S "$strip" src/data/official/snapshot.json > "$RUNNER_TEMP/new.json"
           if cmp -s "$RUNNER_TEMP/old.json" "$RUNNER_TEMP/new.json"; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Only timestamps changed — nothing to propose."
+            echo "Only timestamps or link-check noise changed — nothing to propose."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
             diff <(jq -r 'paths(scalars) as $p | "\($p|join("."))=\(getpath($p))"' "$RUNNER_TEMP/old.json") \
