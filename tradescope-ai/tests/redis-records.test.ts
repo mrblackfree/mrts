@@ -95,7 +95,8 @@ fake.failWith = null;
 
 // health follows the whole answer: a batch with one failed command is a failure
 // (first let the background metric writes of the posts above finish: their answers count as health too)
-await new Promise((r) => setTimeout(r, 500));
+const { backgroundSettled } = await import('@/lib/background');
+await backgroundSettled();
 kvModule.resetKvHealthForTest();
 let pipeThrew = false;
 try {

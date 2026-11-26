@@ -5,11 +5,21 @@
  */
 import { after } from 'next/server';
 
+/** work started outside a request scope that has not settled yet */
+const pending = new Set<Promise<unknown>>();
+
 export function inBackground(task: () => Promise<unknown>): void {
   const run = () => task().catch(() => undefined);
   try {
     after(run);
   } catch {
-    void run();
+    const p = run();
+    pending.add(p);
+    void p.finally(() => pending.delete(p));
   }
+}
+
+/** For tests: waits until all work started outside a request scope has settled. */
+export async function backgroundSettled(): Promise<void> {
+  while (pending.size) await Promise.all([...pending]);
 }
