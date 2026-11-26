@@ -111,6 +111,12 @@ export interface OverrideEntry {
   verifiedBy: string;
   verifiedAt: string;
   validUntil?: string;
+  /**
+   * What the check was. Left out: confirmed by an expert or partner (customs broker, law firm, forwarder…) — shown
+   * as "expert-verified". 'official': read from an official published schedule or register without a professional
+   * opinion — shown as "official", never as expert-verified. Both count fully in the trust score.
+   */
+  basis?: 'official';
 }
 
 const SNAP = snapshotJson as unknown as Snapshot;
@@ -354,7 +360,9 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
 
   // 3) human-verified overrides ------------------------------------------------
   let rooVerified: string | undefined;
+  let rooLevel: VerificationLevel = 'seed';
   for (const e of allOverrides().filter((o) => o.productId === p.id && isActive(o))) {
+    const lvl: VerificationLevel = e.basis === 'official' ? 'official' : 'verified';
     const stamp = `${e.source} · ${e.verifiedBy} · ${e.verifiedAt}`;
     const tg = e.target;
     if (tg.type === 'tariff') {
@@ -366,11 +374,16 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
         t.rate = tg.rate;
         if (tg.roo) {
           t.roo = tg.roo;
-          if (t.scheme === p.bestFta.scheme && table === p.tariffs) rooVerified = stamp;
+          if (t.scheme === p.bestFta.scheme && table === p.tariffs) {
+            rooVerified = stamp;
+            rooLevel = lvl;
+          }
         }
-        t.level = 'verified';
+        t.level = lvl;
         t.verifiedNote = stamp;
-        if (t.scheme === 'MFN' && table === p.tariffs) mfnLevel = 'verified';
+        t.overrideBasis = e.basis === 'official' ? 'official' : 'expert';
+        t.overrideCheckedAt = e.verifiedAt;
+        if (t.scheme === 'MFN' && table === p.tariffs) mfnLevel = lvl;
       }
     } else if (tg.type === 'hs') {
       const h = p.hs.find((x) => x.code === tg.code);
@@ -403,9 +416,9 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
   // The official checks ran before overrides; note when a verified value now replaces the checked rate.
   const noteOverride = (tariffs: TariffRate[], mfnCheck?: MfnCheck, prefCheck?: PrefCheck) => {
     const mfn = tariffs.find((x) => x.scheme === 'MFN');
-    if (mfnCheck && mfn?.level === 'verified' && mfn.rate !== mfnCheck.appliedRate) mfnCheck.override = { rate: mfn.rate, source: mfn.verifiedNote ?? '' };
+    if (mfnCheck && mfn?.overrideBasis && mfn.rate !== mfnCheck.appliedRate) mfnCheck.override = { rate: mfn.rate, source: mfn.verifiedNote ?? '', basis: mfn.overrideBasis };
     const ak = tariffs.find((x) => x.scheme === 'AKFTA');
-    if (prefCheck && ak?.level === 'verified') prefCheck.override = { rate: ak.rate, source: ak.verifiedNote ?? '' };
+    if (prefCheck && ak?.overrideBasis) prefCheck.override = { rate: ak.rate, source: ak.verifiedNote ?? '', basis: ak.overrideBasis };
   };
   noteOverride(p.tariffs, verification.mfnCheck, verification.prefCheck);
   for (const table of Object.values(p.tariffsByHs ?? {})) noteOverride(table.tariffs, table.mfnCheck, table.prefCheck);
@@ -434,14 +447,14 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       label: b(`${t.scheme} 협정세율`, `${t.scheme} preferential rate`),
       level: t.level ?? 'seed',
       source: t.level && t.verifiedNote !== 'capped-at-mfn' ? t.verifiedNote : undefined,
-      checkedAt: t.level === 'official' || t.level === 'crosscheck' ? SNAP.sources?.wits?.fetchedAt : undefined,
+      checkedAt: t.overrideCheckedAt ?? (t.level === 'official' || t.level === 'crosscheck' ? SNAP.sources?.wits?.fetchedAt : undefined),
       conflict:
         t.verifiedNote === 'capped-at-mfn' ? b('MFN보다 높아 MFN으로 상한 적용', 'Exceeded MFN — capped at MFN') : t.scheme === 'AKFTA' ? akftaConflict : undefined,
     });
   }
   capConflicts.forEach((c, i) => items.push({ key: `cap:${i}`, category: 'fta', label: b('검증값 상한 충돌', 'Verified value capped'), level: 'seed', conflict: c }));
   items.push(...altConflicts);
-  items.push({ key: 'roo', category: 'roo', label: b('최적 협정 원산지기준', 'Rule of origin (best FTA)'), level: rooVerified ? 'verified' : 'seed', source: rooVerified });
+  items.push({ key: 'roo', category: 'roo', label: b('최적 협정 원산지기준', 'Rule of origin (best FTA)'), level: rooVerified ? rooLevel : 'seed', source: rooVerified });
   items.push({
     key: 'hs',
     category: 'hs',

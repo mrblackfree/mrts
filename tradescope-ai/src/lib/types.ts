@@ -45,6 +45,10 @@ export interface TariffRate {
   /** attached by the official-data layer */
   level?: VerificationLevel;
   verifiedNote?: string;
+  /** set when a verified-value entry replaced this rate: checked by an expert, or read from an official schedule */
+  overrideBasis?: 'expert' | 'official';
+  /** date of that entry's check (YYYY-MM-DD) */
+  overrideCheckedAt?: string;
 }
 
 export type RequirementCategory =
@@ -143,7 +147,7 @@ export interface MfnCheck {
   status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range';
   url: string;
   /** set when an expert-verified override replaced the checked rate afterwards */
-  override?: { rate: number; source: string };
+  override?: { rate: number; source: string; basis: 'expert' | 'official' };
 }
 
 /**
@@ -164,7 +168,7 @@ export interface PrefCheck {
   status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range' | 'info';
   url: string;
   /** set when an expert-verified override replaced the checked rate afterwards */
-  override?: { rate: number; source: string };
+  override?: { rate: number; source: string; basis: 'expert' | 'official' };
 }
 
 /** Separate tariff table for an HS candidate whose duty differs from the primary code (e.g. flooring vs locks). */
