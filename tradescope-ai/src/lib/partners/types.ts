@@ -20,6 +20,8 @@ export interface PartnerFirm {
   practice: string[];
   why: string;
   sources: string[];
+  /** medium: rests on search-indexed pages, press or a site that blocked reading — confirm before signing */
+  confidence?: 'high' | 'medium';
   /** research = shipped candidate list; custom = added on the admin page */
   origin: 'research' | 'custom';
 }

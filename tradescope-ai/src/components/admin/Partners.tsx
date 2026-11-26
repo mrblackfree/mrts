@@ -39,6 +39,8 @@ const T = {
     readOnly: '이 환경은 저장소가 읽기 전용이라 상태를 저장할 수 없습니다(Vercel 등). Docker·자체 서버에서 관리하세요.',
     failed: '처리하지 못했습니다',
     research: '조사 후보',
+    verify: '확인 필요',
+    check: '계약 전 확인: 관세사는 BOC 수입자·관세사 인가 기록과 PRC 면허 명단으로, 법무법인은 담당 분야를 직접 확인하세요. 동물용 의약품 등록은 BAI에서 FDA로 이관(FDA MC 2021-0001)되었고 사료 등록은 BAI입니다 — 어느 기관 업무를 실제로 하는지 물어보세요. 「확인 필요」는 검색 색인·보도·접속이 막힌 사이트에 근거한 항목입니다.',
     custom: '직접 추가',
   },
   en: {
@@ -68,6 +70,8 @@ const T = {
     readOnly: 'Storage is read-only here (e.g. Vercel), so changes cannot be saved. Manage partners on a Docker / own server.',
     failed: 'Could not complete',
     research: 'Researched',
+    verify: 'Verify',
+    check: 'Before signing: check customs brokers against BOC accreditation records and the PRC roster, and confirm each law firm’s practice directly. Veterinary drug registration moved from BAI to FDA (FDA MC 2021-0001) while feed registration stays with BAI — ask which agency they actually handle. “Verify” marks entries based on search-indexed pages, press or a site that blocked reading.',
     custom: 'Added by hand',
   },
 };
@@ -195,6 +199,7 @@ export default function Partners({ lang, onUnauthorized }: { lang: Lang; onUnaut
 
   return (
     <div className="space-y-4">
+      <p className="max-w-4xl rounded-xl border border-slate-200 bg-slate-50 p-3 text-[12.5px] leading-relaxed text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">{s.check}</p>
       {!writable && rows && <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[13px] text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">{s.readOnly}</p>}
       {error && (
         <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[13px] text-rose-800 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-200">
@@ -294,6 +299,7 @@ export default function Partners({ lang, onUnauthorized }: { lang: Lang; onUnaut
                     <span className="text-[14.5px] font-bold text-slate-900 dark:text-white">{row.name}</span>
                     {row.nameLocal && <span className="text-[12.5px] text-slate-500">{row.nameLocal}</span>}
                     <span className="text-[11px] text-slate-400">· {row.origin === 'research' ? s.research : s.custom}</span>
+                    {row.confidence === 'medium' && <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10.5px] font-bold text-amber-800 ring-1 ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-300">{s.verify}</span>}
                   </p>
                   <p className="mt-0.5 text-[12.5px] text-slate-500 dark:text-slate-400">
                     {row.city}

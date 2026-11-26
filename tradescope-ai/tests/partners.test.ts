@@ -92,4 +92,10 @@ res = await route.GET(req('GET'));
 ok('read-only: list still works, flagged', (await json(res)).writable === false);
 delete process.env.SETTINGS_READONLY;
 
+// ---- the researched list itself -----------------------------------------------------------------------------------
+const { PARTNER_COUNTRIES, PARTNER_TYPES } = await import('@/lib/partners/types');
+ok('candidate ids are unique and never look like custom ids', new Set(PARTNER_CANDIDATES.map((c) => c.id)).size === PARTNER_CANDIDATES.length && PARTNER_CANDIDATES.every((c) => !c.id.startsWith('c-')));
+ok('candidates: valid country and type, https website and sources', PARTNER_CANDIDATES.every((c) => PARTNER_COUNTRIES.includes(c.country) && PARTNER_TYPES.includes(c.type) && c.website.startsWith('https://') && c.sources.length > 0 && c.sources.every((u) => u.startsWith('https://'))));
+ok('Philippines and Korea covered for both firm types', ['PH-law', 'PH-customs', 'KR-law', 'KR-customs'].every((k) => PARTNER_CANDIDATES.some((c) => `${c.country}-${c.type}` === k)));
+
 done('partners');
