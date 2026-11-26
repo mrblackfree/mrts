@@ -29,9 +29,9 @@ jobs:
       run:
         working-directory: tradescope-ai
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -101,6 +101,19 @@ jobs:
             cat "$RUNNER_TEMP/changes.txt"
             echo '```'
           } > "$RUNNER_TEMP/body.md"
-          # Fails loudly (e.g. when "Allow GitHub Actions to create and approve pull requests" is off).
-          gh pr create --base "${{ github.event.repository.default_branch }}" --head "$BR" \
-            --title "data: TradeScope official data sync ${DAY}" --body-file "$RUNNER_TEMP/body.md"
+          # Fails loudly (e.g. when "Allow GitHub Actions to create and approve pull requests" is off), with the
+          # changes and a ready compare link in the job summary so the pushed branch can still be proposed by hand.
+          if ! gh pr create --base "${{ github.event.repository.default_branch }}" --head "$BR" \
+            --title "data: TradeScope official data sync ${DAY}" --body-file "$RUNNER_TEMP/body.md"; then
+            {
+              echo "### Data PR not opened"
+              echo
+              echo "The branch \`${BR}\` was pushed, but this workflow could not open the pull request. If GitHub Actions may not create pull requests here, enable *Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests*, or open it by hand:"
+              echo
+              echo "${{ github.server_url }}/${{ github.repository }}/compare/${{ github.event.repository.default_branch }}...${BR}?expand=1"
+              echo
+              cat "$RUNNER_TEMP/body.md"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Could not open the data PR — see the job summary (branch ${BR} was pushed)."
+            exit 1
+          fi
