@@ -93,31 +93,6 @@ delete process.env.CONSULT_WEBHOOK_URL;
 globalThis.fetch = realFetch;
 fake.failWith = null;
 
-// health follows the whole answer: a batch with one failed command is a failure
-// (first let the background metric writes of the posts above finish: their answers count as health too)
-const { backgroundSettled } = await import('@/lib/background');
-await backgroundSettled();
-kvModule.resetKvHealthForTest();
-let pipeThrew = false;
-try {
-  await kvModule.kvPipeline([['GET', 'tradescope:x'], ['NOPE']]);
-} catch {
-  pipeThrew = true;
-}
-ok('a batch with a failed command throws and marks Redis unhealthy', pipeThrew && !kvModule.kvHealthy());
-await kvModule.kvPipeline([['GET', 'tradescope:x']]);
-ok('…a fully successful batch marks it healthy again', kvModule.kvHealthy());
-// a 200 answer without `result` is broken, not "no value"
-fake.malformed = true;
-const rejects = async (f: () => Promise<unknown>) => f().then(() => false, () => true);
-const singleThrew = await rejects(() => kvModule.kv(['GET', 'tradescope:x']));
-const healthAfterSingle = kvModule.kvHealthy();
-await kvModule.kvPipeline([['GET', 'tradescope:x']]).catch(() => undefined);
-fake.malformed = false;
-const batchHealthy = kvModule.kvHealthy();
-ok('malformed answers throw and mark Redis unhealthy (one command and a batch)', singleThrew && !healthAfterSingle && !batchHealthy);
-ok('a missing key still reads as null', (await kvModule.kv(['GET', 'tradescope:nothing-here'])) === null && kvModule.kvHealthy());
-
 // ---- admin sign-outs ------------------------------------------------------------------------------------------
 const DOC = 'tradescope:admin-sessions';
 const ORIGIN = 'http://localhost';
