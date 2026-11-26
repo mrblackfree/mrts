@@ -346,7 +346,7 @@ const CERT = {
 const krTariffPreparedFruit = (): TariffRate[] => [
   { scheme: 'MFN', rate: 45, roo: '-', certificate: CERT.none, note: b('기본세율 (WTO 양허 범위 내 실행세율)', 'Basic (MFN) rate') },
   { scheme: 'AKFTA', rate: 5, roo: 'CC or RVC 40%', certificate: CERT.ak, note: b('민감품목 감축 트랙 가정', 'Assumes sensitive-track reduction') },
-  { scheme: 'RCEP', rate: 30, roo: 'CC or RVC 40%', certificate: CERT.rcep, note: b('장기 단계 철폐 중 (5년차)', 'Long phase-out (year 5)') },
+  { scheme: 'RCEP', rate: 33.8, roo: 'CC', certificate: CERT.rcep, note: b('RCEP 한국 양허표(아세안용) 2026년(5년차) 세율 — HSK 2008.99.9000, 기준세율 45%에서 20년 균등 철폐', "Korea's RCEP schedule for ASEAN, 2026 (year 5) — HSK 2008.99.9000, 45% base cut evenly over 20 years") },
   { scheme: 'KRPH', rate: 0, roo: 'CC (originating bananas / mangoes) or RVC 40%', certificate: CERT.krph, note: b('열대과일 가공품 개방 품목 가정', 'Assumes tropical-fruit preparation concession') },
 ];
 
@@ -886,7 +886,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
     tariffs: [
       { scheme: 'MFN', rate: 3, roo: '-', certificate: CERT.none, note: b('기본세율 — WITS 2023 공식값과 일치', 'Basic (MFN) rate — matches WITS 2023 official value') },
       { scheme: 'AKFTA', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('일반품목 철폐 완료', 'Normal-track elimination complete') },
-      { scheme: 'RCEP', rate: 3, roo: 'CTH or RVC 40%', certificate: CERT.rcep, note: b('MFN 이하로 상한 — 양허세율 확인 필요', 'Capped at MFN — confirm the scheduled rate') },
+      { scheme: 'RCEP', rate: 1.5, roo: 'CC', certificate: CERT.rcep, note: b('RCEP 한국 양허표 2026년(5년차): 정제유(1513.19.1000) 1.5%, 그 밖의 것(1513.19.9000) 0% — 세번에 따라 다르므로 VCO 등은 품목분류로 확정', "Korea's RCEP schedule, 2026 (year 5): refined oil (1513.19.1000) 1.5%, other (1513.19.9000) 0% — depends on the line, so confirm the classification for VCO and the like") },
       { scheme: 'KRPH', rate: 0, roo: 'CTH', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
     ],
     tariffMeta: TARIFF_META_KR,
