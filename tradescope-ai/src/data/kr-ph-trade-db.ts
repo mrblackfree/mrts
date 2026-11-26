@@ -345,9 +345,9 @@ const CERT = {
 
 const krTariffPreparedFruit = (): TariffRate[] => [
   { scheme: 'MFN', rate: 45, roo: '-', certificate: CERT.none, note: b('기본세율 (WTO 양허 범위 내 실행세율)', 'Basic (MFN) rate') },
-  { scheme: 'AKFTA', rate: 5, roo: 'CC or RVC 40%', certificate: CERT.ak, note: b('민감품목 감축 트랙 가정', 'Assumes sensitive-track reduction') },
+  { scheme: 'AKFTA', rate: 36, roo: 'CC or RVC 40%', certificate: CERT.ak, note: b('한-아세안 FTA 한국 양허표 — HSK 2008.99.9000은 초민감품목(HSL) B그룹: 기준세율 45%에서 20% 감축, 2016년부터 36%', "Korea's AKFTA schedule — HSK 2008.99.9000 is Highly Sensitive List Group B: 45% base cut by 20%, 36% since 2016") },
   { scheme: 'RCEP', rate: 33.8, roo: 'CC', certificate: CERT.rcep, note: b('RCEP 한국 양허표(아세안용) 2026년(5년차) 세율 — HSK 2008.99.9000, 기준세율 45%에서 20년 균등 철폐', "Korea's RCEP schedule for ASEAN, 2026 (year 5) — HSK 2008.99.9000, 45% base cut evenly over 20 years") },
-  { scheme: 'KRPH', rate: 0, roo: 'CC (originating bananas / mangoes) or RVC 40%', certificate: CERT.krph, note: b('열대과일 가공품 개방 품목 가정', 'Assumes tropical-fruit preparation concession') },
+  { scheme: 'KRPH', rate: 36, roo: 'CC or RVC 40%', certificate: CERT.krph, note: b('한-필 FTA 한국 양허표 — HSK 2008.99.9000은 민감품목(SL), 기준세율 36%. 공개된 양허표 사본에 감축 종료세율이 없어 기준세율로 표시 — 선적 전 관세청 확인 필요', "Korea's KR-PH FTA schedule — HSK 2008.99.9000 is a sensitive line (SL) with a 36% base rate. The public copy prints no end rate, so the base rate is shown — confirm with Korea Customs before shipping") },
 ];
 
 // ---------------------------------------------------------------------------
@@ -402,11 +402,29 @@ const SEED_PRODUCTS: TradeProduct[] = [
     tariffs: krTariffPreparedFruit(),
     tariffMeta: TARIFF_META_KR,
     bestFta: {
-      scheme: 'KRPH',
+      scheme: 'RCEP',
       reason: b(
-        '한-필 FTA 0%로 MFN 45% 대비 과세가격의 45%p 절감. 대체 세번 0803.90(단순 건조)은 한-필 FTA 5년 균등철폐(30%→2026년 12%) 대상이므로 분류 확정이 절세의 핵심.',
-        'KR-PH FTA 0% saves 45 pp vs MFN 45%. The alternative code 0803.90 (plain dried) follows the KR-PH 5-year phase-out (30% → 12% in 2026), so locking the classification is the key to savings.',
+        'RCEP 33.8%(2026년)가 가장 낮음 — MFN 45% 대비 11.2%p 절감. 한-아세안 FTA는 초민감품목이라 36%, 한-필 FTA는 민감품목(SL)이라 기준세율 36%로 RCEP보다 높음. RCEP 원산지기준은 CC(류 변경)이며 바나나(제8류)·식용유(제15류)·설탕(제17류)으로 만든 칩(제20류)은 충족. 대체 세번 0803.90(단순 건조)은 한-필 FTA 5년 철폐 품목(30% → 2028년 0%)이지만 RCEP·한-아세안 FTA에서는 양허 제외라, 분류 확정이 절세의 핵심.',
+        'RCEP 33.8% (2026) is the lowest — 11.2 pp below MFN 45%. AKFTA is 36% (highly sensitive) and the KR-PH FTA keeps the 36% base rate (sensitive line), both above RCEP. The RCEP rule is CC (change of chapter), which chips (chapter 20) made from bananas (ch. 8), cooking oil (ch. 15) and sugar (ch. 17) meet. The alternative 0803.90 (plain dried) is eliminated under the KR-PH FTA over 5 years (30% → 0% in 2028) but excluded under RCEP and AKFTA, so locking the classification is the key to savings.',
       ),
+    },
+    tariffsByHs: {
+      '0803.90.0000': {
+        label: b('단순 건조 바나나 (HS 0803.90)', 'Plain dried banana (HS 0803.90)'),
+        tariffs: [
+          { scheme: 'MFN', rate: 30, roo: '-', certificate: CERT.none, note: b('기본세율 — 한-필 FTA·RCEP 한국 양허표의 기준세율과 같음', 'Basic (MFN) rate — same as the base rate in Korea’s KR-PH FTA and RCEP schedules') },
+          { scheme: 'AKFTA', rate: 30, roo: 'WO', certificate: CERT.ak, note: b('한-아세안 FTA 한국 양허표 — 초민감품목 E그룹(양허 제외): 기본세율 적용', "Korea's AKFTA schedule — Highly Sensitive Group E (excluded): the MFN rate applies") },
+          { scheme: 'RCEP', rate: 30, roo: 'CC', certificate: CERT.rcep, note: b('RCEP 한국 양허표(아세안용) — 양허 제외(U): 기본세율 적용', "Korea's RCEP schedule for ASEAN — excluded (U): the MFN rate applies") },
+          { scheme: 'KRPH', rate: 12, roo: 'WO', certificate: CERT.krph, note: b('한-필 FTA 한국 양허표 — Cat 5, 기준세율 30%에서 2028년 1월 0%. 2026년(3년차) 12%는 균등 감축 가정. 수입량이 부속서 2-나 기준물량을 넘으면 세이프가드 관세(최대 30%) 가능', "Korea's KR-PH FTA schedule — Cat 5, 30% base to 0% on 1 Jan 2028; 12% in 2026 (year 3) assumes equal annual cuts. A safeguard duty (up to 30%) can apply when imports exceed the Annex 2-B trigger volume") },
+        ],
+        bestFta: {
+          scheme: 'KRPH',
+          reason: b(
+            '단순 건조 바나나는 한-필 FTA만 특혜가 있음 — RCEP(U)·한-아세안 FTA(E그룹)는 양허 제외. 원산지기준은 완전생산(WO)이라 필리핀에서 재배·수확한 바나나여야 함. 해마다 세율이 내려가므로 선적 연도 세율을 관세청에서 확인하세요.',
+            'Only the KR-PH FTA gives a preference for plain dried banana — RCEP (U) and AKFTA (Group E) exclude it. The rule is wholly obtained (WO), so the bananas must be grown and harvested in the Philippines. The rate steps down every year, so check the shipment year’s rate with Korea Customs.',
+          ),
+        },
+      },
     },
     requirements: krFoodImportRequirements({
       quarantine: b(
@@ -434,8 +452,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
         { country: b('필리핀', 'Philippines'), flag: '🇵🇭', share: 3.6, highlight: true },
       ],
       insight: b(
-        '필리핀은 한국 바나나(0803.90) 수입의 59.9%를 차지하는 1위 공급국이지만, 조제과실(2008.99)에서는 3.6%에 그침 — 원료 경쟁력 대비 가공품 점유율이 낮아 한-필 FTA 0% 활용 시 중국·베트남산 대체 여지가 큼. 2025년 수입액은 전년 대비 -34.8%.',
-        'The Philippines supplies 59.9% of Korea’s bananas (0803.90) but only 3.6% of prepared fruit (2008.99) — a gap that the KR-PH FTA 0% rate can close against Chinese / Vietnamese products. 2025 imports fell 34.8% YoY.',
+        '필리핀은 한국 바나나(0803.90) 수입의 59.9%를 차지하는 1위 공급국이지만, 조제과실(2008.99)에서는 3.6%에 그침 — 원료 경쟁력 대비 가공품 점유율이 낮음 — RCEP 33.8%(2026년, MFN 45% 대비 11.2%p↓)로 중국·베트남산과 가격 경쟁 가능. 2025년 수입액은 전년 대비 -34.8%.',
+        'The Philippines supplies 59.9% of Korea’s bananas (0803.90) but only 3.6% of prepared fruit (2008.99) — RCEP 33.8% (2026, 11.2 pp below MFN 45%) helps compete with Chinese / Vietnamese products. 2025 imports fell 34.8% YoY.',
       ),
       meta: comtradeMeta(b('한국 신고 수입액(CIF). 2008.99에는 건망고 등 타 조제과실 포함', 'Korea-reported imports (CIF); 2008.99 also includes other prepared fruit such as dried mango')),
     },
@@ -465,7 +483,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
         ),
         strengths: [b('세부항 근접 생산', 'Production near Cebu port'), b('건과일 풀 라인업', 'Full dried-fruit line-up'), b('필리핀 대형마트·면세점 납품', 'Supplies PH supermarkets & duty-free')],
         appeal: [
-          b('한-필 FTA 0% 적용으로 한국 시장 가격경쟁력 확보 제안', 'Pitch KR-PH FTA 0% price advantage in Korea'),
+          b('RCEP 33.8%(MFN 45% 대비 11.2%p↓) 적용으로 한국 시장 가격경쟁력 확보 제안', 'Pitch the RCEP 33.8% rate (11.2 pp below MFN 45%) in Korea'),
           b('바나나칩+건망고 혼적 정기 발주(분기) 제안', 'Quarterly mixed-container orders (chips + mango)'),
           b('한국향 한글라벨·소비기한 표기 공동 개발', 'Co-develop Korean label & use-by date format'),
         ],
@@ -656,11 +674,29 @@ const SEED_PRODUCTS: TradeProduct[] = [
     tariffs: krTariffPreparedFruit(),
     tariffMeta: TARIFF_META_KR,
     bestFta: {
-      scheme: 'KRPH',
+      scheme: 'RCEP',
       reason: b(
-        '가당 건망고(2008.99) 기준 한-필 FTA 0%가 최적. 원료 망고가 필리핀산(완전생산)이면 원산지 충족이 쉬워 Form AK(5%)보다 유리.',
-        'For sweetened dried mango (2008.99) the KR-PH FTA 0% is optimal; Philippine-grown mango satisfies origin easily, beating Form AK (5%).',
+        '가당 건망고(2008.99.9000)는 RCEP 33.8%(2026년)가 가장 낮음 — MFN 45% 대비 11.2%p 절감. 한-아세안 FTA는 초민감품목이라 36%, 한-필 FTA는 민감품목(SL)이라 기준세율 36%. RCEP 원산지기준 CC는 망고(제8류)·설탕(제17류)으로 만든 건망고(제20류)라 충족. 설탕을 넣지 않은 단순 건조 망고(0804.50.2000)는 RCEP·한-필 FTA 모두 양허 제외라 한-아세안 FTA 24%가 유일한 특혜.',
+        'Sweetened dried mango (2008.99.9000) gets the lowest rate under RCEP: 33.8% in 2026, 11.2 pp below MFN 45%. AKFTA is 36% (highly sensitive) and the KR-PH FTA keeps the 36% base rate (sensitive line). The RCEP CC rule is met because dried mango (chapter 20) is made from mangoes (ch. 8) and sugar (ch. 17). Unsweetened plain dried mango (0804.50.2000) is excluded under both RCEP and the KR-PH FTA, so AKFTA 24% is its only preference.',
       ),
+    },
+    tariffsByHs: {
+      '0804.50.2000': {
+        label: b('무가당 단순 건조 망고 (HS 0804.50)', 'Unsweetened plain dried mango (HS 0804.50)'),
+        tariffs: [
+          { scheme: 'MFN', rate: 30, roo: '-', certificate: CERT.none, note: b('기본세율 — RCEP 한국 양허표의 기준세율과 같음', 'Basic (MFN) rate — same as the base rate in Korea’s RCEP schedule') },
+          { scheme: 'AKFTA', rate: 24, roo: 'WO', certificate: CERT.ak, note: b('한-아세안 FTA 한국 양허표 — 초민감품목(HSL) B그룹: 기준세율 30%에서 20% 감축, 2016년부터 24%', "Korea's AKFTA schedule — Highly Sensitive List Group B: 30% base cut by 20%, 24% since 2016") },
+          { scheme: 'RCEP', rate: 30, roo: 'CC', certificate: CERT.rcep, note: b('RCEP 한국 양허표(아세안용) — 망고(0804.50.20)는 양허 제외(U): 기본세율 적용', "Korea's RCEP schedule for ASEAN — mangoes (0804.50.20) are excluded (U): the MFN rate applies") },
+          { scheme: 'KRPH', rate: 30, roo: 'WO', certificate: CERT.krph, note: b('한-필 FTA 한국 양허표 — 망고는 양허 제외(EX): 기본세율 적용', "Korea's KR-PH FTA schedule — mangoes are excluded (EX): the MFN rate applies") },
+        ],
+        bestFta: {
+          scheme: 'AKFTA',
+          reason: b(
+            '무가당 건조 망고는 한-아세안 FTA 24%가 유일한 특혜 — MFN 30% 대비 6%p 절감. RCEP(U)·한-필 FTA(EX)는 망고를 양허에서 제외. 원산지기준은 완전생산(WO)이라 필리핀에서 재배·수확한 망고여야 하며, Form AK가 필요.',
+            'AKFTA 24% is the only preference for unsweetened dried mango — 6 pp below MFN 30%. RCEP (U) and the KR-PH FTA (EX) exclude mangoes. The rule is wholly obtained (WO), so the mangoes must be grown and harvested in the Philippines, with a Form AK.',
+          ),
+        },
+      },
     },
     requirements: krFoodImportRequirements({
       quarantine: b(
@@ -734,7 +770,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
         strengths: [b('브랜드 인지도', 'Brand awareness'), b('대규모 생산', 'Large-scale production'), b('수출 경험', 'Export experience')],
         appeal: [
           b('한국 특정 채널(이커머스/면세) 한정 공급 제안', 'Channel-specific supply (e-commerce / duty-free)'),
-          b('한-필 FTA 0%로 소비자가 인하 시뮬레이션 공유', 'Share KR-PH FTA 0% retail-price simulation'),
+          b('RCEP 33.8%(MFN 45% 대비 11.2%p↓) 반영 소비자가 시뮬레이션 공유', 'Share a retail-price simulation at the RCEP 33.8% rate (11.2 pp below MFN 45%)'),
           b('한국향 소포장(30g) 기획 제안', 'Propose 30 g packs for Korea'),
         ],
         caution: b('기존 국내 독점 유통 계약 존재 가능성', 'Possible existing exclusive distributor in Korea'),
@@ -885,17 +921,35 @@ const SEED_PRODUCTS: TradeProduct[] = [
     ],
     tariffs: [
       { scheme: 'MFN', rate: 3, roo: '-', certificate: CERT.none, note: b('기본세율 — WITS 2023 공식값과 일치', 'Basic (MFN) rate — matches WITS 2023 official value') },
-      { scheme: 'AKFTA', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('일반품목 철폐 완료', 'Normal-track elimination complete') },
+      { scheme: 'AKFTA', rate: 3, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('한-아세안 FTA 한국 양허표는 0%(일반품목)지만 1513.19는 필리핀 상호주의 대상(R(PH)) — 필리핀이 이 품목을 민감품목으로 두어 한국은 최대 MFN 3%까지 적용 가능. 한-필 FTA 기준세율 3%(2016년 한-아세안 세율 반영)와도 일치 — 관세청 확인 필요', "Korea's AKFTA schedule shows 0% (normal track), but 1513.19 carries reciprocity for the Philippines (R(PH)): the Philippines lists it as sensitive, so Korea may apply up to MFN 3%. Consistent with the 3% KR-PH base rate (which reflects the 2016 AKFTA rate) — confirm with Korea Customs") },
       { scheme: 'RCEP', rate: 1.5, roo: 'CC', certificate: CERT.rcep, note: b('RCEP 한국 양허표 2026년(5년차): 정제유(1513.19.1000) 1.5%, 그 밖의 것(1513.19.9000) 0% — 세번에 따라 다르므로 VCO 등은 품목분류로 확정', "Korea's RCEP schedule, 2026 (year 5): refined oil (1513.19.1000) 1.5%, other (1513.19.9000) 0% — depends on the line, so confirm the classification for VCO and the like") },
-      { scheme: 'KRPH', rate: 0, roo: 'CTH', certificate: CERT.krph, note: b('즉시 철폐 가정', 'Assumes immediate elimination') },
+      { scheme: 'KRPH', rate: 2.1, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('한-필 FTA 한국 양허표 — 1513.19(정제유·그 밖의 것) 모두 Cat 10, 기준세율 3%에서 2033년 1월 0%. 2026년(3년차) 2.1%는 균등 감축 가정', "Korea's KR-PH FTA schedule — both 1513.19 lines (refined, other) are Cat 10: 3% base to 0% on 1 Jan 2033. 2.1% in 2026 (year 3) assumes equal annual cuts") },
     ],
     tariffMeta: TARIFF_META_KR,
     bestFta: {
-      scheme: 'AKFTA',
+      scheme: 'RCEP',
       reason: b(
-        'AKFTA·한-필 FTA 모두 0%로 동일 — 필리핀 코코넛 수출사의 Form AK 발급 경험이 풍부해 서류 리스크가 가장 낮은 AKFTA 우선 권장. 코프라(1203)→오일(1513) 세번변경으로 원산지 충족 용이.',
-        'AKFTA and KR-PH FTA are both 0% — prefer AKFTA because PH coconut exporters routinely issue Form AK (lowest paperwork risk). Copra (1203) → oil (1513) satisfies the CTH rule.',
+        'RCEP가 가장 낮고 확실 — 2026년 정제유(1513.19.1000) 1.5%, 그 밖의 것(1513.19.9000) 0%, 원산지기준 CC는 코프라(제12류)→오일(제15류)로 충족. 한-아세안 FTA는 필리핀 상호주의 대상이라 최대 MFN 3%, 한-필 FTA는 10년 철폐 중(2026년 약 2.1%). VCO가 정제유인지 그 밖의 것인지 품목분류로 확정하세요. 조유(1513.11)는 세 협정 모두 0%.',
+        'RCEP is the lowest and most certain — in 2026 refined oil (1513.19.1000) is 1.5% and other (1513.19.9000) 0%, and its CC rule is met by copra (ch. 12) → oil (ch. 15). AKFTA carries reciprocity for the Philippines (up to MFN 3%) and the KR-PH FTA is still phasing out over 10 years (about 2.1% in 2026). Confirm whether VCO is refined or "other" by classification. Crude oil (1513.11) is 0% under all three agreements.',
       ),
+    },
+    tariffsByHs: {
+      '1513.11.0000': {
+        label: b('코코넛유 조유 (HS 1513.11)', 'Crude coconut oil (HS 1513.11)'),
+        tariffs: [
+          { scheme: 'MFN', rate: 3, roo: '-', certificate: CERT.none, note: b('기본세율 — 한-아세안 FTA·RCEP 한국 양허표의 기준세율과 같음', 'Basic (MFN) rate — same as the base rate in Korea’s AKFTA and RCEP schedules') },
+          { scheme: 'AKFTA', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('한-아세안 FTA 한국 양허표 — 일반품목(NT) 0%, 조유에는 상호주의 표시 없음', "Korea's AKFTA schedule — normal track 0%, with no reciprocity remark on crude oil") },
+          { scheme: 'RCEP', rate: 0, roo: 'CC', certificate: CERT.rcep, note: b('RCEP 한국 양허표(아세안용) — 1513.11.00.00 발효 즉시 0%', "Korea's RCEP schedule for ASEAN — 1513.11.00.00 duty-free from entry into force") },
+          { scheme: 'KRPH', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('한-필 FTA 한국 양허표 — Cat 0: 발효일부터 무관세', "Korea's KR-PH FTA schedule — Cat 0: duty-free from entry into force") },
+        ],
+        bestFta: {
+          scheme: 'AKFTA',
+          reason: b(
+            '조유는 한-아세안 FTA·RCEP·한-필 FTA 모두 0% — 필리핀 코코넛 수출사의 Form AK 발급 경험이 많아 서류 부담이 가장 적은 한-아세안 FTA 권장. 코프라(1203)→조유(1513) 세번 변경으로 원산지 충족.',
+            'Crude oil is 0% under AKFTA, RCEP and the KR-PH FTA — AKFTA is recommended because PH coconut exporters routinely issue Form AK. Copra (1203) → crude oil (1513) meets the change-of-heading rule.',
+          ),
+        },
+      },
     },
     requirements: krFoodImportRequirements({
       quarantine: b(
@@ -1162,8 +1216,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
       ],
       insightYear: 2025,
       insight: b(
-        '한국의 대필리핀 2008.99 수출은 2023 $14.5M → 2025 $25.5M(+75%). 필리핀 신고 수입 기준 한국 점유율은 2024년 39.0% → 2025년 55.8%로 급등해 캄보디아(15.5%)·중국(14.0%)을 크게 앞섬 — 한-필 FTA 0%로 가격 우위를 굳힐 시점. (한국 수출통계와 필리핀 수입통계 간 미러 차이 존재)',
-        'Korean 2008.99 exports to PH grew from $14.5M (2023) to $25.5M (2025, +75%). Korea’s share of PH-reported imports jumped from 39.0% (2024) to 55.8% (2025), well ahead of Cambodia (15.5%) and China (14.0%) — lock in the lead with KR-PH FTA 0%. (Mirror-data gap between KR exports and PH imports.)',
+        '한국의 대필리핀 2008.99 수출은 2023 $14.5M → 2025 $25.5M(+75%). 필리핀 신고 수입 기준 한국 점유율은 2024년 39.0% → 2025년 55.8%로 급등해 캄보디아(15.5%)·중국(14.0%)을 크게 앞섬 — RCEP 0%(Tariff Finder 2026년 고시값)로 가격 우위를 굳힐 시점. (한국 수출통계와 필리핀 수입통계 간 미러 차이 존재)',
+        'Korean 2008.99 exports to PH grew from $14.5M (2023) to $25.5M (2025, +75%). Korea’s share of PH-reported imports jumped from 39.0% (2024) to 55.8% (2025), well ahead of Cambodia (15.5%) and China (14.0%) — lock in the lead with RCEP 0% (Tariff Finder 2026 rate). (Mirror-data gap between KR exports and PH imports.)',
       ),
       meta: comtradeMeta(b('3개년 추이: 한국 신고 수출(FOB) / 점유율: 필리핀 신고 수입(2025)', 'Trend: Korea-reported exports (FOB) / shares: PH-reported imports (2025)')),
     },
@@ -1193,7 +1247,7 @@ const SEED_PRODUCTS: TradeProduct[] = [
         ),
         strengths: [b('전국 최대 점포망', 'Largest store network'), b('K-푸드 코너 운영', 'K-food sections'), b('프로모션 역량', 'Promotion power')],
         appeal: [
-          b('한-필 FTA 0% 반영 진열가 경쟁력 (캄보디아산 대비)', 'KR-PH FTA 0% shelf-price edge vs Cambodian products'),
+          b('RCEP 0% 반영 진열가 경쟁력 (캄보디아산 대비)', 'RCEP 0% shelf-price edge vs Cambodian products'),
           b('도시락김 멀티팩 + 김스낵 번들 기획', 'Multi-pack laver + snack bundles'),
           b('K-드라마 연계 인스토어 프로모션', 'K-drama tie-in in-store promotions'),
         ],
