@@ -45,6 +45,10 @@ export interface TariffRate {
   /** attached by the official-data layer */
   level?: VerificationLevel;
   verifiedNote?: string;
+  /** set when a verified-value entry replaced this rate: checked by an expert, or read from an official schedule */
+  overrideBasis?: 'expert' | 'official';
+  /** date of that entry's check (YYYY-MM-DD) */
+  overrideCheckedAt?: string;
 }
 
 export type RequirementCategory =
@@ -110,8 +114,11 @@ export interface MarketStats {
 // ---------- verification layer ----------
 
 /**
- * official   — value pulled automatically from an official API (snapshot, timestamped)
- * verified   — checked by a person against an official document (verified-overrides.json)
+ * official   — value from an official source: pulled automatically from an official API (snapshot, timestamped),
+ *              or read from an official published schedule without an expert opinion (verified-overrides.json
+ *              entry with basis 'official')
+ * verified   — confirmed by an expert or partner — customs broker, law firm, forwarder… (verified-overrides.json
+ *              entry without a basis)
  * crosscheck — seed value consistent with an official aggregate / web presence confirmed
  * seed       — curated reference value, not yet verified
  */
@@ -142,8 +149,8 @@ export interface MfnCheck {
   appliedRate: number;
   status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range';
   url: string;
-  /** set when an expert-verified override replaced the checked rate afterwards */
-  override?: { rate: number; source: string };
+  /** set when a verified-value entry replaced the checked rate afterwards; `basis` says whether an expert confirmed it or it was read from an official schedule */
+  override?: { rate: number; source: string; basis: 'expert' | 'official' };
 }
 
 /**
@@ -163,8 +170,8 @@ export interface PrefCheck {
   seedRate?: number;
   status: 'exact-match' | 'corrected' | 'within-range' | 'out-of-range' | 'info';
   url: string;
-  /** set when an expert-verified override replaced the checked rate afterwards */
-  override?: { rate: number; source: string };
+  /** set when a verified-value entry replaced the checked rate afterwards; `basis` says whether an expert confirmed it or it was read from an official schedule */
+  override?: { rate: number; source: string; basis: 'expert' | 'official' };
 }
 
 /** Separate tariff table for an HS candidate whose duty differs from the primary code (e.g. flooring vs locks). */

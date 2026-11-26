@@ -1,4 +1,233 @@
 {
-  "$comment": "Human-verified values that override seed data and raise them to 'verified'. Add an entry ONLY after checking an official source (see README §3-1 for the format, or generate one with the Data Trust Center's entry helper). Required: productId, target, source, reference, verifiedBy, verifiedAt (YYYY-MM-DD); optional validUntil. Expired entries fall back to seed. Validate with `npm run data:validate`.",
-  "entries": []
+  "$comment": "Human-verified values that override seed data and raise them to 'verified'. Add an entry ONLY after checking an official source (see README §3-1 for the format, or generate one with the Data Trust Center's entry helper). Required: productId, target, source, reference, verifiedBy, verifiedAt (YYYY-MM-DD); optional validUntil. Expired entries fall back to seed. Validate with `npm run data:validate`. Optional basis: 'official' when the value was read from an official published schedule or register without an expert's opinion — shown as 'official', never as expert-verified.",
+  "entries": [
+    {
+      "productId": "seasoned-laver",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 0,
+        "roo": "RVC 40% (laver of 1212.21 wholly obtained in a Party)"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 2008.99.40/.90 · AKFTA · 2026 rate (EO rate 0%; reciprocal rate 10%, remark R)",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "seasoned-laver",
+      "target": {
+        "type": "tariff",
+        "scheme": "RCEP",
+        "rate": 0,
+        "roo": "CC"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 2008.99.40/.90 · RCEP · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "seasoned-laver",
+      "target": {
+        "type": "tariff",
+        "scheme": "KRPH",
+        "rate": 10,
+        "roo": "RVC 40% or CC"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 2008.99.40/.90 · PH-KR FTA · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "k-beauty",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 0,
+        "roo": "RVC 40% or CTH"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 3304.99.30 · AKFTA · 2026 rate (EO rate)",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "k-beauty",
+      "target": {
+        "type": "tariff",
+        "scheme": "RCEP",
+        "rate": 0,
+        "roo": "CTH or RVC 40%"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 3304.99.30 · RCEP · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "k-beauty",
+      "target": {
+        "type": "tariff",
+        "scheme": "KRPH",
+        "rate": 0,
+        "roo": "RVC 40% or CTH"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 3304.99.30 · PH-KR FTA · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "instant-ramen",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 0,
+        "roo": "RVC 40% or CTH"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 1902.30.40 · AKFTA · 2026 rate (EO rate)",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "instant-ramen",
+      "target": {
+        "type": "tariff",
+        "scheme": "RCEP",
+        "rate": 0,
+        "roo": "CC"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 1902.30.40 · RCEP · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "instant-ramen",
+      "target": {
+        "type": "tariff",
+        "scheme": "KRPH",
+        "rate": 0,
+        "roo": "RVC 40% or CTH"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 1902.30.40 · PH-KR FTA · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "smart-building",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 0,
+        "roo": "RVC 40% or CTH"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 8301.40.20 · AKFTA · 2026 rate (EO rate)",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "smart-building",
+      "target": {
+        "type": "tariff",
+        "scheme": "RCEP",
+        "rate": 0,
+        "roo": "CTSH or RVC 40%"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 8301.40.20 · RCEP · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "smart-building",
+      "target": {
+        "type": "tariff",
+        "scheme": "KRPH",
+        "rate": 0,
+        "roo": "RVC 40% or CTH"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 8301.40.20 · PH-KR FTA · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "smart-building",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 12,
+        "roo": "RVC 40% or CTH",
+        "hs": "3918.10.1000"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 3918.10.11/.19 · AKFTA · 2026 rate (EO rate)",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "smart-building",
+      "target": {
+        "type": "tariff",
+        "scheme": "RCEP",
+        "rate": 5,
+        "roo": "CTH or RVC 40%",
+        "hs": "3918.10.1000"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 3918.10.11/.19 · RCEP · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    },
+    {
+      "productId": "smart-building",
+      "target": {
+        "type": "tariff",
+        "scheme": "KRPH",
+        "rate": 10,
+        "roo": "RVC 40% or CTH",
+        "hs": "3918.10.1000"
+      },
+      "source": "Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "AHTN 2022 3918.10.11/.19 · PH-KR FTA · 2026 rate",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 관세표 대조)",
+      "verifiedAt": "2026-11-26",
+      "validUntil": "2026-12-31",
+      "basis": "official"
+    }
+  ]
 }

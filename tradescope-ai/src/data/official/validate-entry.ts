@@ -111,6 +111,10 @@ export function validateEntry(input: unknown, products: TradeProduct[], today: s
     default:
       errors.push('target.type: tariff | hs | partner | requirement | logistics | pricing');
   }
+  // 'official' = read from an official published schedule or register, not an expert opinion (shown as "official")
+  if (x.basis !== undefined && x.basis !== 'official') errors.push("basis: 'official' or leave it out");
+  // only tariff rates are shown by basis; any other target stays an expert / partner confirmation
+  else if (x.basis !== undefined && t.type !== 'tariff') errors.push('basis: only for tariff entries');
   if (errors.length || !target) return { ok: false, errors };
   return {
     ok: true,
@@ -122,6 +126,7 @@ export function validateEntry(input: unknown, products: TradeProduct[], today: s
       verifiedBy,
       verifiedAt: x.verifiedAt as string,
       ...(isDate(x.validUntil) ? { validUntil: x.validUntil } : {}),
+      ...(x.basis === 'official' ? { basis: 'official' as const } : {}),
     },
   };
 }

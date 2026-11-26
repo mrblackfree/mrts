@@ -2,6 +2,134 @@
   "$comment": "MANUAL audit trail: seed values in kr-ph-trade-db.ts that were edited because an official source disagreed. Append newest first. Corrections applied automatically at runtime by the official-data layer (src/data/official/index.ts) are NOT written here; they appear live as conflicts in the Data Trust Center.",
   "entries": [
     {
+      "date": "2026-11-26",
+      "productId": "seasoned-laver",
+      "field": "KRPH",
+      "from": "0%",
+      "to": "10%",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 2008.99.40/.90 (2026년 감축 없음)"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "seasoned-laver",
+      "field": "RCEP",
+      "from": "10%",
+      "to": "0%",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 2008.99.40/.90 · 원산지기준 CC"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "seasoned-laver",
+      "field": "추천 협정",
+      "from": "AKFTA",
+      "to": "RCEP",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AKFTA는 상호주의(R) 품목이라 10% 적용 가능, RCEP는 0%"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "k-beauty",
+      "field": "RCEP",
+      "from": "5%",
+      "to": "0%",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 3304.99.30"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "k-beauty",
+      "field": "AKFTA 원산지기준",
+      "from": "CTSH or RVC 40%",
+      "to": "RVC 40% or CTH",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 3304.99.30"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "instant-ramen",
+      "field": "RCEP",
+      "from": "10%",
+      "to": "0%",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 1902.30.40 · 원산지기준 CC"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "smart-building",
+      "field": "RCEP (도어락)",
+      "from": "1%",
+      "to": "0%",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 8301.40.20"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "smart-building",
+      "field": "RCEP (바닥재)",
+      "from": "12%",
+      "to": "5%",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 3918.10.11/.19"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "smart-building",
+      "field": "KRPH (바닥재)",
+      "from": "12%",
+      "to": "10%",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 3918.10.11/.19"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "smart-building",
+      "field": "추천 협정 (바닥재)",
+      "from": "AKFTA",
+      "to": "RCEP",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · RCEP 5%가 가장 낮음 (AKFTA 12%, 한-필 FTA 10%)"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "seasoned-laver",
+      "field": "AKFTA 원산지기준",
+      "from": "CTH (originating laver) or RVC 40%",
+      "to": "RVC 40% (laver of 1212.21 wholly obtained in a Party)",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 2008.99.40/.90"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "seasoned-laver",
+      "field": "RCEP 원산지기준",
+      "from": "CTH or RVC 40%",
+      "to": "CC",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 2008.99.40/.90"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "seasoned-laver",
+      "field": "KRPH 원산지기준",
+      "from": "CTH (wholly obtained laver)",
+      "to": "RVC 40% or CC",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 2008.99.40/.90"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "k-beauty",
+      "field": "KRPH 원산지기준",
+      "from": "CTSH or RVC 40%",
+      "to": "RVC 40% or CTH",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 3304.99.30"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "instant-ramen",
+      "field": "RCEP 원산지기준",
+      "from": "CTH or RVC 40%",
+      "to": "CC",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 1902.30.40"
+    },
+    {
+      "date": "2026-11-26",
+      "productId": "smart-building",
+      "field": "RCEP 원산지기준 (도어락)",
+      "from": "CTH or RVC 40%",
+      "to": "CTSH or RVC 40%",
+      "source": "필리핀 관세위원회 Philippine Tariff Finder · 2026년 고시값 · AHTN 8301.40.20"
+    },
+    {
       "date": "2026-11-03",
       "productId": "seasoned-laver",
       "field": "AKFTA",
