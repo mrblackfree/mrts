@@ -15,6 +15,8 @@ import {
   PARTNER_COUNTRIES,
   PARTNER_TYPES,
   PIPELINE,
+  PRACTICE_MAX_TAGS,
+  PRACTICE_TAG_MAX,
   type PartnerCountry,
   type PartnerDeal,
   type PartnerFirm,
@@ -74,7 +76,7 @@ function cleanFirm(f: unknown): PartnerFirm | null {
     nameLocal: str(x.nameLocal, FIRM_MAX.nameLocal) || undefined,
     city: str(x.city, FIRM_MAX.city),
     website: website && isHttpsUrl(website) ? website : '',
-    practice: strings(x.practice, 60, 8),
+    practice: strings(x.practice, PRACTICE_TAG_MAX, PRACTICE_MAX_TAGS),
     why: str(x.why, FIRM_MAX.why),
     sources: strings(x.sources, 300, 10).filter(isHttpsUrl),
     origin: 'custom',
@@ -179,9 +181,9 @@ export function validateFirm(input: unknown): { ok: true; firm: Omit<PartnerFirm
       website,
       practice: str(x.practice, FIRM_MAX.practice)
         .split(/[,·]/)
-        .map((p) => p.trim())
+        .map((p) => p.trim().slice(0, PRACTICE_TAG_MAX))
         .filter(Boolean)
-        .slice(0, 8),
+        .slice(0, PRACTICE_MAX_TAGS),
       why: str(x.why, FIRM_MAX.why),
     },
   };

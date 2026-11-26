@@ -43,6 +43,12 @@ res = await route.POST(req('POST', { firm: { country: 'PH', type: 'customs', nam
 body = await json(res);
 const added = body.firm;
 ok('firm added with a custom id', res.status === 200 && added.id.startsWith('c-') && added.name === 'Manila Brokers Inc.' && added.practice.length === 3, body);
+res = await route.POST(req('POST', { firm: { country: 'PH', type: 'law', name: 'Long Tags LLP', practice: `${'x'.repeat(150)}, short` } }));
+const longTags = (await json(res)).firm;
+res = await route.GET(req('GET'));
+const reread = (await json(res)).partners.find((p: any) => p.id === longTags.id);
+ok('practice tags are the same when saved and read back', JSON.stringify(reread.practice) === JSON.stringify(longTags.practice) && longTags.practice[0].length === 60, { saved: longTags.practice, reread: reread.practice });
+await route.DELETE(req('DELETE', undefined, `?id=${longTags.id}`));
 ok('file mode 0600', process.platform === 'win32' || (statSync(file).mode & 0o777) === 0o600);
 
 // ---- pipeline and public list ----------------------------------------------------------------------------------

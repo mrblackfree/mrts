@@ -41,5 +41,8 @@ export const EMPTY_DEAL: PartnerDeal = { status: 'candidate', contactName: '', c
 
 export const DEAL_MAX = { contactName: 80, contactEmail: 120, terms: 500, contractDate: 10, notes: 2000 } as const;
 export const FIRM_MAX = { name: 120, nameLocal: 120, city: 60, website: 200, practice: 200, why: 300 } as const;
+/** one practice tag (the form's comma-separated `practice` text is split into at most PRACTICE_MAX_TAGS tags) */
+export const PRACTICE_TAG_MAX = 60;
+export const PRACTICE_MAX_TAGS = 8;
 
 export type PartnerRow = PartnerFirm & { deal: PartnerDeal };

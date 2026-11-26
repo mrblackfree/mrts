@@ -29,6 +29,6 @@ ok('empty item list scores 0', scoreOf([]) === 0);
 
 const { SETTING_INDEX, validateSetting } = await import('@/lib/settings/schema');
 ok('a price of 0 is rejected (it would show "quoted on request")', ['PRICE_CASE_KRW', 'PRICE_SUB_MONTHLY_KRW', 'PRICE_SUB_YEARLY_KRW'].every((k) => !validateSetting(SETTING_INDEX[k], '0').ok && validateSetting(SETTING_INDEX[k], '1').ok));
-ok('checkout links must be https', !validateSetting(SETTING_INDEX.CHECKOUT_CASE_URL, 'http://pay.example').ok && validateSetting(SETTING_INDEX.CHECKOUT_CASE_URL, 'https://pay.example').ok);
+ok('both checkout links must be https', ['CHECKOUT_CASE_URL', 'CHECKOUT_SUB_URL'].every((k) => !validateSetting(SETTING_INDEX[k], 'http://pay.example').ok && validateSetting(SETTING_INDEX[k], 'https://pay.example').ok));
 
 done('trust levers');
