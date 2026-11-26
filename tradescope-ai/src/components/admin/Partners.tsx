@@ -38,6 +38,7 @@ const T = {
     empty: '이 국가는 아직 후보가 없습니다. 직접 추가하거나 조사 후 목록을 채우세요.',
     failed: '처리하지 못했습니다',
     research: '조사 후보',
+    retry: '다시 불러오기',
     verify: '확인 필요',
     check: '계약 전 확인: 관세사는 BOC 수입자·관세사 인가 기록과 PRC 면허 명단으로, 법무법인은 담당 분야를 직접 확인하세요. 동물용 의약품 등록은 BAI에서 FDA로 이관(FDA MC 2021-0001)되었고 사료 등록은 BAI입니다 — 어느 기관 업무를 실제로 하는지 물어보세요. 「확인 필요」는 검색 색인·보도·접속이 막힌 사이트에 근거한 항목입니다.',
     custom: '직접 추가',
@@ -68,6 +69,7 @@ const T = {
     empty: 'No candidates for this country yet. Add one by hand or fill the list after research.',
     failed: 'Could not complete',
     research: 'Researched',
+    retry: 'Try again',
     verify: 'Verify',
     check: 'Before signing: check customs brokers against BOC accreditation records and the PRC roster, and confirm each law firm’s practice directly. Veterinary drug registration moved from BAI to FDA (FDA MC 2021-0001) while feed registration stays with BAI — ask which agency they actually handle. “Verify” marks entries based on search-indexed pages, press or a site that blocked reading.',
     custom: 'Added by hand',
@@ -95,7 +97,21 @@ async function call<T>(method: string, body?: unknown, query = ''): Promise<{ st
   return { status: res.status, data: (await res.json().catch(() => ({}))) as T };
 }
 
-function DealForm({ row, s, writable, onSaved, onError }: { row: PartnerRow; s: (typeof T)['ko']; writable: boolean; onSaved: (d: PartnerDeal) => void; onError: (m: string) => void }) {
+function DealForm({
+  row,
+  s,
+  writable,
+  onSaved,
+  onError,
+  onUnauthorized,
+}: {
+  row: PartnerRow;
+  s: (typeof T)['ko'];
+  writable: boolean;
+  onSaved: (d: PartnerDeal) => void;
+  onError: (m: string) => void;
+  onUnauthorized: () => void;
+}) {
   const [d, setD] = useState(row.deal);
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState(false);
@@ -105,6 +121,7 @@ function DealForm({ row, s, writable, onSaved, onError }: { row: PartnerRow; s: 
     setOk(false);
     const r = await call<{ ok: boolean; deal?: PartnerDeal; error?: string }>('PATCH', { id: row.id, deal: d }).catch(() => null);
     setBusy(false);
+    if (r?.status === 401) return onUnauthorized();
     if (r?.data.ok && r.data.deal) {
       onSaved(r.data.deal);
       setOk(true);
@@ -152,16 +169,22 @@ export default function Partners({ lang, onUnauthorized }: { lang: Lang; onUnaut
   const [country, setCountry] = useState<PartnerCountry>('PH');
   const [type, setType] = useState<'all' | PartnerType>('all');
   const [error, setError] = useState('');
+  const [loadFailed, setLoadFailed] = useState(false);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState({ name: '', nameLocal: '', city: '', website: '', practice: '', why: '', type: 'law' as PartnerType });
 
   const load = useCallback(async () => {
+    setLoadFailed(false);
     const r = await call<{ ok: boolean; partners?: PartnerRow[]; writable?: boolean; error?: string }>('GET').catch(() => null);
     if (r?.status === 401) return onUnauthorized();
     if (r?.data.ok && r.data.partners) {
       setRows(r.data.partners);
       setWritable(!!r.data.writable);
-    } else setError(`${s.failed}${r?.data.error ? ` (${r.data.error})` : ''}`);
+      setError('');
+    } else {
+      setLoadFailed(true);
+      setError(`${s.failed}${r?.data.error ? ` (${r.data.error})` : ''}`);
+    }
   }, [onUnauthorized, s.failed]);
   useEffect(() => {
     load();
@@ -191,6 +214,7 @@ export default function Partners({ lang, onUnauthorized }: { lang: Lang; onUnaut
   };
   const remove = async (row: PartnerRow) => {
     const r = await call<{ ok: boolean; error?: string }>('DELETE', undefined, `?id=${encodeURIComponent(row.id)}`).catch(() => null);
+    if (r?.status === 401) return onUnauthorized();
     if (r?.data.ok) setRows((xs) => xs?.filter((x) => x.id !== row.id) ?? null);
     else setError(s.failed);
   };
@@ -277,7 +301,11 @@ export default function Partners({ lang, onUnauthorized }: { lang: Lang; onUnaut
         </section>
       )}
 
-      {rows === null ? (
+      {rows === null && loadFailed ? (
+        <Button size="sm" variant="secondary" onClick={load}>
+          {s.retry}
+        </Button>
+      ) : rows === null ? (
         <p className="flex items-center gap-2 text-[13px] text-slate-500">
           <Loader2 className="size-4 animate-spin" aria-hidden />…
         </p>
@@ -349,7 +377,7 @@ export default function Partners({ lang, onUnauthorized }: { lang: Lang; onUnaut
               <details className="mt-3 rounded-xl bg-slate-50/80 p-3 dark:bg-white/[0.03]">
                 <summary className="cursor-pointer text-[12.5px] font-semibold text-slate-700 dark:text-slate-200">{s.deal}</summary>
                 <div className="mt-3">
-                  <DealForm row={row} s={s} writable={writable} onSaved={(deal) => setRows((xs) => xs?.map((x) => (x.id === row.id ? { ...x, deal } : x)) ?? null)} onError={setError} />
+                  <DealForm row={row} s={s} writable={writable} onUnauthorized={onUnauthorized} onSaved={(deal) => setRows((xs) => xs?.map((x) => (x.id === row.id ? { ...x, deal } : x)) ?? null)} onError={setError} />
                 </div>
                 {row.origin === 'custom' && writable && (
                   <Button size="xs" variant="ghost" className="mt-2 text-rose-700" onClick={() => remove(row)}>

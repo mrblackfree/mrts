@@ -79,12 +79,18 @@ const T = {
 };
 
 const TEST_TARGET: Record<string, string> = { comtrade: 'comtrade', kcs: 'dataGoKr' };
-const CONN_KEYS: Record<string, string[]> = {
-  ai: ['AI_API_KEY'],
-  tracking: ['TRACK_SHIPSGO_TOKEN', 'UNIPASS_CARGO_KEY', 'TRACK_HLAG_CLIENT_ID', 'TRACK_CMACGM_KEY'],
-  webhook: ['CONSULT_WEBHOOK_URL'],
-  pay: ['CHECKOUT_CASE_URL', 'CHECKOUT_SUB_URL'],
+/** Each connection's sources; a source counts as connected when every one of its keys is set. */
+const CONN_KEYS: Record<string, string[][]> = {
+  ai: [['AI_API_KEY']],
+  tracking: [['TRACK_SHIPSGO_TOKEN'], ['UNIPASS_CARGO_KEY'], ['TRACK_HLAG_CLIENT_ID', 'TRACK_HLAG_CLIENT_SECRET'], ['TRACK_CMACGM_KEY']],
+  webhook: [['CONSULT_WEBHOOK_URL']],
+  pay: [['CHECKOUT_CASE_URL'], ['CHECKOUT_SUB_URL']],
 };
+const TEST_MSG: Record<Lang, Record<string, string>> = {
+  ko: { 'no-key': '키가 없습니다', 'no-api-key': 'API 키가 없습니다', 'invalid-key': '키가 올바르지 않습니다', timeout: '응답 시간 초과', 'network-error': '연결할 수 없습니다', 'unknown-target': '알 수 없는 테스트' },
+  en: { 'no-key': 'No key', 'no-api-key': 'No API key', 'invalid-key': 'Invalid key', timeout: 'Timed out', 'network-error': 'Could not connect', 'unknown-target': 'Unknown test' },
+};
+const testMessage = (lang: Lang, code: string) => TEST_MSG[lang][code] ?? (/^http-\d{3}$/.test(code) ? (lang === 'ko' ? `HTTP ${code.slice(5)} 응답` : `HTTP ${code.slice(5)} response`) : code);
 const CONN_TEST: Record<string, string | undefined> = { ai: 'ai' };
 
 function Pill({ tone, children }: { tone: 'ok' | 'warn' | 'off' | 'err'; children: React.ReactNode }) {
@@ -142,7 +148,7 @@ export default function TrustHub({
         </Button>
         {r && r !== 'busy' && (
           <span role="status" className={cx('text-[12px] font-semibold', r.ok ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300')}>
-            {r.ok ? `OK · ${r.latencyMs}ms${r.detail ? ` · ${r.detail}` : ''}` : r.message}
+            {r.ok ? `OK · ${r.latencyMs}ms${r.detail ? ` · ${r.detail}` : ''}` : testMessage(lang, r.message)}
           </span>
         )}
       </span>
@@ -294,7 +300,7 @@ export default function TrustHub({
         </h3>
         <ul className="mt-3 grid gap-3 sm:grid-cols-2">
           {Object.entries(s.conns).map(([id, [name, what, to]]) => {
-            const n = CONN_KEYS[id].filter(isSet).length;
+            const n = CONN_KEYS[id].filter((keys) => keys.every(isSet)).length;
             return (
               <li key={id} className="rounded-xl border border-slate-200/80 p-3.5 dark:border-white/[0.07]">
                 <p className="flex flex-wrap items-center justify-between gap-2">

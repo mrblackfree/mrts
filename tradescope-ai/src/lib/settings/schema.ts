@@ -207,7 +207,7 @@ export const SETTINGS: SettingDef[] = [
       'Starting price of one expert case (excl. VAT); agency fees are charged at cost. Empty shows “quoted on request”.',
     ),
     placeholder: '예: 490000',
-    min: 0,
+    min: 1,
     max: 10_000_000_000,
   },
   {
@@ -219,7 +219,7 @@ export const SETTINGS: SettingDef[] = [
     label: b('구독 월 요금 (원)', 'Subscription per month (KRW)'),
     help: b('구독 요금제의 월 요금(VAT 별도). 비우면 「문의」로 표시합니다.', 'Monthly subscription price (excl. VAT). Empty shows “contact us”.'),
     placeholder: '예: 99000',
-    min: 0,
+    min: 1,
     max: 10_000_000_000,
   },
   {
@@ -231,7 +231,7 @@ export const SETTINGS: SettingDef[] = [
     label: b('구독 연 요금 (원, 선택)', 'Subscription per year (KRW, optional)'),
     help: b('연간 결제 금액. 넣으면 월 요금과 함께 「연 결제 시」로 표시합니다.', 'Price when paid yearly; shown next to the monthly price when set.'),
     placeholder: '예: 990000',
-    min: 0,
+    min: 1,
     max: 100_000_000_000,
   },
   {

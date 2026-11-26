@@ -181,7 +181,7 @@ function ExpertBand({ onExpert }: { onExpert: () => void }) {
     let alive = true;
     fetch('/api/partners')
       .then((r) => r.json())
-      .then((j) => alive && Array.isArray(j?.partners) && setPartners(j.partners.slice(0, 8)))
+      .then((j) => alive && Array.isArray(j?.partners) && setPartners(j.partners))
       .catch(() => undefined);
     return () => {
       alive = false;
@@ -273,13 +273,19 @@ function Pricing({ onStart, onPlan }: { onStart: () => void; onPlan: (plan: 'cas
   const { t, lang } = useI18n();
   const L = PLAN_TEXT[lang];
   const [pricing, setPricing] = useState<PublicPricing | null>(null);
+  // paid buttons wait for the configured checkout links, so an early click never opens the wrong flow
+  const [ready, setReady] = useState(STATIC_PREVIEW);
   useEffect(() => {
     if (STATIC_PREVIEW) return;
     let alive = true;
     fetch('/api/pricing')
       .then((r) => r.json())
-      .then((j) => alive && j?.ok && setPricing(j.pricing))
-      .catch(() => undefined);
+      .then((j) => {
+        if (!alive) return;
+        if (j?.ok) setPricing(j.pricing);
+        setReady(true);
+      })
+      .catch(() => alive && setReady(true));
     return () => {
       alive = false;
     };
@@ -340,6 +346,8 @@ function Pricing({ onStart, onPlan }: { onStart: () => void; onPlan: (plan: 'cas
                   variant={pl.featured ? 'secondary' : pl.id === 'free' ? 'primary' : 'secondary'}
                   size="lg"
                   className="w-full"
+                  loading={pl.id !== 'free' && !ready}
+                  disabled={pl.id !== 'free' && !ready}
                   onClick={() => (pl.id === 'free' ? onStart() : onPlan(pl.id))}
                 >
                   {pl.cta}

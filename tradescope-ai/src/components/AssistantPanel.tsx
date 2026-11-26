@@ -11,6 +11,7 @@ import { useI18n } from './I18nProvider';
 import { Badge, Button, buttonClass, CopyButton, copyText, cx, ProgressBar, ScoreRing, Segmented } from './ui';
 import { Flag } from './Flag';
 import InvoicePreview from './InvoicePreview';
+import { loadIdentity, saveIdentity } from '@/lib/invoice/profile-store';
 
 interface Props {
   product: TradeProduct;
@@ -51,6 +52,18 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
   const dialogRef = useModalDialog<HTMLDivElement>(onClose, closeRef);
 
   useEffect(() => setTab(initialTab), [initialTab, partner.id]);
+
+  // the company name and signatory are remembered in this browser (with the invoice details), not per draft
+  const [identityReady, setIdentityReady] = useState(false);
+  useEffect(() => {
+    const id = loadIdentity();
+    if (id.companyName || id.signatoryName) setOptions((o) => ({ ...o, senderCompany: o.senderCompany || id.companyName, senderName: o.senderName || id.signatoryName }));
+    setIdentityReady(true);
+  }, []);
+  useEffect(() => {
+    // only after the saved values were read, so the first render's empty fields never overwrite them
+    if (identityReady) saveIdentity({ companyName: options.senderCompany, signatoryName: options.senderName });
+  }, [identityReady, options.senderCompany, options.senderName]);
 
   const draft = useMemo(() => buildDraftLocal(product.id, partner.id, options), [product.id, partner.id, options]);
   const factors = useMemo(() => partnerFactors(partner), [partner]);
@@ -377,7 +390,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                 </div>
 
                 {/* Proforma invoice: a finished A4 document */}
-                <InvoicePreview pi={draft.pi} mineIsSeller={partner.role !== 'seller'} signatoryName={options.senderName} />
+                <InvoicePreview pi={draft.pi} partnerId={`${product.id}:${partner.id}`} mineIsSeller={partner.role !== 'seller'} signatoryName={options.senderName} />
               </div>
             )
           )}

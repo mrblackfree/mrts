@@ -3,13 +3,13 @@
 import { Download, FileText, Printer } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { proformaToText } from '@/lib/engine/simulate';
-import { cleanProfile, EMPTY_PROFILE, PROFILE_MAX, renderProformaHtml, type InvoiceProfile } from '@/lib/invoice/template';
+import { loadInvoiceProfile, saveInvoiceProfile } from '@/lib/invoice/profile-store';
+import { EMPTY_PROFILE, PROFILE_MAX, renderProformaHtml, type InvoiceProfile } from '@/lib/invoice/template';
 import { STATIC_PREVIEW } from '@/lib/preview';
 import type { ProformaInvoice } from '@/lib/types';
 import { useI18n } from './I18nProvider';
 import { Button, CopyButton, cx } from './ui';
 
-const STORE = 'ts-invoice-profile:v1';
 /** A4 at 96 dpi */
 const PAGE_W = 794;
 const PAGE_H = 1123;
@@ -22,11 +22,11 @@ const STR = {
     download: 'HTML 내려받기',
     copy: '텍스트 복사',
     details: '회사 · 은행 정보 입력',
-    detailsHint: '입력한 내용은 이 브라우저에만 저장되고 서버로 보내지 않습니다.',
+    detailsHint: '이 브라우저에만 저장되고 서버로 보내지 않습니다. 상대 회사·수하인 정보는 거래처별로 따로 저장됩니다.',
     mine: '우리 회사',
     them: '상대 회사 · 수하인',
     bank: '대금 받을 계좌',
-    bankBuyer: '수입(구매) 건은 판매자가 계좌를 기입합니다. 비워 두면 빈칸으로 표시됩니다.',
+    bankBuyer: '수입(구매) 건이라 이 계좌는 인보이스에 넣지 않습니다 — 판매자가 자기 계좌를 기입합니다.',
     reset: '입력 지우기',
     preview: '인보이스 미리보기',
     f: {
@@ -53,11 +53,11 @@ const STR = {
     download: 'Download HTML',
     copy: 'Copy as text',
     details: 'Company & bank details',
-    detailsHint: 'Saved in this browser only — never sent to the server.',
+    detailsHint: 'Saved in this browser only — never sent to the server. Counterparty and consignee details are kept per partner.',
     mine: 'Your company',
     them: 'Counterparty & consignee',
     bank: 'Account for payment',
-    bankBuyer: 'On a purchase the seller fills in the bank account; empty fields stay blank.',
+    bankBuyer: 'This is a purchase, so your account is not printed — the seller fills in theirs.',
     reset: 'Clear details',
     preview: 'Invoice preview',
     f: {
@@ -81,36 +81,24 @@ const STR = {
 
 const MULTILINE = new Set<keyof InvoiceProfile>(['address', 'counterpartyAddress', 'consignee', 'notifyParty']);
 
-function loadProfile(): InvoiceProfile {
-  try {
-    return cleanProfile(JSON.parse(localStorage.getItem(STORE) ?? 'null'));
-  } catch {
-    return { ...EMPTY_PROFILE };
-  }
-}
-
-export default function InvoicePreview({ pi, mineIsSeller, signatoryName }: { pi: ProformaInvoice; mineIsSeller: boolean; signatoryName: string }) {
+export default function InvoicePreview({ pi, partnerId, mineIsSeller, signatoryName }: { pi: ProformaInvoice; partnerId: string; mineIsSeller: boolean; signatoryName: string }) {
   const { lang } = useI18n();
   const s = STR[lang];
   const [profile, setProfile] = useState<InvoiceProfile>(EMPTY_PROFILE);
-  const [loaded, setLoaded] = useState(false);
+  // the partner whose details are in `profile` — saving never writes one partner's parties under another
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const frame = useRef<HTMLIFrameElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(PAGE_W);
   const [height, setHeight] = useState(PAGE_H);
 
   useEffect(() => {
-    setProfile(loadProfile());
-    setLoaded(true);
-  }, []);
+    setProfile(loadInvoiceProfile(partnerId));
+    setLoadedFor(partnerId);
+  }, [partnerId]);
   useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem(STORE, JSON.stringify(profile));
-    } catch {
-      /* private mode: kept for this visit only */
-    }
-  }, [profile, loaded]);
+    if (loadedFor === partnerId) saveInvoiceProfile(partnerId, profile);
+  }, [profile, loadedFor, partnerId]);
 
   useEffect(() => {
     const el = box.current;
@@ -177,7 +165,7 @@ export default function InvoicePreview({ pi, mineIsSeller, signatoryName }: { pi
           <p className="text-[11.5px] text-slate-500 dark:text-slate-400">{s.sub}</p>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <CopyButton text={proformaToText(pi, mineIsSeller ? { beneficiary: profile.bankBeneficiary, bankName: profile.bankName, swift: profile.bankSwift, account: profile.bankAccount } : undefined)} label={s.copy} />
+          <CopyButton text={proformaToText(pi, mineIsSeller ? { beneficiary: profile.bankBeneficiary, bankName: profile.bankName, swift: profile.bankSwift, account: profile.bankAccount, address: profile.bankAddress } : undefined)} label={s.copy} />
           <Button size="sm" onClick={download}>
             <Download className="size-3.5" aria-hidden />
             {s.download}

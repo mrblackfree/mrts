@@ -58,6 +58,10 @@ ok('public list never carries contacts, terms or notes', !JSON.stringify(body).i
 res = await route.PATCH(req('PATCH', { id: added.id, deal: { status: 'nonsense', contractDate: '1 Dec' } }));
 body = await json(res);
 ok('unknown status and bad date are cleaned', body.deal.status === 'candidate' && body.deal.contractDate === '');
+res = await route.PATCH(req('PATCH', { id: added.id, deal: { contractDate: '2026-02-31' } }));
+ok('impossible calendar date is cleaned', (await json(res)).deal.contractDate === '');
+res = await route.PATCH(req('PATCH', { id: added.id, deal: { contractDate: '2028-02-29' } }));
+ok('leap day is a real date', (await json(res)).deal.contractDate === '2028-02-29');
 res = await route.PATCH(req('PATCH', { id: 'nope', deal: { status: 'contacted' } }));
 ok('unknown id → 404', res.status === 404);
 res = await route.PATCH(req('PATCH', { id: '__proto__', deal: { status: 'contracted' } }));
@@ -68,6 +72,18 @@ if (PARTNER_CANDIDATES.length) {
   res = await route.DELETE(req('DELETE', undefined, `?id=${PARTNER_CANDIDATES[0].id}`));
   ok('researched candidates cannot be deleted', res.status === 404);
 }
+
+// ---- a custom record that does not validate is not listed, and kept in the file ---------------------------------
+const onDisk = JSON.parse(readFileSync(file, 'utf8'));
+onDisk.custom.push({ id: 'c-0000ff', country: 'PH', type: 'law' }, { id: 'c-0000fe', country: 'PH', type: 'customs', name: 'Valid but odd', practice: 'not-an-array', sources: [1, 'http://x', 'https://ok.example'] });
+writeFileSync(file, JSON.stringify(onDisk));
+res = await route.GET(req('GET'));
+body = await json(res);
+ok('nameless custom record is not listed', !body.partners.some((p: any) => p.id === 'c-0000ff'));
+const odd = body.partners.find((p: any) => p.id === 'c-0000fe');
+ok('malformed fields are normalised', odd && Array.isArray(odd.practice) && odd.practice.length === 0 && JSON.stringify(odd.sources) === '["https://ok.example"]', odd);
+await route.PATCH(req('PATCH', { id: added.id, deal: { notes: 'after odd records' } }));
+ok('…and the record that did not validate survives the next write', readFileSync(file, 'utf8').includes('c-0000ff'));
 
 // ---- remove ----------------------------------------------------------------------------------------------------
 res = await route.DELETE(req('DELETE', undefined, `?id=${added.id}`));

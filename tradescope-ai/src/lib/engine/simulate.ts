@@ -621,7 +621,7 @@ export function buildProforma(product: TradeProduct, partner: Partner, o: DraftO
 }
 
 /** Plain-text PI (for email bodies). Bank lines come from the user's saved details when given. */
-export function proformaToText(pi: ProformaInvoice, bank?: { beneficiary?: string; bankName?: string; swift?: string; account?: string }): string {
+export function proformaToText(pi: ProformaInvoice, bank?: { beneficiary?: string; bankName?: string; swift?: string; account?: string; address?: string }): string {
   const rows = pi.lines
     .map((l) => `${l.description} | HS ${l.hsCode} | ${formatNumber(l.quantity)} ${l.unit} × ${formatUsd(l.unitPrice, { decimals: 2 })} = ${formatUsd(l.amount, { decimals: 2 })}`)
     .join('\n');
@@ -638,7 +638,7 @@ export function proformaToText(pi: ProformaInvoice, bank?: { beneficiary?: strin
     `TOTAL: ${formatUsd(pi.total, { decimals: 2 })} (${pi.currency})`,
     '',
     ...pi.remarks.map((r) => `- ${r}`),
-    `- Bank details: ${[bank?.beneficiary, bank?.bankName, bank?.swift && `SWIFT ${bank.swift}`, bank?.account && `A/C ${bank.account}`].filter(Boolean).join(' / ') || '[Beneficiary / bank / SWIFT / account to be provided]'}`,
+    `- Bank details: ${[bank?.beneficiary, bank?.bankName, bank?.swift && `SWIFT ${bank.swift}`, bank?.account && `A/C ${bank.account}`, bank?.address].filter(Boolean).join(' / ') || '[Beneficiary / bank / SWIFT / account to be provided]'}`,
   ].join('\n');
 }
 

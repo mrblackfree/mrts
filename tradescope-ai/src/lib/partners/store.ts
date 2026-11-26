@@ -29,10 +29,12 @@ interface StoreFile {
   format: 1;
   deals: Record<string, PartnerDeal>;
   custom: PartnerFirm[];
+  /** entries in `custom` that do not validate: never listed, written back unchanged */
+  keep: unknown[];
 }
 
 const file = () => path.join(settingsDir(), 'partners.json');
-const empty = (): StoreFile => ({ format: 1, deals: Object.create(null), custom: [] });
+const empty = (): StoreFile => ({ format: 1, deals: Object.create(null), custom: [], keep: [] });
 
 /** The stored state; an empty one when the file does not exist. A damaged file throws (never overwritten). */
 function read(): StoreFile {
@@ -52,14 +54,55 @@ function read(): StoreFile {
   if (!v || v.format !== 1 || typeof v.deals !== 'object' || !Array.isArray(v.custom)) throw new Error('partners-file-corrupt');
   const deals: Record<string, PartnerDeal> = Object.create(null);
   for (const [id, d] of Object.entries(v.deals ?? {})) deals[id] = cleanDeal(d);
-  return { format: 1, deals, custom: v.custom.filter((f) => f && typeof f.id === 'string' && f.id.startsWith('c-')).map((f) => ({ ...f, origin: 'custom' as const })) };
+  const custom: PartnerFirm[] = [];
+  const keep: unknown[] = [];
+  for (const f of v.custom as unknown[]) {
+    const c = cleanFirm(f);
+    if (c) custom.push(c);
+    else keep.push(f);
+  }
+  return { format: 1, deals, custom, keep };
+}
+
+/** A hand-added firm read back from the file, normalised; null when it does not validate. */
+function cleanFirm(f: unknown): PartnerFirm | null {
+  if (!f || typeof f !== 'object') return null;
+  const x = f as Record<string, unknown>;
+  if (typeof x.id !== 'string' || !/^c-[0-9a-f]{6,32}$/.test(x.id)) return null;
+  if (!PARTNER_COUNTRIES.includes(x.country as PartnerCountry) || !PARTNER_TYPES.includes(x.type as PartnerType)) return null;
+  const name = str(x.name, FIRM_MAX.name);
+  if (!name) return null;
+  const website = str(x.website, FIRM_MAX.website);
+  const strings = (v: unknown, max: number, n: number) => (Array.isArray(v) ? v.filter((s): s is string => typeof s === 'string').map((s) => s.trim().slice(0, max)).filter(Boolean).slice(0, n) : []);
+  return {
+    id: x.id,
+    country: x.country as PartnerCountry,
+    type: x.type as PartnerType,
+    name,
+    nameLocal: str(x.nameLocal, FIRM_MAX.nameLocal) || undefined,
+    city: str(x.city, FIRM_MAX.city),
+    website: website && isHttpsUrl(website) ? website : '',
+    practice: strings(x.practice, 60, 8),
+    why: str(x.why, FIRM_MAX.why),
+    sources: strings(x.sources, 300, 10).filter(isHttpsUrl),
+    origin: 'custom',
+  };
+}
+
+/** A real calendar date in YYYY-MM-DD, or ''. */
+function calendarDate(v: unknown): string {
+  const d = str(v, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
+  const t = new Date(`${d}T00:00:00Z`);
+  return !Number.isNaN(t.getTime()) && t.toISOString().slice(0, 10) === d ? d : '';
 }
 
 function write(state: StoreFile): void {
   mkdirSync(settingsDir(), { recursive: true, mode: 0o700 });
   const f = file();
   const tmp = `${f}.${process.pid}.tmp`;
-  writeFileSync(tmp, JSON.stringify(state, null, 1), { mode: 0o600 });
+  const { keep, ...rest } = state;
+  writeFileSync(tmp, JSON.stringify({ ...rest, custom: [...state.custom, ...keep] }, null, 1), { mode: 0o600 });
   renameSync(tmp, f);
   try {
     chmodSync(f, 0o600);
@@ -90,7 +133,7 @@ function cleanDeal(d: unknown): PartnerDeal {
     contactName: str(x.contactName, DEAL_MAX.contactName),
     contactEmail: str(x.contactEmail, DEAL_MAX.contactEmail),
     terms: str(x.terms, DEAL_MAX.terms),
-    contractDate: /^\d{4}-\d{2}-\d{2}$/.test(str(x.contractDate, 10)) ? str(x.contractDate, 10) : '',
+    contractDate: calendarDate(x.contractDate),
     notes: str(x.notes, DEAL_MAX.notes),
     updatedAt: typeof x.updatedAt === 'string' ? x.updatedAt : null,
   };

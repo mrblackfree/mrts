@@ -59,7 +59,7 @@ export async function POST(req: Request) {
   }
 }
 
-/** Remove a firm added by hand: `?id=c-…` (researched candidates are set to "dropped" instead). */
+/** Remove a firm added by hand: `?id=c-…`. Researched candidates are not removed (404); set them to "dropped" with PATCH. */
 export function DELETE(req: Request) {
   const denied = requireAdmin(req, { mutating: true }) ?? readOnly();
   if (denied) return denied;

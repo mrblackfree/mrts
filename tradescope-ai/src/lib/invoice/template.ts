@@ -151,12 +151,14 @@ export function renderProformaHtml({ pi, profile, mineIsSeller, signatoryName }:
   const notify = profile.notifyParty.trim() ? lines(profile.notifyParty) : 'Same as consignee';
   const totalQty = pi.lines.filter((l) => l.amount > 0 && l.unit !== 'lot').reduce((s, l) => s + l.quantity, 0);
   const qtyUnit = pi.lines.find((l) => l.unit !== 'lot')?.unit ?? '';
+  // the saved bank is the user's own: it belongs on the invoice only when they are the seller being paid
+  const ownBank = (v: string) => (mineIsSeller && v.trim() ? v : '');
   const bank = [
-    ['Beneficiary', profile.bankBeneficiary.trim() ? esc(profile.bankBeneficiary) : placeholder(`[${mineIsSeller ? pi.seller : 'Seller'} — account holder]`)],
-    ['Bank', profile.bankName.trim() ? esc(profile.bankName) : placeholder('[Bank name]')],
-    ['SWIFT / BIC', profile.bankSwift.trim() ? esc(profile.bankSwift.toUpperCase()) : placeholder('[SWIFT code]')],
-    ['Account No.', profile.bankAccount.trim() ? esc(profile.bankAccount) : placeholder('[Account number]')],
-    ['Bank address', profile.bankAddress.trim() ? esc(profile.bankAddress) : placeholder('[Bank address]')],
+    ['Beneficiary', ownBank(profile.bankBeneficiary) ? esc(profile.bankBeneficiary) : placeholder(`[${mineIsSeller ? pi.seller : 'Seller'} — account holder]`)],
+    ['Bank', ownBank(profile.bankName) ? esc(profile.bankName) : placeholder('[Bank name]')],
+    ['SWIFT / BIC', ownBank(profile.bankSwift) ? esc(profile.bankSwift.toUpperCase()) : placeholder('[SWIFT code]')],
+    ['Account No.', ownBank(profile.bankAccount) ? esc(profile.bankAccount) : placeholder('[Account number]')],
+    ['Bank address', ownBank(profile.bankAddress) ? esc(profile.bankAddress) : placeholder('[Bank address]')],
   ];
   // the user's own bank applies when they are the seller; as a buyer the seller's bank is not theirs to fill
   const bankNote = mineIsSeller ? '' : '<p class="note">To be completed by the seller.</p>';

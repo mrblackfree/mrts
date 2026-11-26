@@ -33,9 +33,40 @@ ok('empty fields show placeholders', renderProformaHtml({ pi, profile: EMPTY_PRO
 const asBuyer = renderProformaHtml({ pi, profile: EMPTY_PROFILE, mineIsSeller: false, signatoryName: 'Kim' });
 ok('as the buyer, the seller fills in the bank', asBuyer.includes('To be completed by the seller.'));
 
+// ---- the user's own bank only when they are the seller -------------------------------------------------------------
+const withBank = { ...EMPTY_PROFILE, bankBeneficiary: 'MY OWN CO', bankName: 'MY BANK', bankSwift: 'MYBKKRSE', bankAccount: '999-888', bankAddress: 'MY BANK ADDRESS' };
+const sellerHtml = renderProformaHtml({ pi, profile: withBank, mineIsSeller: true, signatoryName: '' });
+const buyerHtml = renderProformaHtml({ pi, profile: withBank, mineIsSeller: false, signatoryName: '' });
+ok('as the seller, my bank is printed', ['MY OWN CO', 'MY BANK', 'MYBKKRSE', '999-888', 'MY BANK ADDRESS'].every((x) => sellerHtml.includes(x)));
+ok('as the buyer, my bank is never printed as the seller’s', ['MY OWN CO', 'MY BANK', 'MYBKKRSE', '999-888', 'MY BANK ADDRESS'].every((x) => !buyerHtml.includes(x)) && buyerHtml.includes('[Bank name]'));
+
 // ---- text version carries the bank only when given ---------------------------------------------------------------
 ok('text: bank placeholder', proformaToText(pi).includes('[Beneficiary / bank / SWIFT / account to be provided]'));
 ok('text: bank details', proformaToText(pi, { beneficiary: 'ACME', bankName: 'Bank', swift: 'ABCDKRSE', account: '123' }).includes('ACME / Bank / SWIFT ABCDKRSE / A/C 123'));
+ok('text: bank address too', proformaToText(pi, { beneficiary: 'ACME', address: '1 Bank St' }).includes('ACME / 1 Bank St'));
+
+// ---- browser storage: company-wide details, transaction parties per partner --------------------------------------
+const mem = new Map<string, string>();
+(globalThis as unknown as { localStorage: Storage }).localStorage = {
+  getItem: (k: string) => mem.get(k) ?? null,
+  setItem: (k: string, v: string) => void mem.set(k, String(v)),
+  removeItem: (k: string) => void mem.delete(k),
+  clear: () => mem.clear(),
+  key: () => null,
+  length: 0,
+} as Storage;
+const store = await import('@/lib/invoice/profile-store');
+store.saveIdentity({ companyName: 'Hanbit Foods', signatoryName: 'Jiwon Kim' });
+store.saveInvoiceProfile('p:buyer-a', { ...EMPTY_PROFILE, address: 'Seoul HQ', bankName: 'My Bank', counterpartyAddress: 'Buyer A, Manila', consignee: 'Warehouse A' });
+const forB = store.loadInvoiceProfile('p:buyer-b');
+ok('another partner gets my company details', forB.address === 'Seoul HQ' && forB.bankName === 'My Bank');
+ok('…but never the previous partner’s address or consignee', forB.counterpartyAddress === '' && forB.consignee === '');
+ok('the first partner keeps its own parties', store.loadInvoiceProfile('p:buyer-a').counterpartyAddress === 'Buyer A, Manila');
+ok('saving invoice details keeps the company name and signatory', store.loadIdentity().companyName === 'Hanbit Foods' && store.loadIdentity().signatoryName === 'Jiwon Kim');
+store.saveIdentity({ companyName: 'Hanbit Foods Co., Ltd.', signatoryName: 'Jiwon Kim' });
+ok('saving the identity keeps the company details', store.loadInvoiceProfile('p:buyer-b').address === 'Seoul HQ' && store.loadIdentity().companyName === 'Hanbit Foods Co., Ltd.');
+mem.set('ts-invoice-company:v1', '{"companyName":7,"address":"x"}');
+ok('odd stored values are ignored', store.loadIdentity().companyName === '' && store.loadInvoiceProfile('p:buyer-b').address === 'x');
 
 // ---- stored profile ----------------------------------------------------------------------------------------------
 const cleaned = cleanProfile({ address: 'x'.repeat(500), phone: 42, unknown: 'y', __proto__: { email: 'polluted' } });

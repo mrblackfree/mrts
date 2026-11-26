@@ -27,4 +27,8 @@ ok('seed MFN rises to official', after[2].level === 'official');
 ok('score formula: categories weigh the same', scoreOf([{ category: 'stats', level: 'official' }, { category: 'mfn', level: 'seed' }, { category: 'mfn', level: 'official' }]) === 75);
 ok('empty item list scores 0', scoreOf([]) === 0);
 
+const { SETTING_INDEX, validateSetting } = await import('@/lib/settings/schema');
+ok('a price of 0 is rejected (it would show "quoted on request")', ['PRICE_CASE_KRW', 'PRICE_SUB_MONTHLY_KRW', 'PRICE_SUB_YEARLY_KRW'].every((k) => !validateSetting(SETTING_INDEX[k], '0').ok && validateSetting(SETTING_INDEX[k], '1').ok));
+ok('checkout links must be https', !validateSetting(SETTING_INDEX.CHECKOUT_CASE_URL, 'http://pay.example').ok && validateSetting(SETTING_INDEX.CHECKOUT_CASE_URL, 'https://pay.example').ok);
+
 done('trust levers');
