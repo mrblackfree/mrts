@@ -12,20 +12,23 @@ ok('id format TS- + 8 symbols', /^TS-[A-HJ-NP-Z2-9]{8}$/.test(newRequestId()));
 const ids = new Set(Array.from({ length: 2000 }, newRequestId));
 ok('2000 ids are distinct', ids.size === 2000);
 
-const a = appendRequest(input);
+const a = await appendRequest(input);
 // POSIX permission bits are not enforced on Windows
 ok('file mode 0600', process.platform === 'win32' || (statSync(file).mode & 0o777) === 0o600, (statSync(file).mode & 0o777).toString(8));
 // an interrupted append leaves half a line without a newline
 appendFileSync(file, '{"id":"TS-BROKEN","name":"half');
-const b = appendRequest({ ...input, name: 'Lee' });
-ok('record after a partial line is readable', listRequests().some((r) => r.id === b.id), listRequests().map((r) => r.id));
-ok('newest first', listRequests()[0].id === b.id);
+const b = await appendRequest({ ...input, name: 'Lee' });
+let list = await listRequests();
+ok('record after a partial line is readable', list.some((r) => r.id === b.id), list.map((r) => r.id));
+ok('newest first', list[0].id === b.id);
 
-ok('status change', updateStatus(a.id, 'contacted') && listRequests().find((r) => r.id === a.id)?.status === 'contacted');
+const changed = await updateStatus(a.id, 'contacted');
+list = await listRequests();
+ok('status change', changed && list.find((r) => r.id === a.id)?.status === 'contacted');
 const raw = readFileSync(file, 'utf8');
 ok('damaged line kept byte for byte', raw.includes('{"id":"TS-BROKEN","name":"half'), raw);
 ok('other record untouched', JSON.parse(raw.split('\n').find((l) => l.includes(b.id))!).status === 'new');
-ok('unknown id → false', updateStatus('TS-NOPE0000', 'done') === false);
+ok('unknown id → false', (await updateStatus('TS-NOPE0000', 'done')) === false);
 ok('file ends with newline', readFileSync(file, 'utf8').endsWith('\n'));
 
 done('consult store');

@@ -81,7 +81,7 @@ export type StorageState =
 
 /**
  * Whether admin documents (settings, partner pipeline, verified values) can be saved: in Redis when configured,
- * else in the data folder. Stores that still write files themselves use fileStorageState().
+ * else in the data folder. Records the server keeps for itself use recordStorageState().
  */
 export function storageState(): StorageState {
   const kv = kvConfig();
@@ -90,6 +90,20 @@ export function storageState(): StorageState {
   if (process.env.SETTINGS_READONLY === '1' || process.env.SETTINGS_READONLY === 'true') return { writable: false, path, backend: 'kv', reason: 'readonly-env' };
   if (!masterSecret()) return { writable: false, path, backend: 'kv', reason: 'no-secret' };
   if (kvCache?.problem) return { writable: false, path, backend: 'kv', reason: kvCache.problem };
+  return { writable: true, path, backend: 'kv' };
+}
+
+/**
+ * Whether records the server keeps for itself — expert requests, admin sign-outs, metric counts — are kept: in
+ * Redis when configured, else in the data folder. Only the admin page reads them, so the admin secret is needed
+ * either way.
+ */
+export function recordStorageState(): StorageState {
+  const kv = kvConfig();
+  if (!kv) return { ...fileStorageState(), backend: 'file' };
+  const path = `Redis · ${kv.prefix}`;
+  if (process.env.SETTINGS_READONLY === '1' || process.env.SETTINGS_READONLY === 'true') return { writable: false, path, backend: 'kv', reason: 'readonly-env' };
+  if (!masterSecret()) return { writable: false, path, backend: 'kv', reason: 'no-secret' };
   return { writable: true, path, backend: 'kv' };
 }
 

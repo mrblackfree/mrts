@@ -118,7 +118,7 @@ const S = {
     logoutAllConfirm: '이 브라우저를 포함해 로그인된 모든 브라우저·기기에서 로그아웃할까요?',
     logoutAllHint: '비밀번호가 노출됐거나 공용 PC에서 로그인했다면 사용하세요. 로그아웃하면 이 세션도 서버에서 무효가 됩니다.',
     logoutAllFailed: '모든 기기 로그아웃에 실패했습니다. 다시 시도하세요.',
-    logoutMemoryOnly: '이 환경은 저장소가 읽기 전용이라 로그아웃 기록이 서버 메모리에만 남습니다. 재시작 후에도 확실히 끝내려면 ADMIN_SECRET을 바꾸세요.',
+    logoutMemoryOnly: '이 환경은 저장소가 읽기 전용이라 로그아웃 기록이 서버 메모리에만 남습니다. Vercel이라면 Upstash Redis를 연결하세요. 그 전에 모든 세션을 확실히 끝내려면 ADMIN_SECRET을 바꾸세요.',
     todo: '남은 설정',
     allDone: '필수 설정이 모두 끝났습니다.',
     go: '설정하기',
@@ -245,7 +245,7 @@ const S = {
     logoutAllConfirm: 'Sign out of every browser and device, including this one?',
     logoutAllHint: 'Use this if the password may have leaked or you signed in on a shared computer. Signing out also invalidates this session on the server.',
     logoutAllFailed: 'Could not sign out everywhere. Try again.',
-    logoutMemoryOnly: 'Storage is read-only here, so sign-outs are kept in server memory only. To be sure after a restart, rotate ADMIN_SECRET.',
+    logoutMemoryOnly: 'Storage is read-only here, so sign-outs are kept in server memory only. On Vercel, connect Upstash Redis. Until then, rotate ADMIN_SECRET to be sure every session ends.',
     todo: 'Remaining setup',
     allDone: 'All essential settings are done.',
     go: 'Configure',
@@ -1448,8 +1448,8 @@ function Validation({ lang, onUnauthorized }: { lang: Lang; onUnauthorized: () =
           <div className="mt-3">
             <Notice tone="warn" title={ko ? '측정값이 메모리에만 있습니다' : 'Counts are in memory only'}>
               {ko
-                ? '저장소에 쓸 수 없는 환경이라 서버가 다시 시작되면 숫자가 사라집니다. 검증 기간 동안에는 쓰기 가능한 데이터 폴더(TRADESCOPE_DATA_DIR)가 있는 서버에서 운영하세요.'
-                : 'Storage is not writable here, so the numbers reset when the server restarts. Run the validation period on a server with a writable data folder (TRADESCOPE_DATA_DIR).'}
+                ? '저장소에 쓸 수 없는 환경이라 서버가 다시 시작되면 숫자가 사라집니다. Vercel이라면 Upstash Redis를 연결하고, 직접 운영하는 서버라면 쓰기 가능한 데이터 폴더(TRADESCOPE_DATA_DIR)를 지정하세요.'
+                : 'Storage is not writable here, so the numbers reset when the server restarts. On Vercel, connect Upstash Redis; on your own server, set a writable data folder (TRADESCOPE_DATA_DIR).'}
             </Notice>
           </div>
         )}

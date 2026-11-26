@@ -66,8 +66,8 @@ export async function POST(req: Request)  {
 /**
  * Sign out: the session is revoked on the server, not only removed from this browser, so a copied cookie stops
  * working too. `?all=1` signs out every session (all browsers and devices) and needs a signed-in session.
- * `revoked` says where the sign-out is kept: `stored` (data folder) or `memory` (this process only: read-only hosting,
- * or the data folder could not be updated).
+ * `revoked` says where the sign-out is kept: `stored` (data folder or Redis) or `memory` (this process only:
+ * read-only hosting, or the store could not be updated).
  */
 export async function DELETE(req: Request)  {
   await prepareRequest();
@@ -75,6 +75,6 @@ export async function DELETE(req: Request)  {
   const all = new URL(req.url).searchParams.get('all') === '1';
   const session = currentSession(req);
   if (all && !session) return adminJson({ ok: false, error: 'unauthorized' }, { status: 401 });
-  const revoked = all ? revokeAllSessions(session!) : session ? revokeSession(session.nonce, session.expiresAt) : null;
+  const revoked = all ? await revokeAllSessions(session!) : session ? await revokeSession(session.nonce, session.expiresAt) : null;
   return adminJson({ ok: true, revoked }, { headers: { 'Set-Cookie': clearedCookie(req) } });
 }

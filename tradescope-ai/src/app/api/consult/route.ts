@@ -7,7 +7,7 @@ import { readJsonLimited } from '@/lib/http';
 import { EXPERT_SOURCES, eventKeys, optedOutHeaders, parseChannel, type ExpertSource } from '@/lib/metrics/events';
 import { countMetrics } from '@/lib/metrics/store';
 import { clientKey, windowLimiter } from '@/lib/rate-limit';
-import { getSetting, fileStorageState } from '@/lib/settings';
+import { getSetting, recordStorageState } from '@/lib/settings';
 import { prepareRequest } from '@/lib/store/prepare';
 
 export const runtime = 'nodejs';
@@ -24,7 +24,7 @@ const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 export async function GET()  {
   await prepareRequest();
   const contact = getSetting('CONSULT_CONTACT_EMAIL') ?? null;
-  const accepting = fileStorageState().writable || !!webhookUrl();
+  const accepting = recordStorageState().writable || !!webhookUrl();
   return NextResponse.json({ ok: true, accepting, contact }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
@@ -71,13 +71,13 @@ export async function POST(req: Request)  {
   };
 
   const webhook = webhookUrl();
-  const canStore = fileStorageState().writable;
+  const canStore = recordStorageState().writable;
   const contact = getSetting('CONSULT_CONTACT_EMAIL') ?? null;
   if (!canStore && !webhook) return NextResponse.json({ ok: false, error: 'not-accepting', contact }, { status: 503 });
 
   let record: ConsultRequest;
   try {
-    record = canStore ? appendRequest(input) : { id: newRequestId(), createdAt: new Date().toISOString(), status: 'new', ...input };
+    record = canStore ? await appendRequest(input) : { id: newRequestId(), createdAt: new Date().toISOString(), status: 'new', ...input };
   } catch {
     return NextResponse.json({ ok: false, error: 'storage-error', contact }, { status: 503 });
   }
@@ -87,7 +87,7 @@ export async function POST(req: Request)  {
     // without storage the webhook is the only copy: tell the trader so they can retry or use the email
     if (!delivered && !canStore) return NextResponse.json({ ok: false, error: 'delivery-failed', contact }, { status: 502 });
   }
-  if (!optedOut) countMetrics(eventKeys({ e: 'consult_submit', src: source, first: body.first === true }, channel));
+  if (!optedOut) await countMetrics(eventKeys({ e: 'consult_submit', src: source, first: body.first === true }, channel));
   return NextResponse.json({ ok: true, id: record.id });
 }
 

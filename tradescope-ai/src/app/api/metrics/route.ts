@@ -41,6 +41,6 @@ export async function POST(req: Request)  {
     }
     keys.push(...eventKeys(ev, channel));
   }
-  countMetrics(keys);
+  await countMetrics(keys);
   return limited && !keys.length ? new NextResponse(null, { status: 429 }) : done();
 }

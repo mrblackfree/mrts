@@ -31,7 +31,7 @@ export async function POST(req: Request)  {
   const out = await trackShipment({ reference, kind, carrier }, { mode, product });
   // validation metrics (H8): how live lookups end, without the number itself
   const outcome = out.result ? (out.result.demo ? 'demo' : out.result.pending ? 'pending' : 'live') : (out.error ?? 'not-found');
-  if (!optedOutHeaders(req.headers)) countMetrics(eventKeys({ e: 'track', kind: outcome, provider: out.result && !out.result.demo ? out.result.provider : undefined }));
+  if (!optedOutHeaders(req.headers)) await countMetrics(eventKeys({ e: 'track', kind: outcome, provider: out.result && !out.result.demo ? out.result.provider : undefined }));
   if (out.result) return NextResponse.json({ ok: true, result: out.result, tried: out.tried }, { headers: { 'Cache-Control': 'no-store' } });
   const status = out.error === 'failed' ? 502 : out.error === 'not-covered' ? 422 : 404;
   return NextResponse.json({ ok: false, error: out.error ?? 'not-found', tried: out.tried }, { status, headers: { 'Cache-Control': 'no-store' } });

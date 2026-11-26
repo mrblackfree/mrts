@@ -18,7 +18,7 @@ const { PARTNER_CANDIDATES } = await import('@/data/partner-candidates');
 await settings.loadSettings(true);
 let st = settings.storageState();
 ok('Vercel + Redis: admin documents are writable', st.writable && st.backend === 'kv', st);
-ok('…while files are still not (requests, metrics, sign-outs stay as before)', settings.fileStorageState().writable === false);
+ok('…while the data folder is not (Vercel); expert requests, sign-outs and metrics use Redis too', settings.fileStorageState().writable === false && settings.recordStorageState().writable);
 
 // ---- save and read back ----------------------------------------------------------------------------------------
 let r = await settings.updateSettings({ PRICE_CASE_KRW: '490000', AI_API_KEY: 'sk-test-supersecret-123456' });

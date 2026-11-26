@@ -27,29 +27,57 @@ export function kvConfig(): KvConfig | null {
 
 export class KvError extends Error {}
 
-/** One Redis command; throws KvError on a transport or Redis error (never returns a partial result). */
-export async function kv(command: Array<string | number>, timeoutMs = 8000): Promise<unknown> {
+async function post(pathSuffix: string, payload: unknown, timeoutMs: number): Promise<unknown> {
   const cfg = kvConfig();
   if (!cfg) throw new KvError('kv-not-configured');
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(cfg.url, {
+    const res = await fetch(`${cfg.url}${pathSuffix}`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${cfg.token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(command.map(String)),
+      body: JSON.stringify(payload),
       signal: ctrl.signal,
       cache: 'no-store',
     });
-    const body = (await res.json().catch(() => null)) as { result?: unknown; error?: string } | null;
-    if (!res.ok || !body || body.error) throw new KvError(body?.error ? 'kv-error' : `kv-http-${res.status}`);
-    return body.result ?? null;
+    const body = (await res.json().catch(() => null)) as unknown;
+    const error = body && typeof body === 'object' && !Array.isArray(body) ? (body as { error?: string }).error : undefined;
+    if (!res.ok || !body || error) throw new KvError(error ? 'kv-error' : `kv-http-${res.status}`);
+    return body;
   } catch (e) {
     if (e instanceof KvError) throw e;
     throw new KvError((e as Error).name === 'AbortError' ? 'kv-timeout' : 'kv-unreachable');
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** One Redis command; throws KvError on a transport or Redis error (never returns a partial result). */
+export async function kv(command: Array<string | number>, timeoutMs = 8000): Promise<unknown> {
+  const body = (await post('', command.map(String), timeoutMs)) as { result?: unknown };
+  return body.result ?? null;
+}
+
+/**
+ * Several commands in one request (Upstash /pipeline — run in order, not atomically). Throws KvError when the
+ * request or any command fails, so a caller never mistakes a partial answer for a whole one.
+ */
+export async function kvPipeline(commands: Array<Array<string | number>>, timeoutMs = 8000): Promise<unknown[]> {
+  if (!commands.length) return [];
+  const body = await post('/pipeline', commands.map((c) => c.map(String)), timeoutMs);
+  if (!Array.isArray(body) || body.length !== commands.length) throw new KvError('kv-error');
+  return body.map((r) => {
+    if (!r || typeof r !== 'object' || (r as { error?: string }).error) throw new KvError('kv-error');
+    return (r as { result?: unknown }).result ?? null;
+  });
+}
+
+/** HGETALL's flat [field, value, field, value…] answer as an object (no prototype, so any field name is safe). */
+export function kvPairs(result: unknown): Record<string, string> {
+  const out: Record<string, string> = Object.create(null);
+  if (!Array.isArray(result)) return out;
+  for (let i = 0; i + 1 < result.length; i += 2) if (typeof result[i] === 'string' && typeof result[i + 1] === 'string') out[result[i]] = result[i + 1];
+  return out;
 }
 
 export const kvKey = (name: string) => `${kvConfig()?.prefix ?? 'tradescope:'}${name}`;

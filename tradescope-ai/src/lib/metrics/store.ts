@@ -3,12 +3,17 @@
  * after the last change. Each flush re-reads the file and adds only this process's new counts, so several
  * processes or instances on one data folder keep each other's counts (two flushes in the same instant can still
  * lose one batch). Without writable storage (Vercel, read-only) counts live in memory and restart from zero.
- * Days older than 400 are dropped whenever the file is read or written. Server-side only.
+ * Days older than 400 are dropped whenever the file is read or written.
+ *
+ * With Redis (lib/store/kv, e.g. Vercel) each request adds its counts straight away (HINCRBY) to one hash per day —
+ * "metrics:<date>" and "metrics:<date>:ch" for channel keys — which expires after the 400 days. Server-side only.
  */
 import { chmodSync, readFileSync, renameSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { fileStorageState } from '@/lib/settings';
+import { fileStorageState, recordStorageState } from '@/lib/settings';
 import { settingsDir } from '@/lib/settings/core.mjs';
+import { docBackend } from '@/lib/store/docs';
+import { kvKey, kvPairs, kvPipeline } from '@/lib/store/kv';
 
 type Day = Record<string, number>;
 type Days = Record<string, Day>;
@@ -153,9 +158,81 @@ export function flushMetrics(): boolean {
   }
 }
 
-/** Adds 1 to each key in today's bucket. */
-export function countMetrics(keys: string[]): void {
+// ---- Redis ---------------------------------------------------------------------------------------------------------
+
+const useRedis = () => docBackend() === 'kv' && recordStorageState().writable;
+const dayHash = (date: string, channel: boolean) => kvKey(`metrics:${date}${channel ? ':ch' : ''}`);
+/** unix seconds when a day's counts expire: the moment that day leaves the retention window */
+const expiresAt = (date: string) => Math.floor(Date.parse(`${date}T00:00:00Z`) / 1000) + KEEP_DAYS * 86_400;
+const KV_TIMEOUT_MS = 1500;
+const PIPELINE_CHUNK = 100;
+
+/**
+ * Adds the counts to today's hashes. Keys already there always count; a new key only while its budget for the day
+ * lasts (checked just before writing, so requests racing at the very limit can pass it by a few keys).
+ */
+async function countInRedis(keys: string[]): Promise<void> {
+  const date = today();
+  const want = new Map<string, number>();
+  for (const k of keys) want.set(k, (want.get(k) ?? 0) + 1);
+  const groups = [false, true]
+    .map((channel) => ({ channel, hash: dayHash(date, channel), keys: [...want.keys()].filter((k) => isChannelKey(k) === channel) }))
+    .filter((g) => g.keys.length);
+  const seen = await kvPipeline(groups.flatMap((g) => [['HLEN', g.hash], ['HMGET', g.hash, ...g.keys]]), KV_TIMEOUT_MS);
+  const writes: Array<Array<string | number>> = [];
+  groups.forEach((g, i) => {
+    let room = (g.channel ? MAX_CHANNEL_KEYS_PER_DAY : MAX_OTHER_KEYS_PER_DAY) - Number(seen[2 * i] ?? 0);
+    const existing = Array.isArray(seen[2 * i + 1]) ? (seen[2 * i + 1] as unknown[]) : [];
+    let wrote = false;
+    g.keys.forEach((k, j) => {
+      const known = existing[j] !== null && existing[j] !== undefined;
+      if (!known) {
+        if (room <= 0) return;
+        room--;
+      }
+      writes.push(['HINCRBY', g.hash, k, want.get(k)!]);
+      wrote = true;
+    });
+    if (wrote) writes.push(['EXPIREAT', g.hash, expiresAt(date)]);
+  });
+  if (writes.length) await kvPipeline(writes, KV_TIMEOUT_MS);
+}
+
+async function daysFromRedis(dates: string[]): Promise<Days> {
+  const commands = dates.flatMap((d) => [['HGETALL', dayHash(d, false)], ['HGETALL', dayHash(d, true)]]);
+  const chunks: Array<Array<Array<string>>> = [];
+  for (let i = 0; i < commands.length; i += PIPELINE_CHUNK) chunks.push(commands.slice(i, i + PIPELINE_CHUNK));
+  const results = (await Promise.all(chunks.map((c) => kvPipeline(c)))).flat();
+  const days: Days = Object.create(null);
+  dates.forEach((date, i) => {
+    const day: Day = Object.create(null);
+    for (const r of [results[2 * i], results[2 * i + 1]]) {
+      for (const [k, v] of Object.entries(kvPairs(r))) {
+        const n = Number(v);
+        if (Number.isFinite(n) && n > 0) day[k] = n;
+      }
+    }
+    if (Object.keys(day).length) days[date] = day;
+  });
+  return days;
+}
+
+// ---- counting and reading -----------------------------------------------------------------------------------------
+
+/**
+ * Adds 1 to each key in today's bucket. Never throws: metrics are best effort, and a Redis error drops this
+ * request's counts (logged) rather than failing the request.
+ */
+export async function countMetrics(keys: string[]): Promise<void> {
   if (!keys.length) return;
+  if (useRedis()) {
+    try {
+      await countInRedis(keys);
+    } catch (e) {
+      console.warn('[metrics] counts not saved:', (e as Error).message);
+    }
+    return;
+  }
   const d = load();
   const date = today();
   for (const k of keys) if (add(d.days, date, k, 1)) add(delta, date, k, 1);
@@ -172,11 +249,18 @@ export interface MetricsSummary {
   persistent: boolean;
 }
 
-/** Totals over the last `days` days (today included). */
-export function metricsSummary(days: number): MetricsSummary {
-  const persistent = fileStorageState().writable;
+/** Totals over the last `days` days (today included). Throws when Redis cannot be read. */
+export async function metricsSummary(days: number): Promise<MetricsSummary> {
+  const redis = useRedis();
+  const persistent = redis || fileStorageState().writable;
+  const n = Math.min(Math.max(1, Math.floor(days)), KEEP_DAYS);
+  const to = today();
+  const fromDate = new Date(Date.parse(`${to}T00:00:00Z`) - (n - 1) * 86_400_000).toISOString().slice(0, 10);
   let source: Doc;
-  if (persistent) {
+  if (redis) {
+    const dates = Array.from({ length: n }, (_, i) => new Date(Date.parse(`${fromDate}T00:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10));
+    source = { format: 1, days: await daysFromRedis(dates) };
+  } else if (persistent) {
     // the file has every process's written counts; add this process's unwritten ones
     const r = readDisk();
     source = r.doc;
@@ -186,9 +270,6 @@ export function metricsSummary(days: number): MetricsSummary {
       schedule();
     }
   } else source = load();
-  const n = Math.min(Math.max(1, Math.floor(days)), KEEP_DAYS);
-  const to = today();
-  const fromDate = new Date(Date.parse(`${to}T00:00:00Z`) - (n - 1) * 86_400_000).toISOString().slice(0, 10);
   const totals: Record<string, number> = Object.create(null);
   const daily: MetricsSummary['daily'] = [];
   for (const date of Object.keys(source.days).sort()) {

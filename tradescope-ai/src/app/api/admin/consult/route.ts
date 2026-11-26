@@ -8,8 +8,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /** Requests with the product's name, so the operator sees which trade a step-level topic belongs to. */
-const withProduct = () =>
-  listRequests().map((r) => {
+const withProduct = async () =>
+  (await listRequests()).map((r) => {
     const product = r.productId ? getProduct(r.productId) : undefined;
     return product ? { ...r, productName: product.name, productEmoji: product.emoji } : r;
   });
@@ -19,7 +19,11 @@ export async function GET(req: Request)  {
   await prepareRequest();
   const denied = requireAdmin(req, { mutating: false });
   if (denied) return denied;
-  return adminJson({ ok: true, requests: withProduct() });
+  try {
+    return adminJson({ ok: true, requests: await withProduct() });
+  } catch {
+    return adminJson({ ok: false, error: 'storage-error' }, { status: 503 });
+  }
 }
 
 /** Change a request's status: body `{ id, status }`. */
@@ -34,9 +38,9 @@ export async function PATCH(req: Request)  {
   const status = typeof body.status === 'string' && (CONSULT_STATUSES as string[]).includes(body.status) ? (body.status as ConsultStatus) : null;
   if (!id || !status) return adminJson({ ok: false, error: 'bad-request' }, { status: 400 });
   try {
-    if (!updateStatus(id, status)) return adminJson({ ok: false, error: 'not-found' }, { status: 404 });
+    if (!(await updateStatus(id, status))) return adminJson({ ok: false, error: 'not-found' }, { status: 404 });
+    return adminJson({ ok: true, requests: await withProduct() });
   } catch {
     return adminJson({ ok: false, error: 'storage-error' }, { status: 500 });
   }
-  return adminJson({ ok: true, requests: withProduct() });
 }

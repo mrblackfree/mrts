@@ -1,12 +1,16 @@
 /**
- * Expert-service requests ("전문가에게 맡기기"), stored next to the admin settings as JSON lines (mode 0600) and
- * read only through the admin page. Server-side only.
+ * Expert-service requests ("전문가에게 맡기기"), read only through the admin page. Server-side only.
+ *
+ * Stored next to the admin settings as JSON lines (consult-requests.jsonl, mode 0600) or — when Redis is configured
+ * (lib/store/kv), as on Vercel — in one Redis hash "consult-requests" (field = request id, value = the record).
  */
 import type { ExpertSource } from '@/lib/metrics/events';
 import { randomBytes } from 'node:crypto';
 import { appendFileSync, chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { settingsDir } from '@/lib/settings/core.mjs';
+import { docBackend } from '@/lib/store/docs';
+import { kv, kvKey, kvPairs } from '@/lib/store/kv';
 
 export type ConsultStatus = 'new' | 'contacted' | 'in-progress' | 'done' | 'closed';
 export const CONSULT_STATUSES: ConsultStatus[] = ['new', 'contacted', 'in-progress', 'done', 'closed'];
@@ -33,6 +37,7 @@ export interface ConsultRequest {
 }
 
 const file = () => path.join(settingsDir(), 'consult-requests.jsonl');
+const HASH = 'consult-requests';
 
 /** Readable reference the trader can quote (e.g. TS-7F3K9QW2): 8 of 32 symbols, 40 random bits. */
 export function newRequestId(): string {
@@ -50,7 +55,20 @@ function readRaw(): string {
   }
 }
 
-export function appendRequest(input: Omit<ConsultRequest, 'id' | 'createdAt' | 'status'>): ConsultRequest {
+type NewRequest = Omit<ConsultRequest, 'id' | 'createdAt' | 'status'>;
+
+/** Stores a new request and returns it with its id. Throws when it could not be stored. */
+export async function appendRequest(input: NewRequest): Promise<ConsultRequest> {
+  if (docBackend() !== 'kv') return appendToFile(input);
+  // HSETNX never replaces an existing request; a taken id (1 in 2^40) just draws another
+  for (let i = 0; i < 5; i++) {
+    const record: ConsultRequest = { id: newRequestId(), createdAt: new Date().toISOString(), status: 'new', ...input };
+    if (Number(await kv(['HSETNX', kvKey(HASH), record.id, JSON.stringify(record)])) === 1) return record;
+  }
+  throw new Error('request-id-taken');
+}
+
+function appendToFile(input: NewRequest): ConsultRequest {
   mkdirSync(settingsDir(), { recursive: true, mode: 0o700 });
   const f = file();
   const created = !existsSync(f);
@@ -76,23 +94,40 @@ function parseLine(line: string): ConsultRequest | null {
   if (!line.trim()) return null;
   try {
     const r = JSON.parse(line) as ConsultRequest;
-    return r && typeof r === 'object' && typeof r.id === 'string' ? r : null;
+    return r && typeof r === 'object' && !Array.isArray(r) && typeof r.id === 'string' ? r : null;
   } catch {
     return null;
   }
 }
 const parseLines = (raw: string) => raw.split('\n').map(parseLine).filter((r): r is ConsultRequest => r !== null);
 
-/** All requests, newest first. Lines that cannot be parsed are skipped (and kept in the file). */
-export function listRequests(): ConsultRequest[] {
-  return parseLines(readRaw()).reverse();
+/** All requests, newest first. Records that cannot be parsed are skipped (and kept where they are). */
+export async function listRequests(): Promise<ConsultRequest[]> {
+  if (docBackend() !== 'kv') return parseLines(readRaw()).reverse();
+  const all = Object.values(kvPairs(await kv(['HGETALL', kvKey(HASH)])))
+    .map(parseLine)
+    .filter((r): r is ConsultRequest => r !== null);
+  // hash fields have no order: newest first by creation time
+  return all.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)) || b.id.localeCompare(a.id));
 }
 
 /**
- * Sets a request's status; rewrites the file atomically. Only the matching line changes — damaged or unknown
- * lines are kept byte for byte, so a status change never deletes anything. Returns false when the id is unknown.
+ * Sets a request's status. Only the matching record changes — damaged or unknown records are kept as they are, so a
+ * status change never deletes anything. Returns false when the id is unknown.
  */
-export function updateStatus(id: string, status: ConsultStatus): boolean {
+export async function updateStatus(id: string, status: ConsultStatus): Promise<boolean> {
+  if (docBackend() !== 'kv') return updateStatusInFile(id, status);
+  const key = kvKey(HASH);
+  const current = parseLine(String((await kv(['HGET', key, id])) ?? ''));
+  if (!current || current.id !== id) return false;
+  // a read then a write: only the status ever changes and records are never deleted, so two changes racing end
+  // exactly as if they had run one after the other
+  await kv(['HSET', key, id, JSON.stringify({ ...current, status })]);
+  return true;
+}
+
+/** Rewrites the file atomically with one line changed. */
+function updateStatusInFile(id: string, status: ConsultStatus): boolean {
   const lines = readRaw().split('\n');
   let hit = false;
   const next = lines.map((line) => {

@@ -8,5 +8,5 @@ const exp = Math.floor(Date.now() / 1000) + 3600;
 // start together, sleeping until then
 await new Promise((r) => setTimeout(r, Math.max(0, Number(startAt) - Date.now())));
 const where = new Set<string>();
-for (let i = 0; i < Number(count); i++) where.add(revocation.revokeSession(`w${id}-${i}`, exp));
+for (let i = 0; i < Number(count); i++) where.add(await revocation.revokeSession(`w${id}-${i}`, exp));
 process.stdout.write(JSON.stringify([...where]));
