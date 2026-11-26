@@ -66,9 +66,11 @@ ok('…and the form now says it is not taking requests', ((await (await consultR
 const kvModule = await import('@/lib/store/kv');
 const realFetch = globalThis.fetch;
 let hooks = 0;
+let lastHookId = '';
 globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
   if (String(url).startsWith('https://hooks.example/')) {
     hooks++;
+    lastHookId = (String(init?.body ?? '').match(/TS-[A-HJ-NP-Z2-9]{8}/) ?? [''])[0];
     return new Response('', { status: 200 });
   }
   return realFetch(url, init);
@@ -79,9 +81,31 @@ ok('Redis known down + webhook: delivered by webhook only', r.status === 200 && 
 kvModule.resetKvHealthForTest(); // Redis looks healthy, then the save fails
 r = await post('203.0.113.11');
 ok('save fails + webhook: falls back to the webhook instead of failing', r.status === 200 && hooks === 2, r);
+// a save that reached Redis but whose answer was lost: the webhook carries the same id, never a second request
+fake.failWith = null;
+fake.loseAnswers = true;
+kvModule.resetKvHealthForTest();
+r = await post('203.0.113.12');
+fake.loseAnswers = false;
+ok('answer lost: one id for the stored record, the webhook and the trader', r.status === 200 && hooks === 3 && lastHookId === r.json.id && fake.hashes.get(HASH)!.has(r.json.id as string), { r, lastHookId });
+fake.failWith = 503;
 delete process.env.CONSULT_WEBHOOK_URL;
 globalThis.fetch = realFetch;
 fake.failWith = null;
+
+// health follows the whole answer: a batch with one failed command is a failure
+// (first let the background metric writes of the posts above finish: their answers count as health too)
+await new Promise((r) => setTimeout(r, 500));
+kvModule.resetKvHealthForTest();
+let pipeThrew = false;
+try {
+  await kvModule.kvPipeline([['GET', 'tradescope:x'], ['NOPE']]);
+} catch {
+  pipeThrew = true;
+}
+ok('a batch with a failed command throws and marks Redis unhealthy', pipeThrew && !kvModule.kvHealthy());
+await kvModule.kvPipeline([['GET', 'tradescope:x']]);
+ok('…a fully successful batch marks it healthy again', kvModule.kvHealthy());
 
 // ---- admin sign-outs ------------------------------------------------------------------------------------------
 const DOC = 'tradescope:admin-sessions';

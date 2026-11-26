@@ -55,6 +55,13 @@ export function kvHealthy(): boolean {
   return !(lastFailure > lastSuccess && Date.now() - lastFailure < UNHEALTHY_FOR_MS);
 }
 
+const markSuccess = () => {
+  lastSuccess = Date.now();
+};
+const markFailure = () => {
+  lastFailure = Date.now();
+};
+
 /** For tests: forget the health history. */
 export function resetKvHealthForTest(): void {
   lastFailure = 0;
@@ -77,10 +84,10 @@ async function post(pathSuffix: string, payload: unknown, timeoutMs: number): Pr
     const body = (await res.json().catch(() => null)) as unknown;
     const error = body && typeof body === 'object' && !Array.isArray(body) ? (body as { error?: string }).error : undefined;
     if (!res.ok || !body || error) throw new KvError(error ? 'kv-error' : `kv-http-${res.status}`);
-    lastSuccess = Date.now();
+    // success is recorded by the caller, once it has checked the whole answer
     return body;
   } catch (e) {
-    lastFailure = Date.now();
+    markFailure();
     if (e instanceof KvError) throw e;
     throw new KvError((e as Error).name === 'AbortError' ? 'kv-timeout' : 'kv-unreachable');
   } finally {
@@ -91,6 +98,7 @@ async function post(pathSuffix: string, payload: unknown, timeoutMs: number): Pr
 /** One Redis command; throws KvError on a transport or Redis error (never returns a partial result). */
 export async function kv(command: Array<string | number>, timeoutMs = 8000): Promise<unknown> {
   const body = (await post('', command.map(String), timeoutMs)) as { result?: unknown };
+  markSuccess();
   return body.result ?? null;
 }
 
@@ -101,11 +109,13 @@ export async function kv(command: Array<string | number>, timeoutMs = 8000): Pro
 export async function kvPipeline(commands: Array<Array<string | number>>, timeoutMs = 8000): Promise<unknown[]> {
   if (!commands.length) return [];
   const body = await post('/pipeline', commands.map((c) => c.map(String)), timeoutMs);
-  if (!Array.isArray(body) || body.length !== commands.length) throw new KvError('kv-error');
-  return body.map((r) => {
-    if (!r || typeof r !== 'object' || (r as { error?: string }).error) throw new KvError('kv-error');
-    return (r as { result?: unknown }).result ?? null;
-  });
+  // healthy only when every command in the batch succeeded
+  if (!Array.isArray(body) || body.length !== commands.length || body.some((r) => !r || typeof r !== 'object' || (r as { error?: string }).error)) {
+    markFailure();
+    throw new KvError('kv-error');
+  }
+  markSuccess();
+  return body.map((r) => (r as { result?: unknown }).result ?? null);
 }
 
 /** HGETALL's flat [field, value, field, value…] answer as an object (no prototype, so any field name is safe). */

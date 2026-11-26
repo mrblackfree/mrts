@@ -57,17 +57,34 @@ function readRaw(): string {
 
 type NewRequest = Omit<ConsultRequest, 'id' | 'createdAt' | 'status'>;
 
+/**
+ * A write that failed or whose answer was lost. `record` is the request as it was being written — it may have been
+ * stored after all — so a fallback delivery (webhook) carries the same id and the two can be matched.
+ */
+export class RequestNotStoredError extends Error {
+  constructor(readonly record: ConsultRequest) {
+    super('request-not-stored');
+  }
+}
+
 /** Stores a new request and returns it with its id. Throws when it could not be stored. */
 export async function appendRequest(input: NewRequest): Promise<ConsultRequest> {
   if (docBackend() !== 'kv') return appendToFile(input);
   // HSETNX never replaces an existing request; a taken id (1 in 2^40) just draws another
   for (let i = 0; i < 5; i++) {
     const record: ConsultRequest = { id: newRequestId(), createdAt: new Date().toISOString(), status: 'new', ...input };
-    if (Number(await kv(['HSETNX', kvKey(HASH), record.id, JSON.stringify(record)])) === 1) return record;
+    let set: unknown;
+    try {
+      set = await kv(['HSETNX', kvKey(HASH), record.id, JSON.stringify(record)]);
+    } catch {
+      throw new RequestNotStoredError(record);
+    }
+    if (Number(set) === 1) return record;
   }
   throw new Error('request-id-taken');
 }
 
+// a local file write has no lost answer: it either fails (nothing readable stored) or succeeds
 function appendToFile(input: NewRequest): ConsultRequest {
   mkdirSync(settingsDir(), { recursive: true, mode: 0o700 });
   const f = file();

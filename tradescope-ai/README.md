@@ -28,7 +28,7 @@
 - 서비스마다 대행 범위와 고객이 준비할 서류를 표시하고, 처리 기간과 근거가 확인된 서비스(현재 FDA 식품, BAI 펫푸드)에는 기관 민원 안내(Citizen's Charter) 기준 처리 기간과 근거 링크를 함께 표시합니다(보완 요청 기간 제외, 기관 공지로 바뀔 수 있음). 필리핀 통관(BOC 수입자 등록)은 CAO 01-2026의 법무법인 게시본을 근거로 표시하며 공식 출처는 확인 중입니다. 나머지는 확인되는 대로 추가합니다
 - 체크리스트 항목의 「맡기기」, 인허가 단계의 서비스 카드, 데이터에 없는 품목(예: 펫푸드 → BAI)의 안내에서 요청 양식이 열립니다
 - 요청은 `TRADESCOPE_DATA_DIR/consult-requests.jsonl`(0600)에, Redis를 연결한 환경(Vercel + Upstash)에서는 Redis 해시 `consult-requests`에 저장되고 `/admin → 전문가 서비스`에서 상태(new → contacted → in-progress → done, 또는 closed)를 관리합니다. 저장하려면 `ADMIN_SECRET`(또는 `ADMIN_PASSWORD`)이 설정되어 있고 읽기 전용(`SETTINGS_READONLY`)이 아니어야 합니다. `CONSULT_WEBHOOK_URL`을 넣으면 Slack 등으로 즉시 알림
-- **webhook만 쓰는 경우:** 저장소가 없거나 Redis가 응답하지 않을 때 `CONSULT_WEBHOOK_URL`이 있으면 요청을 webhook으로만 전달합니다. 이 요청은 관리자 목록에 남지 않으므로 webhook을 받는 곳(Slack 등)에서 관리하세요. webhook 전달까지 실패하면 고객에게 오류와 연락처 이메일을 보여 줍니다. 저장소도 webhook도 없으면 양식이 요청을 받지 않습니다
+- **webhook만 쓰는 경우:** 저장소가 없거나 Redis가 응답하지 않을 때 `CONSULT_WEBHOOK_URL`이 있으면 요청을 webhook으로만 전달합니다. 이 요청은 관리자 목록에 남지 않으므로 webhook을 받는 곳(Slack 등)에서 관리하세요. webhook 전달까지 실패하면 고객에게 오류와 연락처 이메일을 보여 줍니다. 저장소도 webhook도 없으면 양식이 요청을 받지 않습니다. Redis 장애에 대비한 webhook은 **환경변수 `CONSULT_WEBHOOK_URL`**로 넣으세요 — 관리자 화면에서 저장한 값은 Redis 안에 있어서, Redis가 멈춘 동안 새로 시작한 서버 인스턴스는 그 값을 알 수 없습니다. Redis에 저장했다는 응답만 끊긴 경우에도 webhook에는 같은 요청 번호가 가므로 한 건으로 맞춰 볼 수 있습니다
 - 남용 방지: 시간당 전체 60건, 봇 차단용 숨은 필드, 요청 본문 32KB 제한. 클라이언트당 5건 한도는 클라이언트를 식별할 수 있을 때(`TRUST_PROXY` 또는 Vercel)만 적용되고, 한도는 서버 인스턴스(프로세스)마다 따로 셉니다 — 여러 인스턴스로 운영하면 인스턴스 수만큼 늘어납니다
 
 ### 컨테이너·통관 추적

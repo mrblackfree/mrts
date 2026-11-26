@@ -19,6 +19,8 @@ export interface FakeUpstash {
   delayMs: number;
   /** seconds added to the real clock when deciding whether a key has expired */
   clockOffsetS: number;
+  /** run each command but answer 504, as when the answer is lost on the way back */
+  loseAnswers: boolean;
   close: () => Promise<void>;
 }
 
@@ -27,7 +29,7 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
   const hashes = new Map<string, Map<string, string>>();
   const expiries = new Map<string, number>();
   const calls: string[][] = [];
-  const state = { failWith: null as number | null, delayMs: 0, clockOffsetS: 0 };
+  const state = { failWith: null as number | null, delayMs: 0, clockOffsetS: 0, loseAnswers: false };
   const nowS = () => Math.floor(Date.now() / 1000) + state.clockOffsetS;
   const purgeExpired = () => {
     for (const [k, at] of expiries) {
@@ -150,9 +152,11 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
       }
       if (req.url === '/pipeline') {
         if (!Array.isArray(parsed)) return send(400, { error: 'bad pipeline' });
-        return send(200, parsed.map(run));
+        const replies = parsed.map(run);
+        return state.loseAnswers ? send(504, { error: 'gateway timeout' }) : send(200, replies);
       }
       const reply = run(parsed);
+      if (state.loseAnswers) return send(504, { error: 'gateway timeout' });
       return send('error' in reply ? 400 : 200, reply);
     });
   });
@@ -179,6 +183,12 @@ export async function startFakeUpstash(token = 'test-token'): Promise<FakeUpstas
     },
     get clockOffsetS() {
       return state.clockOffsetS;
+    },
+    get loseAnswers() {
+      return state.loseAnswers;
+    },
+    set loseAnswers(v) {
+      state.loseAnswers = v;
     },
     set clockOffsetS(v) {
       state.clockOffsetS = v;

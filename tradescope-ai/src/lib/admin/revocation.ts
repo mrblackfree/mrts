@@ -94,23 +94,46 @@ function writeFile(state: State): boolean {
   }
 }
 
-/** The file's state, or null when there is none. A damaged file is set aside and every existing session ends. */
-function readFile(): State | null {
+/** The file as it is now, never writing: its state, null when there is none, or 'damaged'. */
+function readDisk(): State | null | 'damaged' {
   try {
     return clean(JSON.parse(readFileSync(file(), 'utf8')));
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    // fail closed; signing in again still works
-    try {
-      renameSync(file(), `${file()}.corrupt-${Date.now()}-${process.pid}`);
-    } catch {
-      /* nothing to keep */
-    }
-    const fresh = empty();
-    fresh.notBefore = nowMs();
-    writeFile(fresh);
-    return fresh;
+    return (e as NodeJS.ErrnoException).code === 'ENOENT' ? null : 'damaged';
   }
+}
+
+const failClosed = (): State => {
+  const fresh = empty();
+  fresh.notBefore = nowMs(); // every session issued so far ends; signing in again still works
+  return fresh;
+};
+
+/**
+ * The file's state, or null when there is none. Call only while holding the lock: a damaged file is set aside and
+ * replaced by a fail-closed one here, so the repair can never overwrite another process's sign-out.
+ */
+function readFileLocked(): State | null {
+  const disk = readDisk();
+  if (disk !== 'damaged') return disk;
+  try {
+    renameSync(file(), `${file()}.corrupt-${Date.now()}-${process.pid}`);
+  } catch {
+    /* nothing to keep */
+  }
+  const fresh = failClosed();
+  writeFile(fresh);
+  return fresh;
+}
+
+/** The file's state without holding the lock: a damaged file is repaired under the lock, or read as fail-closed. */
+function readFile(): State | null {
+  const disk = readDisk();
+  if (disk !== 'damaged') return disk;
+  let repaired: State | null = null;
+  // re-read under the lock: another process may have repaired it (or signed out) meanwhile
+  if (withFileLock(lockFile(), () => (repaired = readFileLocked()))) return repaired;
+  return failClosed();
 }
 
 function valid(raw: string): boolean {
@@ -195,7 +218,7 @@ async function update(change: (s: State) => void): Promise<RevocationStore> {
   if (!fileStorageState().writable) return 'memory';
   let saved = false;
   const locked = withFileLock(lockFile(), () => {
-    const disk = readFile() ?? empty();
+    const disk = readFileLocked() ?? empty();
     change(disk);
     saved = writeFile(prune(union(disk, memory)));
   });

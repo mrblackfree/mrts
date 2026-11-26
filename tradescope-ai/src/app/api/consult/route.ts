@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { EXPERT_INDEX } from '@/data/experts';
 import { getProduct } from '@/data/kr-ph-trade-db';
 import { notify, webhookUrl } from '@/lib/consult/notify';
-import { appendRequest, newRequestId, type ConsultRequest } from '@/lib/consult/store';
+import { appendRequest, newRequestId, RequestNotStoredError, type ConsultRequest } from '@/lib/consult/store';
 import { readJsonLimited } from '@/lib/http';
 import { EXPERT_SOURCES, eventKeys, optedOutHeaders, parseChannel, type ExpertSource } from '@/lib/metrics/events';
 import { countMetrics } from '@/lib/metrics/store';
@@ -87,10 +87,13 @@ export async function POST(req: Request)  {
   if (stored) {
     try {
       record = await appendRequest(input);
-    } catch {
-      // storage failed: with a webhook the request still reaches the team (webhook-only, as without storage)
+    } catch (e) {
+      // storage failed: with a webhook the request still reaches the team (webhook-only, as without storage).
+      // A Redis write whose answer was lost may have been stored after all: the webhook gets the same id, so the
+      // two are one request, never two.
       if (!webhook) return NextResponse.json({ ok: false, error: 'storage-error', contact }, { status: 503 });
       stored = false;
+      if (e instanceof RequestNotStoredError) record = e.record;
     }
   }
   record ??= { id: newRequestId(), createdAt: new Date().toISOString(), status: 'new', ...input };
