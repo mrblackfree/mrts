@@ -36,7 +36,6 @@ const T = {
     practice: '업무 분야 (쉼표로 구분)',
     remove: '삭제',
     empty: '이 국가는 아직 후보가 없습니다. 직접 추가하거나 조사 후 목록을 채우세요.',
-    readOnly: '이 환경은 저장소가 읽기 전용이라 상태를 저장할 수 없습니다(Vercel 등). Docker·자체 서버에서 관리하세요.',
     failed: '처리하지 못했습니다',
     research: '조사 후보',
     verify: '확인 필요',
@@ -67,7 +66,6 @@ const T = {
     practice: 'Practice areas (comma separated)',
     remove: 'Remove',
     empty: 'No candidates for this country yet. Add one by hand or fill the list after research.',
-    readOnly: 'Storage is read-only here (e.g. Vercel), so changes cannot be saved. Manage partners on a Docker / own server.',
     failed: 'Could not complete',
     research: 'Researched',
     verify: 'Verify',
@@ -200,7 +198,6 @@ export default function Partners({ lang, onUnauthorized }: { lang: Lang; onUnaut
   return (
     <div className="space-y-4">
       <p className="max-w-4xl rounded-xl border border-slate-200 bg-slate-50 p-3 text-[12.5px] leading-relaxed text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">{s.check}</p>
-      {!writable && rows && <p className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-[13px] text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">{s.readOnly}</p>}
       {error && (
         <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-[13px] text-rose-800 dark:border-rose-400/30 dark:bg-rose-400/10 dark:text-rose-200">
           {error}
