@@ -389,11 +389,12 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       }
     } else if (tg.type === 'hs') {
       const h = p.hs.find((x) => x.code === tg.code);
-      if (h) h.ruling = { text: tg.ruling, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
+      if (h) h.ruling = { text: tg.ruling, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt, basis: e.basis === 'official' ? 'official' : 'expert' };
     } else if (tg.type === 'partner') {
       const pt = p.partners.find((x) => x.id === tg.id);
       // An expired licence is not a verification.
-      if (pt && licenceActive(e)) pt.license = { text: tg.license, validUntil: tg.licenseValidUntil, source: e.source, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
+      if (pt && licenceActive(e))
+        pt.license = { text: tg.license, validUntil: tg.licenseValidUntil, source: e.source, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt, basis: e.basis === 'official' ? 'official' : 'expert' };
     } else if (tg.type === 'requirement') {
       const r = p.requirements.find((x) => x.id === tg.id);
       if (r) r.reviewed = { source: e.source, reference: e.reference, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
@@ -466,7 +467,8 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     category: 'hs',
     label: b(`HS ${p.hs[0].code} 품목분류`, `HS ${p.hs[0].code} classification`),
     // An official HS6 with national tariff lines proves the code is valid; the classification itself needs a ruling.
-    level: p.hs[0].ruling ? 'verified' : mc && mc.lines > 0 ? 'crosscheck' : 'seed',
+    // an official ruling read from a customs authority's published decisions is official; a broker's opinion is verified
+    level: p.hs[0].ruling ? (p.hs[0].ruling.basis === 'official' ? 'official' : 'verified') : mc && mc.lines > 0 ? 'crosscheck' : 'seed',
     source: p.hs[0].ruling?.text ?? (mc ? `World Bank WITS TRAINS · HS ${mc.hs6} · ${mc.year}` : undefined),
     detail: p.hs[0].ruling
       ? undefined
@@ -496,7 +498,7 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       key: `partner:${pt.id}`,
       category: 'partners',
       label: b(pt.name, pt.name),
-      level: pt.license ? 'verified' : webOk ? 'crosscheck' : 'seed',
+      level: pt.license ? (pt.license.basis === 'official' ? 'official' : 'verified') : webOk ? 'crosscheck' : 'seed',
       source: pt.license ? `${pt.license.source} · ${pt.license.verifiedBy}` : undefined,
       checkedAt: pt.license?.verifiedAt ?? pt.linkCheck?.checkedAt,
       detail: pt.license

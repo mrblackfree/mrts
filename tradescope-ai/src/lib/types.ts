@@ -31,7 +31,7 @@ export interface HsCandidate {
   fit: number;
   rationale: Bilingual;
   /** binding classification ruling (from verified-overrides.json) */
-  ruling?: { text: string; verifiedBy: string; verifiedAt: string };
+  ruling?: { text: string; verifiedBy: string; verifiedAt: string; basis?: 'official' | 'expert' };
 }
 
 export interface TariffRate {
@@ -261,7 +261,7 @@ export interface Partner {
   caution: Bilingual;
   /** attached by the official-data layer */
   linkCheck?: LinkCheck;
-  license?: { text: string; validUntil?: string; source: string; verifiedBy: string; verifiedAt: string };
+  license?: { text: string; validUntil?: string; source: string; verifiedBy: string; verifiedAt: string; basis?: 'official' | 'expert' };
 }
 
 export interface PricingSeed {

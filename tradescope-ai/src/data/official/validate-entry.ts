@@ -8,6 +8,9 @@ import { todayIso } from '@/lib/format';
 import type { TradeProduct } from '@/lib/types';
 import type { OverrideEntry } from './index';
 
+/** Target types that may carry basis: 'official' (read from an official source rather than an expert's opinion). */
+export const BASIS_TYPES = ['tariff', 'hs', 'partner'];
+
 const SCHEMES = ['MFN', 'AKFTA', 'RCEP', 'KRPH'];
 const PLACEHOLDER = /(O{3}|_{3,}|0000호|\bTEST\b)/;
 
@@ -113,8 +116,9 @@ export function validateEntry(input: unknown, products: TradeProduct[], today: s
   }
   // 'official' = read from an official published schedule or register, not an expert opinion (shown as "official")
   if (x.basis !== undefined && x.basis !== 'official') errors.push("basis: 'official' or leave it out");
-  // only tariff rates are shown by basis; any other target stays an expert / partner confirmation
-  else if (x.basis !== undefined && t.type !== 'tariff') errors.push('basis: only for tariff entries');
+  // a published schedule, an official classification ruling or an official register can be read without an expert;
+  // requirement reviews, freight and price quotes stay expert / partner confirmations
+  else if (x.basis !== undefined && !BASIS_TYPES.includes(String(t.type))) errors.push('basis: only for tariff, hs and partner entries');
   if (errors.length || !target) return { ok: false, errors };
   return {
     ok: true,

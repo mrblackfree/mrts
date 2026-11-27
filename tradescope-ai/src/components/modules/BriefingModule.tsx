@@ -170,7 +170,7 @@ export default function BriefingModule({ report, product, onOpenTrust }: { repor
                   {h.ruling && (
                     <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-violet-50 px-1.5 py-0.5 text-[10.5px] font-semibold text-violet-700 dark:bg-violet-500/10 dark:text-violet-300">
                       <BadgeCheck className="size-3" />
-                      {h.ruling.text} · {h.ruling.verifiedAt}
+                      {h.ruling.basis === 'official' ? t('rulingOfficial') : t('rulingExpert')}: {h.ruling.text} · {h.ruling.verifiedAt}
                     </p>
                   )}
                   <div className="mt-2 flex items-center gap-2">
