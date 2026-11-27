@@ -138,6 +138,9 @@ const withBasis = validateEntry({ ...tariffEntry, basis: 'official' }, db.PRODUC
 ok("basis 'official' is accepted and kept", withBasis.ok && (withBasis as { entry: { basis?: string } }).entry.basis === 'official');
 ok('any other basis is rejected', !validateEntry({ ...tariffEntry, basis: 'expert' }, db.PRODUCTS).ok);
 ok('basis only on tariff entries (a requirement with basis is rejected)', !validateEntry({ ...entry, basis: 'official' }, db.PRODUCTS).ok);
+const hsEntry = { productId: 'banana-chips', target: { type: 'hs', code: '2008.99.9000', ruling: 'Customs ruling 123 classifies fried banana chips in 2008.99' }, source: 'Customs rulings', reference: 'Ruling 123', verifiedBy: 'Data team', verifiedAt: today };
+ok('basis is accepted on an HS ruling read from a customs authority', validateEntry({ ...hsEntry, basis: 'official' }, db.PRODUCTS).ok);
+ok('basis is rejected on a freight quote (needs a forwarder)', !validateEntry({ ...entry, productId: 'banana-chips', target: { type: 'logistics', index: 0, cost: [100, 200] }, basis: 'official' }, db.PRODUCTS).ok);
 const seedItem = () => db.getProduct('coconut-oil')!.verification!.items.find((i) => i.key === 'tariff:AKFTA')!;
 const seedRate = () => db.getProduct('coconut-oil')!.tariffs.find((t) => t.scheme === 'AKFTA')!;
 db.applyRuntimeOverrides([withBasis.ok ? withBasis.entry : (null as never)]);

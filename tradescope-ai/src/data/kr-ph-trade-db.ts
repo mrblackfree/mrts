@@ -894,21 +894,24 @@ const SEED_PRODUCTS: TradeProduct[] = [
     tagline: b('한국 코코넛유(1513.19) 수입의 53%가 필리핀산 — 3년간 2배 성장한 소싱 품목입니다.', 'PH supplies 53% of Korea’s coconut oil (1513.19) — doubled in 3 years.'),
     hs: [
       {
-        code: '1513.19.0000',
+        code: '1513.19.1000',
         ahtn: '1513.19.90',
-        desc: b('코코넛유 및 그 분획물 (조유 제외 — 정제유·VCO)', 'Coconut oil & fractions, other than crude (refined / VCO)'),
-        fit: 90,
+        desc: b('정제 코코넛유 (RBD, 정제유)', 'Refined (RBD) coconut oil'),
+        fit: 88,
         rationale: b(
-          '버진코코넛오일(VCO)·RBD 정제유는 "조유(crude)"가 아니므로 제1513.19호. 식용 목적 수입 시 식품 기준, 화장품 원료 시 화장품법 경로로 분리.',
-          'VCO and RBD oil are not “crude” → 1513.19. Food use follows food rules; cosmetic-ingredient use follows the Cosmetics Act.',
+          '탈산·탈색·탈취(RBD) 등 정제한 코코넛유는 제1513.19호(조유 외)의 「정제유」(HSK 1513.19.1000). 독일 세관 구속력 있는 품목분류(EBTI DE28296/16-1)도 정제 코코넛유를 1513.19로 분류. 식용 목적 수입 시 식품 기준, 화장품 원료 시 화장품법 경로로 분리.',
+          'Refined (RBD) coconut oil falls under 1513.19 (other than crude), "refined oil" (HSK 1513.19.1000); the German customs binding ruling EBTI DE28296/16-1 also classifies refined coconut oil in 1513.19. Food use follows food rules; cosmetic-ingredient use follows the Cosmetics Act.',
         ),
       },
       {
         code: '1513.11.0000',
         ahtn: '1513.11.00',
-        desc: b('코코넛유 조유 (Crude, CNO)', 'Crude coconut oil (CNO)'),
-        fit: 72,
-        rationale: b('코프라 압착 후 정제 전 단계의 산업용 원료(비누·올레오케미컬)라면 조유로 분류.', 'Unrefined copra oil for industrial use (soap, oleochemicals).'),
+        desc: b('코코넛유 조유 — 정제하지 않은 버진코코넛오일(VCO) 포함', 'Crude coconut oil, incl. unrefined virgin coconut oil (VCO)'),
+        fit: 85,
+        rationale: b(
+          '압착·원심분리로 얻고 정제하지 않은 VCO는 미국 CBP(NY L81481 — 필리핀산 냉압착 미정제 코코넛유)와 EU 세관(EBTI DEBTI16528/21-1 등)이 모두 「조유」 1513.11로 분류 — 흡착 여과 등 정제 공정을 거치면 1513.19(EBTI GB502216013). 코프라를 압착한 산업용 조유(비누·올레오케미컬)도 여기. 한국 관세청 품목분류 사전심사로 확정 권장.',
+          'VCO obtained by pressing or centrifuging and not refined is classified as crude oil, 1513.11, by US CBP (NY L81481 — cold-pressed, unrefined Philippine coconut oil) and EU customs (EBTI DEBTI16528/21-1 and others); after adsorption filtering or other refining it moves to 1513.19 (EBTI GB502216013). Crude copra oil for industry (soap, oleochemicals) is here too. Confirm with a Korea Customs advance ruling.',
+        ),
       },
       {
         code: '1516.20.9000',
@@ -921,20 +924,20 @@ const SEED_PRODUCTS: TradeProduct[] = [
     tariffs: [
       { scheme: 'MFN', rate: 3, roo: '-', certificate: CERT.none, note: b('기본세율 — WITS 2023 공식값과 일치', 'Basic (MFN) rate — matches WITS 2023 official value') },
       { scheme: 'AKFTA', rate: 3, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('시행령 별표 4는 0%지만 별표 5가 필리핀산 1513.19를 협정세율 적용 제한 품목으로 지정(상호주의 R(PH)) — 재정경제부 고시 상호대응세율(MFN 3% 이하)이 적용. 한-필 FTA 기준세율 3%와도 일치 — 관세청 확인 필요', 'Decree Annex 4 shows 0%, but Annex 5 restricts the rate for Philippine 1513.19 (reciprocity R(PH)) — a reciprocal rate set by the Ministry of Economy and Finance (at most MFN 3%) applies. Consistent with the 3% KR-PH base rate — confirm with Korea Customs') },
-      { scheme: 'RCEP', rate: 1.8, roo: 'CC', certificate: CERT.rcep, note: b('시행령 별표 17의6 — 필리핀산 2026년은 4년차(주2): 정제유(1513.19.1000) 1.8%, 그 밖의 것(1513.19.9000) 0%. 세번에 따라 다르므로 VCO 등은 품목분류로 확정', 'Decree Annex 17-6 — 2026 is year 4 for Philippine goods (note 2): refined oil (1513.19.1000) 1.8%, other (1513.19.9000) 0%. Depends on the line, so confirm the classification for VCO and the like') },
+      { scheme: 'RCEP', rate: 1.8, roo: 'CC', certificate: CERT.rcep, note: b('시행령 별표 17의6 — 필리핀산 2026년은 4년차(주2): 정제유(1513.19.1000) 2.7 → 2.4 → 2.1 → 1.8%. 그 밖의 것(1513.19.9000)은 0%', 'Decree Annex 17-6 — 2026 is year 4 for Philippine goods (note 2): refined oil (1513.19.1000) 2.7 → 2.4 → 2.1 → 1.8%. Other (1513.19.9000) is 0%') },
       { scheme: 'KRPH', rate: 2.1, roo: 'CTH or RVC 40%', certificate: CERT.krph, note: b('FTA 관세특례법 시행령 별표 17의8 — 1513.19(정제유·그 밖의 것) 모두 2.7%(2024) → 2.4%(2025) → 2.1%(2026) → … → 0%(2033~)', 'FTA Customs Act Decree Annex 17-8 — both 1513.19 lines: 2.7% (2024) → 2.4% (2025) → 2.1% (2026) → … → 0% (2033 on)') },
     ],
     tariffMeta: TARIFF_META_KR,
     bestFta: {
       scheme: 'RCEP',
       reason: b(
-        'RCEP가 가장 낮음 — 필리핀산 2026년 정제유(1513.19.1000) 1.8%, 그 밖의 것(1513.19.9000) 0%, 원산지기준 CC는 코프라(제12류)→오일(제15류)로 충족. 한-필 FTA는 2.1%(2033년 0%), 한-아세안 FTA는 필리핀산 제한 품목이라 상호대응세율(최대 MFN 3%). VCO가 정제유인지 그 밖의 것인지 품목분류로 확정하세요. 조유(1513.11)는 세 협정 모두 0%.',
-        'RCEP is the lowest — for Philippine goods in 2026 refined oil (1513.19.1000) is 1.8% and other (1513.19.9000) 0%, and its CC rule is met by copra (ch. 12) → oil (ch. 15). The KR-PH FTA is 2.1% (0% from 2033) and AKFTA restricts Philippine 1513.19 to a reciprocal rate (at most MFN 3%). Confirm whether VCO is refined or "other" by classification. Crude oil (1513.11) is 0% under all three agreements.',
+        'RCEP가 가장 낮음 — 필리핀산 2026년 정제유(1513.19.1000) 1.8%, 원산지기준 CC는 코프라(제12류)→오일(제15류)로 충족. 한-필 FTA는 2.1%(2033년 0%), 한-아세안 FTA는 필리핀산 제한 품목이라 상호대응세율(최대 MFN 3%). 정제하지 않은 VCO는 해외 세관 결정례상 조유(1513.11)로 분류되는 경우가 많고, 그러면 세 협정 모두 0% — VCO는 사전심사로 분류를 먼저 확정하세요.',
+        'RCEP is the lowest — for Philippine goods in 2026 refined oil (1513.19.1000) is 1.8%, and its CC rule is met by copra (ch. 12) → oil (ch. 15). The KR-PH FTA is 2.1% (0% from 2033) and AKFTA restricts Philippine 1513.19 to a reciprocal rate (at most MFN 3%). Unrefined VCO is usually classified as crude oil (1513.11) in foreign customs rulings, which is 0% under all three agreements — settle the VCO classification with an advance ruling first.',
       ),
     },
     tariffsByHs: {
       '1513.11.0000': {
-        label: b('코코넛유 조유 (HS 1513.11)', 'Crude coconut oil (HS 1513.11)'),
+        label: b('조유·미정제 VCO (HS 1513.11)', 'Crude oil incl. unrefined VCO (HS 1513.11)'),
         tariffs: [
           { scheme: 'MFN', rate: 3, roo: '-', certificate: CERT.none, note: b('기본세율 — 한-아세안 FTA·RCEP 한국 양허표의 기준세율과 같음', 'Basic (MFN) rate — same as the base rate in Korea’s AKFTA and RCEP schedules') },
           { scheme: 'AKFTA', rate: 0, roo: 'CTH or RVC 40%', certificate: CERT.ak, note: b('한-아세안 FTA 한국 양허표 — 일반품목(NT) 0%, 조유에는 상호주의 표시 없음', "Korea's AKFTA schedule — normal track 0%, with no reciprocity remark on crude oil") },
@@ -1647,8 +1650,8 @@ const SEED_PRODUCTS: TradeProduct[] = [
         desc: b('라면 (유탕 즉석면, 스프 동봉)', 'Ramen (fried instant noodles with seasoning)'),
         fit: 94,
         rationale: b(
-          '증숙·유탕 처리 후 스프를 동봉한 즉석면은 제1902.30호(기타 파스타 — 조리한 것). 스프가 별도 포장이라도 소매용 세트로 함께 분류(통칙 3(b)).',
-          'Steamed, fried noodles with seasoning sachets fall under 1902.30 (other pasta, cooked); sachets are classified with the set (GRI 3(b)).',
+          '증숙·유탕 처리 후 스프를 동봉한 즉석면은 제1902.30호(기타 파스타 — 조리한 것). EU 이행규칙 767/2014와 영국 사전품목분류(600011810 등)는 면이 본질적 특성이라며 1902.30으로 분류하지만, 미국 CBP는 2020년부터 국물 라면을 수프(2104.10)로 분류(HQ H304896) — 국가마다 다르므로 필리핀 BOC 사전심사로 확정 권장.',
+          'Steamed, fried noodles with seasoning sachets fall under 1902.30 (other pasta, cooked). EU Implementing Regulation 767/2014 and UK advance rulings (600011810 and others) keep them in 1902.30 because the noodles give the essential character, but US CBP has classified soup-type ramen as soup (2104.10) since 2020 (HQ H304896) — practice differs, so confirm with a Philippine BOC advance ruling.',
         ),
       },
       {

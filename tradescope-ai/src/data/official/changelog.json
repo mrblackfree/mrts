@@ -2,6 +2,30 @@
   "$comment": "MANUAL audit trail: seed values in kr-ph-trade-db.ts that were edited because an official source disagreed. Append newest first. Corrections applied automatically at runtime by the official-data layer (src/data/official/index.ts) are NOT written here; they appear live as conflicts in the Data Trust Center.",
   "entries": [
     {
+      "date": "2026-11-27",
+      "productId": "coconut-oil",
+      "field": "HS 1순위",
+      "from": "1513.19.0000 (정제유·VCO)",
+      "to": "1513.19.1000 (정제유 RBD)",
+      "source": "EBTI DE28296/16-1 · HSK 1513.19.1000 「정제유」"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "coconut-oil",
+      "field": "VCO 분류",
+      "from": "1513.19 (조유 아님)",
+      "to": "1513.11 조유 (정제하지 않은 VCO)",
+      "source": "미국 CBP NY L81481·J87427, EU EBTI DEBTI16528/21-1·GBBTI504795926 등"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "instant-ramen",
+      "field": "HS 근거",
+      "from": "1902.30 (단일 견해)",
+      "to": "1902.30 — EU 767/2014 지지, 미국 CBP는 2104.10(HQ H304896)",
+      "source": "EU 이행규칙 767/2014 · CBP HQ H304896"
+    },
+    {
       "date": "2026-11-26",
       "productId": "banana-chips",
       "field": "KRPH",

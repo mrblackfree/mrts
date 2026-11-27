@@ -505,6 +505,105 @@
       "verifiedAt": "2026-11-26",
       "validUntil": "2026-12-31",
       "basis": "official"
+    },
+    {
+      "productId": "banana-chips",
+      "target": {
+        "type": "hs",
+        "code": "2008.99.9000",
+        "ruling": "영국 HMRC 사전품목분류 600007998·600008608(2023, 설탕 시럽 후 코코넛유에 튀긴 필리핀 카르다바·사바 바나나칩)과 미국 CBP NY 815441·G89991(튀긴 바나나칩)이 모두 2008.99로 분류. HSK 2008.99.9000은 관세율표 2008.99 「6. 기타」"
+      },
+      "source": "UK HMRC Advance Tariff Rulings (tax.service.gov.uk) · US CBP CROSS rulings (rulings.cbp.gov)",
+      "reference": "HMRC 600007998 (2023-08-23) and 600008608 (2023-08-29) → 2008994980; CBP NY 815441 (1995-10-26) and NY G89991 (2001-04-27) → 2008.99.1500; plain dried slices go to 0803.90 (CBP NY F81455, HMRC 600012200)",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 품목분류 결정 대조)",
+      "verifiedAt": "2026-11-27",
+      "validUntil": "2027-11-26",
+      "basis": "official"
+    },
+    {
+      "productId": "dried-mango",
+      "target": {
+        "type": "hs",
+        "code": "2008.99.9000",
+        "ruling": "미국 CBP NY N006496(2007, 필리핀산 망고를 설탕 용액에 담근 뒤 건조)과 영국 HMRC 600005639(2023, 설탕 시럽에 담가 건조한 망고)가 2008.99로 분류. 설탕 없이 말린 망고는 0804.50(CBP NY N293259)"
+      },
+      "source": "US CBP CROSS rulings (rulings.cbp.gov) · UK HMRC Advance Tariff Rulings (tax.service.gov.uk)",
+      "reference": "CBP NY N006496 (2007-02-20) → 2008.99.4000; HMRC 600005639 (2023-02-01) → 2008994899; unsweetened: CBP NY N293259 (2018-02-07) → 0804.50.8010",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 품목분류 결정 대조)",
+      "verifiedAt": "2026-11-27",
+      "validUntil": "2027-11-26",
+      "basis": "official"
+    },
+    {
+      "productId": "coconut-oil",
+      "target": {
+        "type": "hs",
+        "code": "1513.19.1000",
+        "ruling": "독일 세관 구속력 있는 품목분류 EBTI DE28296/16-1(2017, 정제 코코넛유) → 1513.19. HSK 1513.19.1000은 「정제유」. 정제하지 않은 VCO는 미국 CBP NY L81481·EU EBTI 결정례상 조유 1513.11"
+      },
+      "source": "EU EBTI database (ec.europa.eu/taxation_customs/dds2/ebti) · US CBP CROSS rulings",
+      "reference": "EBTI DE28296/16-1 (valid 2017-04-21 to 2020-04-20) \"Refined Coconut Oil\" → 15131991; VCO: CBP NY L81481 (2005-01-13) → 1513.11.0000, EBTI DEBTI16528/21-1 → 1513111090",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 품목분류 결정 대조)",
+      "verifiedAt": "2026-11-27",
+      "validUntil": "2027-11-26",
+      "basis": "official"
+    },
+    {
+      "productId": "seasoned-laver",
+      "target": {
+        "type": "hs",
+        "code": "2008.99.5010",
+        "ruling": "영국 세관 EBTI GB501199962·GB501018023(2012, 한국산 조미김 — 김·옥수수유·소금·참기름)과 미국 CBP NY 810717(1995, 한국산 구운 김)·HQ H295133(2020)이 2008.99로 분류. HSK 2008.99.5010은 「조제한 식용 해초류」의 김"
+      },
+      "source": "EU EBTI database (HMRC decisions) · US CBP CROSS rulings",
+      "reference": "EBTI GB501199962 and GB501018023 (2012) → 2008999990; CBP NY 810717 (1995-06-05) → 2008.99.9090 (dried only → 1212); CBP HQ H295133 (2020-04-29) → 2008.99.90",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 품목분류 결정 대조)",
+      "verifiedAt": "2026-11-27",
+      "validUntil": "2027-11-26",
+      "basis": "official"
+    },
+    {
+      "productId": "k-beauty",
+      "target": {
+        "type": "hs",
+        "code": "3304.99.1000",
+        "ruling": "미국 CBP NY N357309(2026, 한국산 토너·앰플·세럼)·N320015(2021, 한국산 시트 마스크)·N357310(2026, 아이크림)이 모두 3304.99로 분류. 액상 클렌저는 3401.30(CBP NY N354787)"
+      },
+      "source": "US CBP CROSS rulings (rulings.cbp.gov)",
+      "reference": "CBP NY N357309 (2026-01-20), N357310 (2026-01-16), N320015 (2021-06-24) → 3304.99.5000; cleanser: NY N354787 (2025-10-30) → 3401.30.5000",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 품목분류 결정 대조)",
+      "verifiedAt": "2026-11-27",
+      "validUntil": "2027-11-26",
+      "basis": "official"
+    },
+    {
+      "productId": "smart-building",
+      "target": {
+        "type": "hs",
+        "code": "8301.40.1000",
+        "ruling": "미국 CBP NY N281809(2016, 지문인식 전자 잠금장치)·N234143(2012, 키패드·RFID 도어락)과 프랑스 세관 EBTI FR-BTI-2026-02333(2026, NFC·블루투스 스마트 도어락)이 8301.40으로 분류. SPC 바닥재는 3918.10(CBP NY N350880)"
+      },
+      "source": "US CBP CROSS rulings · EU EBTI database",
+      "reference": "CBP NY N281809 (2016-12-19) → 8301.40.6060; NY N234143 (2012-11-06) → 8301.40.6030; EBTI FRBTIFR-BTI-2026-02333 (valid 2026–2029) → 8301401100; SPC flooring: CBP NY N350880 (2025-07-15) → 3918.10.1020",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 품목분류 결정 대조)",
+      "verifiedAt": "2026-11-27",
+      "validUntil": "2027-11-26",
+      "basis": "official"
+    },
+    {
+      "productId": "coconut-oil",
+      "target": {
+        "type": "tariff",
+        "scheme": "RCEP",
+        "rate": 1.8,
+        "roo": "CC"
+      },
+      "source": "Enforcement Decree of the Act on Special Cases of the Customs Act for the Implementation of FTAs — annexed agreement tariff tables (law.go.kr) · RCEP Annex 3A",
+      "reference": "Decree Annex 17-6 (제32353호), ASEAN table: HSK 1513191000 2.7 · 2.4 · 2.1 · 1.8 (4년차 = 2026 for Philippine goods, note 2) · PSR 1513.19: CC",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 양허표 대조)",
+      "verifiedAt": "2026-11-27",
+      "validUntil": "2026-12-31",
+      "basis": "official"
     }
   ]
 }
