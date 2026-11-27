@@ -4,6 +4,8 @@ import { AlertTriangle, Bot, ExternalLink, Mail, MapPin, Send, Sparkles, Star, T
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog';
 import { PARTNER_TYPE_LABEL, type DictKey } from '@/lib/i18n';
+import { priceRfq } from '@/lib/rfq';
+import RfqLink from './RfqLink';
 import { buildDraftLocal, defaultDraftOptions, DRAFT_LIMITS, partnerFactors, priceForIncoterm, priceOnBasis } from '@/lib/engine/simulate';
 import type { DraftOptions, EmailDraft, Lang, Partner, QueryIntent, TradeProduct } from '@/lib/types';
 import { STATIC_PREVIEW } from '@/lib/preview';
@@ -283,7 +285,13 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                     </span>
                     <input type="number" min={0} max={DRAFT_LIMITS.moq} className={inputCls} value={options.moq} onChange={(e) => update({ moq: Math.min(DRAFT_LIMITS.moq, Math.max(0, Number(e.target.value))) })} />
                   </label>
-                  <p className="col-span-2 -mt-1 text-[11px] text-slate-400 sm:col-span-4">{t('priceHint')}</p>
+                  <p className="col-span-2 -mt-1 text-[11px] text-slate-400 sm:col-span-4">
+                    {t('priceHint')}{' '}
+                    <RfqLink rfq={priceRfq(product, lang)} className="no-print inline-flex items-center gap-1 font-semibold text-brand-700 hover:underline dark:text-brand-300">
+                      <Mail className="size-3" aria-hidden />
+                      {t('rfqPrice')}
+                    </RfqLink>
+                  </p>
                   {(() => {
                     const pc = product.verification?.priceCheck;
                     if (!pc || !product.pricing.unitKg || pc.status === 'not-comparable') return null;

@@ -23,6 +23,8 @@ const json = async (r: Response) => (await r.json()) as Record<string, any>;
 const product = db.PRODUCTS.find((p) => p.requirements.length > 0 && p.partners.length > 0)!;
 const scoreOf = () => db.getProduct(product.id)!.verification!.score;
 const before = scoreOf();
+const verifiedOf = () => db.getProduct(product.id)!.verification!.counts.verified;
+const verifiedBefore = verifiedOf();
 const reqItem = () => db.getProduct(product.id)!.verification!.items.find((i) => i.key === `req:${product.requirements[0].id}`)!;
 // the starting level is the seed or, when its law was matched in an official text, a cross-check — never verified
 const reqBase = reqItem().level;
@@ -58,7 +60,8 @@ body = await json(res);
 const savedId = body.item?.id;
 ok('valid entry saved', res.status === 200 && /^v-[0-9a-f]{12}$/.test(savedId), body);
 ok('applied right away: requirement verified', reqItem().level === 'verified');
-ok('…and the product score rose', scoreOf() > before, { before, after: scoreOf() });
+// one item out of ~25 can move the rounded score by less than a point: check the count, and that the score never falls
+ok('…and the product gained a verified item without its score falling', verifiedOf() === verifiedBefore + 1 && scoreOf() >= before, { before, after: scoreOf(), verifiedBefore, verified: verifiedOf() });
 res = await pub.GET();
 body = await json(res);
 ok('public list carries the active entry', body.entries.length === 1 && body.entries[0].reference === 'MEMO-2026-118' && !('id' in body.entries[0]));

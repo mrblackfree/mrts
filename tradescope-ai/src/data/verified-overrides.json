@@ -591,6 +591,20 @@
       "basis": "official"
     },
     {
+      "productId": "instant-ramen",
+      "target": {
+        "type": "hs",
+        "code": "1902.30.1010",
+        "ruling": "수출입 양국 관세율표가 즉석면을 1902.30에 둠 — 한국 HSK 1902.30-1010 「라면」(1902.30-10 인스턴트 면류), 필리핀 AHTN 2022 1902.30.40 「Other instant noodles」. EU 767/2014·영국 사전품목분류도 1902.30. 미국 CBP의 국물 라면 2104.10 분류(HQ H304896)는 한-필 거래에 적용되지 않음"
+      },
+      "source": "국가법령정보센터 — 자유무역협정 관세법 특례법 시행령 별표 17의8 (law.go.kr) · Philippine Tariff Commission — Philippine Tariff Finder (finder.tariffcommission.gov.ph)",
+      "reference": "HSK 1902.30-1010 라면 (시행령 별표 17의8, 대통령령 제36017호) · AHTN 2022 1902.30.40 Other instant noodles",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 양국 공식 관세율표 대조)",
+      "verifiedAt": "2026-11-27",
+      "validUntil": "2027-11-26",
+      "basis": "official"
+    },
+    {
       "productId": "coconut-oil",
       "target": {
         "type": "tariff",

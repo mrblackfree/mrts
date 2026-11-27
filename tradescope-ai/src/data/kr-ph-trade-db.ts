@@ -230,10 +230,10 @@ const krFoodImportRequirements = (opts: { quarantine: Bilingual; extra?: Require
     category: 'halal',
     title: b('할랄 인증 마케팅 활용 (선택)', 'Halal certification as a marketing lever (optional)'),
     detail: b(
-      '필리핀 NCMF 인정 기관(IDCP·HDIP 등) 할랄 인증 제품은 국내 무슬림 유학생·동남아 관광객·할랄 편집숍 채널에 소구 가능. 국내 별도 인증은 한국이슬람교중앙회(KMF) 확인.',
-      'Halal certificates from NCMF-accredited PH bodies (e.g. IDCP, HDIP) help reach Muslim students, SE-Asian tourists and halal specialty stores in Korea. For a Korean halal mark check KMF.',
+      '필리핀 DTI 필리핀인정기구(PAB)가 인정한 인증기관(RA 10817 제9조)의 할랄 인증 제품은 국내 무슬림 유학생·동남아 관광객·할랄 편집숍 채널에 소구 가능. 한국에 할랄 인증을 의무화한 법령은 없어 선택 사항이지만, 할랄 표시·광고는 실제 인증서가 있어야 함 — 거짓·과장 또는 소비자를 기만하는 표시·광고 금지(식품표시광고법 제8조 제1항 제4호·제5호). 국내 별도 인증은 한국이슬람교중앙회(KMF) 확인.',
+      'Halal certificates from bodies accredited by DTI’s Philippine Accreditation Bureau (PAB, RA 10817 Sec. 9) help reach Muslim students, SE-Asian tourists and halal specialty stores in Korea. No Korean law requires halal certification, so it is optional — but a halal label or claim needs a real certificate: false, exaggerated or deceptive labelling and advertising is prohibited (Food Labeling Act Art. 8(1)4–5). For a Korean halal mark check KMF.',
     ),
-    agency: 'KMF / NCMF',
+    agency: 'KMF / DTI-PAB',
     url: AGENCY_LINKS.kmf,
     mandatory: false,
   },
@@ -1640,12 +1640,12 @@ const SEED_PRODUCTS: TradeProduct[] = [
     hs: [
       {
         code: '1902.30.1010',
-        ahtn: '1902.30.20',
+        ahtn: '1902.30.40',
         desc: b('라면 (유탕 즉석면, 스프 동봉)', 'Ramen (fried instant noodles with seasoning)'),
         fit: 94,
         rationale: b(
-          '증숙·유탕 처리 후 스프를 동봉한 즉석면은 제1902.30호(기타 파스타 — 조리한 것). EU 이행규칙 767/2014와 영국 사전품목분류(600011810 등)는 면이 본질적 특성이라며 1902.30으로 분류하지만, 미국 CBP는 2020년부터 국물 라면을 수프(2104.10)로 분류(HQ H304896) — 국가마다 다르므로 필리핀 BOC 사전심사로 확정 권장.',
-          'Steamed, fried noodles with seasoning sachets fall under 1902.30 (other pasta, cooked). EU Implementing Regulation 767/2014 and UK advance rulings (600011810 and others) keep them in 1902.30 because the noodles give the essential character, but US CBP has classified soup-type ramen as soup (2104.10) since 2020 (HQ H304896) — practice differs, so confirm with a Philippine BOC advance ruling.',
+          '증숙·유탕 처리 후 스프를 동봉한 즉석면은 제1902.30호(기타 파스타 — 조리한 것). 수출입 양국 관세율표가 모두 이 호에 즉석면 세번을 둠 — 한국 HSK 1902.30-1010 「라면」, 필리핀 AHTN 1902.30.40 「Other instant noodles」. EU 이행규칙 767/2014·영국 사전품목분류도 1902.30. 미국 CBP는 국물 라면을 수프(2104.10)로 분류(HQ H304896)하지만 한-필 거래에는 적용되지 않음. 구속력 있는 확정은 필리핀 BOC 사전심사.',
+          'Steamed, fried noodles with seasoning sachets fall under 1902.30 (other pasta, cooked). Both countries’ tariff schedules carry an instant-noodle line there — Korea HSK 1902.30-1010 “ramen”, Philippine AHTN 1902.30.40 “Other instant noodles”. EU Implementing Regulation 767/2014 and UK advance rulings also use 1902.30. US CBP classifies soup-type ramen as soup (2104.10, HQ H304896), which does not govern a Korea–Philippines shipment. A binding decision is a BOC advance ruling.',
         ),
       },
       {

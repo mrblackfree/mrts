@@ -3,7 +3,8 @@
 import { Copy, Mail } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PRODUCTS } from '@/data/kr-ph-trade-db';
-import { freightRfq, licenceRfq, mailto, priceRfq, type RfqKind, type RfqLang } from '@/lib/rfq';
+import { freightRfq, licenceRfq, priceRfq, type RfqKind, type RfqLang } from '@/lib/rfq';
+import RfqLink from './RfqLink';
 import { useI18n } from './I18nProvider';
 import { cx } from './ui';
 
@@ -95,10 +96,10 @@ export default function RfqHelper({ defaultProductId }: { defaultProductId?: str
         <pre className="mt-2 whitespace-pre-wrap break-words font-sans text-[11.5px] leading-relaxed text-slate-600 dark:text-slate-300">{rfq.body}</pre>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <a href={mailto(rfq)} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-700">
+        <RfqLink rfq={rfq} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-700">
           <Mail className="size-3.5" aria-hidden />
           {lang === 'ko' ? '메일로 열기' : 'Open in mail'}
-        </a>
+        </RfqLink>
         <button
           type="button"
           onClick={() => {

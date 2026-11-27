@@ -1,6 +1,8 @@
 'use client';
 
 import { BadgeCheck, Building2, ExternalLink, Globe, Landmark, Mail, MapPin, ScanSearch, Users } from 'lucide-react';
+import { licenceRfq } from '@/lib/rfq';
+import RfqLink from '../RfqLink';
 import { useEffect, useMemo, useState } from 'react';
 import { AGENCY_LINKS } from '@/data/kr-ph-trade-db';
 import { PARTNER_TYPE_LABEL } from '@/lib/i18n';
@@ -131,6 +133,11 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
                     <a href={c.registry.url} target="_blank" rel="noreferrer" title={c.registry.label} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">
                       {t('registryLink')} <ExternalLink className="size-3" />
                     </a>
+                  )}
+                  {!c.license && (
+                    <RfqLink rfq={licenceRfq(product, c, lang)} className="no-print inline-flex items-center gap-1 text-xs font-semibold text-violet-700 hover:underline dark:text-violet-300">
+                      {t('rfqLicence')} <Mail className="size-3" />
+                    </RfqLink>
                   )}
                   {c.country === 'PH' && !c.license && c.role === 'buyer' && c.type !== 'developer' && (
                     <a href={AGENCY_LINKS.phFdaVerify} target="_blank" rel="noreferrer" className="no-print inline-flex items-center gap-1 text-xs font-semibold text-violet-700 hover:underline dark:text-violet-300">
