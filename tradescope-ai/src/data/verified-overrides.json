@@ -604,6 +604,21 @@
       "verifiedAt": "2026-11-27",
       "validUntil": "2026-12-31",
       "basis": "official"
+    },
+    {
+      "productId": "coconut-oil",
+      "target": {
+        "type": "tariff",
+        "scheme": "AKFTA",
+        "rate": 0,
+        "roo": "CTH or RVC 40%"
+      },
+      "source": "MOEF Notice 2022-12 — reciprocal-rate table under Art. 2(5) of the FTA Customs Act enforcement decree (mofe.go.kr) · decree Annexes 4–5 · AKFTA Annex 3 Rule 4.1",
+      "reference": "기획재정부고시 제2022-12호 (2022.4.15 시행) 상호대응세율표, 필리핀: 1513191000 정제유 0 · 1513199000 기타 0; no later reciprocal-rate notice on the ministry notice board to 2026-11 · general rule RVC 40 or CTH",
+      "verifiedBy": "TradeScope 운영팀 (AI 보조 검토 · 공식 고시 대조)",
+      "verifiedAt": "2026-11-27",
+      "validUntil": "2026-12-31",
+      "basis": "official"
     }
   ]
 }

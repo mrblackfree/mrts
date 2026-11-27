@@ -293,7 +293,7 @@ export default function AssistantPanel({ product, partner, intent, initialTab, a
                     const perKg = onBasis / product.pricing.unitKg;
                     return (
                       <p className="col-span-2 -mt-1 text-[11px] font-semibold text-emerald-700 sm:col-span-4 dark:text-emerald-400">
-                        {lang === 'ko' ? '공식 통관 단가 기준' : 'Official unit-value benchmark'}: ${pc.usdPerKg}/kg ({pc.year} {pc.basis}) → {lang === 'ko' ? `현재 단가 ${pc.basis} 환산` : `current price on ${pc.basis} basis`} ${perKg.toFixed(2)}/kg ({(perKg / pc.usdPerKg).toFixed(2)}×)
+                        {pc.line ? (lang === 'ko' ? '공식 수출 단가 기준' : 'Official export unit value') : lang === 'ko' ? '공식 통관 단가 기준' : 'Official unit-value benchmark'}: ${pc.usdPerKg}/kg ({pc.year} {pc.basis}) → {lang === 'ko' ? `현재 단가 ${pc.basis} 환산` : `current price on ${pc.basis} basis`} ${perKg.toFixed(2)}/kg ({(perKg / pc.usdPerKg).toFixed(2)}×)
                       </p>
                     );
                   })()}

@@ -218,7 +218,17 @@ export interface ProductVerification {
   /** official preferential rate applied by the importer to the counterpart (WITS TARIFFTYPE=PREF) */
   prefCheck?: PrefCheck;
   /** seed price vs official customs unit value */
-  priceCheck?: { year: number; usdPerKg: number; basis: 'CIF' | 'FOB'; seedPerKg: number; ratio: number; status: 'consistent' | 'outlier' | 'not-comparable' };
+  priceCheck?: {
+    year: number;
+    usdPerKg: number;
+    basis: 'CIF' | 'FOB';
+    seedPerKg: number;
+    ratio: number;
+    status: 'consistent' | 'outlier' | 'not-comparable';
+    /** set when the benchmark is a product-level official statistic (src/data/official/public-checks) rather than the HS6 Comtrade value */
+    source?: string;
+    line?: string;
+  };
   /** official MFN summaries for the alternative HS candidates, keyed by HS6 */
   altMfn?: Record<string, { year: number; min: number; max: number; lines: number }>;
   insightStale?: boolean;
@@ -235,6 +245,8 @@ export interface LogisticsLane {
   note?: Bilingual;
   /** forwarder quotation that replaced the seed range (verified-overrides.json) */
   quote?: { reference: string; verifiedBy: string; verifiedAt: string; validUntil?: string };
+  /** attached by the official-data layer: a carrier's published transit time for this route (src/data/official/public-checks) */
+  scheduleCheck?: { carrier: string; service: string; transitDays: number; source: string; url: string; checkedAt: string };
 }
 
 export type PartnerRole = 'buyer' | 'seller';
