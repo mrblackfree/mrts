@@ -28,6 +28,9 @@ ok('banana chips: RCEP for Philippine goods is year 4 in 2026 (36%)', rate('bana
 ok('banana chips: MFN 45% is official (Customs Act schedule)', rate('banana-chips', 'MFN').rate === 45 && rate('banana-chips', 'MFN').level === 'official');
 ok('dried mango: unsweetened 0804.50 is AKFTA 24% (official)', rate('dried-mango', 'AKFTA', '0804.50.2000').rate === 24 && rate('dried-mango', 'AKFTA', '0804.50.2000').level === 'official');
 ok('coconut oil: crude 1513.11 is 0% under all three agreements (official)', ['AKFTA', 'RCEP', 'KRPH'].every((s) => rate('coconut-oil', s, '1513.11.0000').rate === 0 && rate('coconut-oil', s, '1513.11.0000').level === 'official'));
-ok('rates not printed as one value stay at the seed level', rate('coconut-oil', 'AKFTA').level === undefined && rate('coconut-oil', 'RCEP').level === undefined);
+ok('coconut oil: the AKFTA reciprocal rate for Philippine 1513.19 is the official 0% and AKFTA is recommended', rate('coconut-oil', 'AKFTA').rate === 0 && rate('coconut-oil', 'AKFTA').level === 'official' && getProduct('coconut-oil')!.bestFta.scheme === 'AKFTA');
+ok('coconut oil: the primary line is refined oil (1513.19.1000) and its RCEP 1.8% is official', getProduct('coconut-oil')!.hs[0].code === '1513.19.1000' && rate('coconut-oil', 'RCEP').rate === 1.8 && rate('coconut-oil', 'RCEP').level === 'official');
+ok('HS rulings read from customs authorities show as official', ['banana-chips', 'dried-mango', 'coconut-oil', 'seasoned-laver', 'k-beauty', 'smart-building'].every((id) => getProduct(id)!.verification!.items.find((i) => i.key === 'hs')!.level === 'official'));
+ok('instant ramen stays a cross-check (authorities disagree: EU 1902.30, US 2104)', getProduct('instant-ramen')!.verification!.items.find((i) => i.key === 'hs')!.level === 'crosscheck');
 
 done('tariff tables');

@@ -19,6 +19,7 @@
 import overridesJson from '../verified-overrides.json';
 import snapshotJson from './snapshot.json';
 import { legalBasisFor } from './legal-bases';
+import { laneSchedule, PRICE_BENCHMARKS } from './public-checks';
 import { todayIso } from '@/lib/format';
 import type {
   Bilingual,
@@ -351,13 +352,16 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     }
   }
 
-  // Seed price vs official customs unit value (USD/kg)
-  const uv = snapP?.unitValue;
+  // Seed price vs an official unit value (USD/kg): the product's own export line when one was read (like for like),
+  // else the HS6 customs unit value from Comtrade
+  const bench = PRICE_BENCHMARKS[p.id];
+  const uv = bench ?? snapP?.unitValue;
   if (uv && p.pricing.unitKg) {
     const seedPerKg = Math.round((p.pricing.unitPrice / p.pricing.unitKg) * 100) / 100;
     const ratio = Math.round((seedPerKg / uv.usdPerKg) * 100) / 100;
-    const status = p.pricing.priceComparable === false ? 'not-comparable' : ratio >= 0.5 && ratio <= 2 ? 'consistent' : 'outlier';
-    verification.priceCheck = { year: uv.year, usdPerKg: uv.usdPerKg, basis: uv.basis, seedPerKg, ratio, status };
+    const comparable = bench ? true : p.pricing.priceComparable !== false;
+    const status = !comparable ? 'not-comparable' : ratio >= 0.5 && ratio <= 2 ? 'consistent' : 'outlier';
+    verification.priceCheck = { year: uv.year, usdPerKg: uv.usdPerKg, basis: uv.basis, seedPerKg, ratio, status, ...(bench ? { source: bench.source, line: bench.line } : {}) };
   }
 
   // 3) human-verified overrides ------------------------------------------------
@@ -389,11 +393,12 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       }
     } else if (tg.type === 'hs') {
       const h = p.hs.find((x) => x.code === tg.code);
-      if (h) h.ruling = { text: tg.ruling, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
+      if (h) h.ruling = { text: tg.ruling, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt, basis: e.basis === 'official' ? 'official' : 'expert' };
     } else if (tg.type === 'partner') {
       const pt = p.partners.find((x) => x.id === tg.id);
       // An expired licence is not a verification.
-      if (pt && licenceActive(e)) pt.license = { text: tg.license, validUntil: tg.licenseValidUntil, source: e.source, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
+      if (pt && licenceActive(e))
+        pt.license = { text: tg.license, validUntil: tg.licenseValidUntil, source: e.source, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt, basis: e.basis === 'official' ? 'official' : 'expert' };
     } else if (tg.type === 'requirement') {
       const r = p.requirements.find((x) => x.id === tg.id);
       if (r) r.reviewed = { source: e.source, reference: e.reference, verifiedBy: e.verifiedBy, verifiedAt: e.verifiedAt };
@@ -433,6 +438,10 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     if (lb) r.legalBasis = lb;
   }
   for (const pt of p.partners) pt.linkCheck = links[pt.website];
+  for (const l of p.logistics) {
+    const sc = laneSchedule(l.from, l.to, l.mode);
+    if (sc) l.scheduleCheck = { carrier: sc.carrier, service: sc.service, transitDays: sc.transitDays, source: sc.source, url: sc.url, checkedAt: sc.checkedAt };
+  }
 
   // 5) verification items -------------------------------------------------------
   const mc = verification.mfnCheck;
@@ -466,7 +475,8 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     category: 'hs',
     label: b(`HS ${p.hs[0].code} 품목분류`, `HS ${p.hs[0].code} classification`),
     // An official HS6 with national tariff lines proves the code is valid; the classification itself needs a ruling.
-    level: p.hs[0].ruling ? 'verified' : mc && mc.lines > 0 ? 'crosscheck' : 'seed',
+    // an official ruling read from a customs authority's published decisions is official; a broker's opinion is verified
+    level: p.hs[0].ruling ? (p.hs[0].ruling.basis === 'official' ? 'official' : 'verified') : mc && mc.lines > 0 ? 'crosscheck' : 'seed',
     source: p.hs[0].ruling?.text ?? (mc ? `World Bank WITS TRAINS · HS ${mc.hs6} · ${mc.year}` : undefined),
     detail: p.hs[0].ruling
       ? undefined
@@ -496,7 +506,7 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
       key: `partner:${pt.id}`,
       category: 'partners',
       label: b(pt.name, pt.name),
-      level: pt.license ? 'verified' : webOk ? 'crosscheck' : 'seed',
+      level: pt.license ? (pt.license.basis === 'official' ? 'official' : 'verified') : webOk ? 'crosscheck' : 'seed',
       source: pt.license ? `${pt.license.source} · ${pt.license.verifiedBy}` : undefined,
       checkedAt: pt.license?.verifiedAt ?? pt.linkCheck?.checkedAt,
       detail: pt.license
@@ -506,19 +516,40 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
           : b('인허가(LTO 등)는 미검증', 'Licences (e.g. LTO) not yet verified'),
     });
   }
-  p.logistics.forEach((l, i) =>
-    items.push({ key: `lane:${i}`, category: 'logistics', label: b(`${l.from}→${l.to} ${l.mode}`, `${l.from}→${l.to} ${l.mode}`), level: l.quote ? 'verified' : 'seed', source: l.quote?.reference, checkedAt: l.quote?.verifiedAt }),
-  );
+  p.logistics.forEach((l, i) => {
+    const sc = l.scheduleCheck;
+    // a carrier's published transit inside our range cross-checks the lane; only a forwarder's quote verifies the cost
+    const scheduleOk = !!sc && sc.transitDays >= l.transitDays[0] && sc.transitDays <= l.transitDays[1];
+    items.push({
+      key: `lane:${i}`,
+      category: 'logistics',
+      label: b(`${l.from}→${l.to} ${l.mode}`, `${l.from}→${l.to} ${l.mode}`),
+      level: l.quote ? 'verified' : scheduleOk ? 'crosscheck' : 'seed',
+      source: l.quote?.reference ?? (sc ? `${sc.carrier} ${sc.service} · ${sc.source}` : undefined),
+      checkedAt: l.quote?.verifiedAt ?? sc?.checkedAt,
+      detail:
+        !l.quote && sc
+          ? b(
+              `선사 공개 스케줄 ${sc.carrier} ${sc.service}: ${sc.transitDays}일${scheduleOk ? '' : ' — 범위 밖, 확인 필요'} · 운임은 견적 전`,
+              `Published ${sc.carrier} ${sc.service} transit: ${sc.transitDays} days${scheduleOk ? '' : ' — outside the range, review'} · freight not yet quoted`,
+            )
+          : undefined,
+      conflict: !l.quote && sc && !scheduleOk ? b(`공개 스케줄 ${sc.transitDays}일이 시드 범위(${l.transitDays[0]}~${l.transitDays[1]}일) 밖`, `Published ${sc.transitDays} days is outside the seed range (${l.transitDays[0]}–${l.transitDays[1]} days)`) : undefined,
+    });
+  });
   const pc = verification.priceCheck;
   items.push({
     key: 'pricing',
     category: 'pricing',
     label: b('기준 단가·MOQ', 'Reference price & MOQ'),
     level: p.pricing.verified ? 'verified' : pc?.status === 'consistent' ? 'crosscheck' : 'seed',
-    source: p.pricing.verified?.reference ?? (pc ? `UN Comtrade unit value · ${pc.year} · ${pc.basis}` : undefined),
+    source: p.pricing.verified?.reference ?? (pc ? (pc.source ? `${pc.source} · ${pc.line}` : `UN Comtrade unit value · ${pc.year} · ${pc.basis}`) : undefined),
     checkedAt: pc ? syncAt : undefined,
     detail: pc
-      ? b(`시드 $${pc.seedPerKg}/kg vs 공식 통관 단가 $${pc.usdPerKg}/kg (${pc.ratio}배)${pc.status === 'not-comparable' ? ' — HS 기준 상이로 비교 불가' : ''}`, `Seed $${pc.seedPerKg}/kg vs official unit value $${pc.usdPerKg}/kg (${pc.ratio}×)${pc.status === 'not-comparable' ? ' — HS basis not comparable' : ''}`)
+      ? b(
+          `시드 $${pc.seedPerKg}/kg vs ${pc.line ? `공식 수출 단가(${pc.line}, ${pc.year} ${pc.basis})` : '공식 통관 단가'} $${pc.usdPerKg}/kg (${pc.ratio}배)${pc.status === 'not-comparable' ? ' — HS 기준 상이로 비교 불가' : ''} · 실제 견적 전`,
+          `Seed $${pc.seedPerKg}/kg vs ${pc.line ? `official export unit value (${pc.line}, ${pc.year} ${pc.basis})` : 'official unit value'} $${pc.usdPerKg}/kg (${pc.ratio}×)${pc.status === 'not-comparable' ? ' — HS basis not comparable' : ''} · no quotation yet`,
+        )
       : undefined,
     conflict: pc?.status === 'outlier' ? b(`시드 단가가 공식 통관 단가의 ${pc.ratio}배 — 견적으로 재확인 필요`, `Seed price is ${pc.ratio}× the official unit value — confirm with a quotation`) : undefined,
   });

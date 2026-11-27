@@ -132,21 +132,26 @@ ok('lane index 0 (a number): accepted', validateEntry(lane, db.PRODUCTS).ok);
 for (const bad of [null, '', true, '0']) ok(`lane index ${JSON.stringify(bad)}: rejected`, !validateEntry({ ...lane, target: { ...lane.target, index: bad } }, db.PRODUCTS).ok);
 
 // ---- basis: a value read from an official schedule is shown as official, never as expert-verified ------------
-// coconut-oil AKFTA: a line the shipped verified-overrides.json does not cover, so clearing runtime entries returns it to the seed
+// runtime entries are applied after the shipped file, so they win while present and clearing them restores the start
 const tariffEntry = { productId: 'coconut-oil', target: { type: 'tariff', scheme: 'AKFTA', rate: 2, roo: 'CTH or RVC 40%' }, source: 'Official schedule', reference: 'Schedule line 2008.99', verifiedBy: 'Data team', verifiedAt: today };
 const withBasis = validateEntry({ ...tariffEntry, basis: 'official' }, db.PRODUCTS);
 ok("basis 'official' is accepted and kept", withBasis.ok && (withBasis as { entry: { basis?: string } }).entry.basis === 'official');
 ok('any other basis is rejected', !validateEntry({ ...tariffEntry, basis: 'expert' }, db.PRODUCTS).ok);
 ok('basis only on tariff entries (a requirement with basis is rejected)', !validateEntry({ ...entry, basis: 'official' }, db.PRODUCTS).ok);
+const hsEntry = { productId: 'banana-chips', target: { type: 'hs', code: '2008.99.9000', ruling: 'Customs ruling 123 classifies fried banana chips in 2008.99' }, source: 'Customs rulings', reference: 'Ruling 123', verifiedBy: 'Data team', verifiedAt: today };
+ok('basis is accepted on an HS ruling read from a customs authority', validateEntry({ ...hsEntry, basis: 'official' }, db.PRODUCTS).ok);
+ok('basis is rejected on a freight quote (needs a forwarder)', !validateEntry({ ...entry, productId: 'banana-chips', target: { type: 'logistics', index: 0, cost: [100, 200] }, basis: 'official' }, db.PRODUCTS).ok);
 const seedItem = () => db.getProduct('coconut-oil')!.verification!.items.find((i) => i.key === 'tariff:AKFTA')!;
 const seedRate = () => db.getProduct('coconut-oil')!.tariffs.find((t) => t.scheme === 'AKFTA')!;
+const startLevel = seedItem().level;
+const startBasis = seedRate().overrideBasis;
 db.applyRuntimeOverrides([withBasis.ok ? withBasis.entry : (null as never)]);
 ok("official-basis entry: level 'official', marked as an official-schedule value", seedItem().level === 'official' && seedRate().overrideBasis === 'official' && seedItem().checkedAt === today);
 const expert = validateEntry(tariffEntry, db.PRODUCTS);
 db.applyRuntimeOverrides([expert.ok ? expert.entry : (null as never)]);
 ok("entry without basis: still 'verified' (expert), as before", seedItem().level === 'verified' && seedRate().overrideBasis === 'expert');
 db.applyRuntimeOverrides([]);
-ok('cleared: back to the seed level', seedItem().level === 'seed' && seedRate().overrideBasis === undefined);
+ok('cleared: back to the starting level', seedItem().level === startLevel && seedRate().overrideBasis === startBasis);
 // the shipped PH Tariff Finder checks carry basis 'official'
 const laver = db.getProduct('seasoned-laver')!;
 ok("shipped PH schedule checks show as official, not expert-verified", ['AKFTA', 'RCEP', 'KRPH'].every((sc) => laver.verification!.items.find((i) => i.key === `tariff:${sc}`)!.level === 'official'));

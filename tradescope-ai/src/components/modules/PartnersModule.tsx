@@ -109,7 +109,7 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
                   {c.license ? (
                     <Badge tone="violet" title={`${c.license.source} · ${c.license.verifiedBy} · ${c.license.verifiedAt}`}>
                       <BadgeCheck className="size-3" />
-                      {t('licenseVerified')}
+                      {c.license.basis === 'official' ? t('licenseOfficial') : t('licenseVerified')}
                     </Badge>
                   ) : (
                     <Badge tone="amber">{t('licenseUnverified')}</Badge>

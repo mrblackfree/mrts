@@ -2,6 +2,78 @@
   "$comment": "MANUAL audit trail: seed values in kr-ph-trade-db.ts that were edited because an official source disagreed. Append newest first. Corrections applied automatically at runtime by the official-data layer (src/data/official/index.ts) are NOT written here; they appear live as conflicts in the Data Trust Center.",
   "entries": [
     {
+      "date": "2026-11-27",
+      "productId": "coconut-oil",
+      "field": "AKFTA",
+      "from": "3% (상호대응세율 추정)",
+      "to": "0% (기획재정부고시 제2022-12호)",
+      "source": "상호대응세율표 필리핀 1513.19.1000·1513.19.9000 0%"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "coconut-oil",
+      "field": "최적 협정",
+      "from": "RCEP (1.8%)",
+      "to": "AKFTA (0%)",
+      "source": "AKFTA 0% · RCEP 1.8% · KRPH 2.1% 비교"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "coconut-oil",
+      "field": "Manila→Busan 운송 기간",
+      "from": "4~6일",
+      "to": "3~6일",
+      "source": "ONE JPH 서비스 스케줄 (2026.4 시행) — 마닐라→부산 3일"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "banana-chips",
+      "field": "Manila→Incheon 항차",
+      "from": "주 3항차 직항",
+      "to": "주 3항차 (중간 기항)",
+      "source": "인천항만공사 컨테이너 정기서비스 (2026.11.01)"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "dried-mango",
+      "field": "가격 비교 기준",
+      "from": "Comtrade HS 080450 CIF $3.95/kg (생과 포함)",
+      "to": "PSA AHTN 0804.50.22 건조 망고 FOB $12.66/kg",
+      "source": "필리핀 통계청(PSA) OpenSTAT 2025 수출 통계"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "seasoned-laver",
+      "field": "BOC 수입자 등록 (한국→필리핀 4개 품목 공통)",
+      "from": "관세사 확인",
+      "to": "인증 + CPRS 등록 필수 (CAO 07-2022)",
+      "source": "재무부(dof.gov.ph) CAO 07-2022 인증 사본"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "coconut-oil",
+      "field": "HS 1순위",
+      "from": "1513.19.0000 (정제유·VCO)",
+      "to": "1513.19.1000 (정제유 RBD)",
+      "source": "EBTI DE28296/16-1 · HSK 1513.19.1000 「정제유」"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "coconut-oil",
+      "field": "VCO 분류",
+      "from": "1513.19 (조유 아님)",
+      "to": "1513.11 조유 (정제하지 않은 VCO)",
+      "source": "미국 CBP NY L81481·J87427, EU EBTI DEBTI16528/21-1·GBBTI504795926 등"
+    },
+    {
+      "date": "2026-11-27",
+      "productId": "instant-ramen",
+      "field": "HS 근거",
+      "from": "1902.30 (단일 견해)",
+      "to": "1902.30 — EU 767/2014 지지, 미국 CBP는 2104.10(HQ H304896)",
+      "source": "EU 이행규칙 767/2014 · CBP HQ H304896"
+    },
+    {
       "date": "2026-11-26",
       "productId": "banana-chips",
       "field": "KRPH",

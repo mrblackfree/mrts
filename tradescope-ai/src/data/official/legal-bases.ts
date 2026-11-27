@@ -21,7 +21,8 @@ export interface LegalBasisEntry extends LegalBasis {
  * Legislation Research Institute, the ASEAN Secretariat, and the WTO (members' own notifications).
  */
 const OFFICIAL_HOSTS = ['law.go.kr', 'elaw.klri.re.kr', 'asean.org', 'docs.wto.org'];
-const OFFICIAL_SUFFIXES = ['.go.kr', '.gov.ph', '.gov.sg', '.wto.org'];
+// lpr.adb.org: the Asian Development Bank's Law and Policy Reform database, which hosts scans of enacted laws
+const OFFICIAL_SUFFIXES = ['.go.kr', '.gov.ph', '.gov.sg', '.wto.org', '.adb.org'];
 
 export function isOfficialLawUrl(url: string): boolean {
   let host: string;
@@ -141,6 +142,38 @@ export const LEGAL_BASES: Record<string, LegalBasisEntry> = {
       '"All consumer products domestically sold whether manufactured locally or imported shall indicate the following …: a) its correct and registered trade name or brand name; b) its duly registered trademark; c) its duly registered business name; d) the address of the manufacturer, importer, repacker of the consumer product in the Philippines; e) its general make or active ingredients; f) the net quality of contents … in the metric system; g) country of manufacture, if imported…"',
     source: 'DTI Bureau of Philippine Standards (bps.dti.gov.ph)',
     checkedAt: '2026-11-26',
+  },
+  'ph-halal': {
+    citation: b('필리핀 할랄 수출진흥법(RA 10817) 제9조·제11조(c)', 'Philippine Halal Export Development and Promotion Act (RA 10817), Sec. 9 and Sec. 11(c)'),
+    url: 'https://lpr.adb.org/sites/default/files/2024-07/philippines-ra-10817.pdf',
+    quote:
+      '"Halal certification of products, processes and services for domestic consumption or use is voluntary on the part of the producer, manufacturer, trader, retailer, or service provider" (Sec. 11(c)) · "the Philippine Accreditation Bureau (PAB) is hereby empowered to … grant or deny accreditation of Halal certification bodies" (Sec. 9)',
+    source: 'Asian Development Bank Law and Policy Reform database (lpr.adb.org) — scan of the enrolled Act',
+    checkedAt: '2026-11-27',
+  },
+  'ph-halal-cos': {
+    citation: b('필리핀 할랄 수출진흥법(RA 10817) 제9조·제11조(c)', 'Philippine Halal Export Development and Promotion Act (RA 10817), Sec. 9 and Sec. 11(c)'),
+    url: 'https://lpr.adb.org/sites/default/files/2024-07/philippines-ra-10817.pdf',
+    quote:
+      '"Halal certification of products, processes and services for domestic consumption or use is voluntary on the part of the producer, manufacturer, trader, retailer, or service provider" (Sec. 11(c)) · "the Philippine Accreditation Bureau (PAB) is hereby empowered to … grant or deny accreditation of Halal certification bodies" (Sec. 9)',
+    source: 'Asian Development Bank Law and Policy Reform database (lpr.adb.org) — scan of the enrolled Act',
+    checkedAt: '2026-11-27',
+  },
+  'ph-fire-code': {
+    citation: b('필리핀 소방법(RA 9514) 제7조(d)(8)·제8조(f)(g)', 'Fire Code of the Philippines (RA 9514), Sec. 7(d)(8) and Sec. 8(f)–(g)'),
+    url: 'https://lpr.adb.org/sites/default/files/2024-05/philippines-ra-09514.pdf',
+    quote:
+      '"(8) Self-closing fire resistive doors leading to corridors" (Sec. 7(d)) · prohibited acts: "(f) Locking fire exits during period when people are inside the building; (g) Prevention or obstruction of the automatic closure of fire doors or smoke partitions or dampers" (Sec. 8)',
+    source: 'Asian Development Bank Law and Policy Reform database (lpr.adb.org) — scan of the enrolled Act',
+    checkedAt: '2026-11-27',
+  },
+  'ph-boc-clearance': {
+    citation: b('필리핀 관세청 행정명령 CAO 07-2022(수입자 인증) 제3.2조·제4.1조', 'BOC Customs Administrative Order 07-2022 (accreditation of importers), Sec. 3.2 and 4.1'),
+    url: 'https://www.dof.gov.ph/download/accreditation-of-importers-cao-07-2022/',
+    quote:
+      '"Enrollment in the Bureau\'s CPRS shall be mandatory for transactions through the Bureau\'s automated cargo clearance system." (Sec. 3.2) · "Only accredited Importers can transact with the Bureau using the Bureau\'s automated customs processing system." (Sec. 4.1)',
+    source: 'Philippine Department of Finance (dof.gov.ph) — certified true copy of CAO 07-2022',
+    checkedAt: '2026-11-27',
   },
   // ---- Korea -----------------------------------------------------------------------------------------------------
   'kr-foreign-facility': {

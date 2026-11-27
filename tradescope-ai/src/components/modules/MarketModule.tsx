@@ -1,6 +1,6 @@
 'use client';
 
-import { Anchor, Lightbulb, Ship, TrendingUp } from 'lucide-react';
+import { Anchor, Lightbulb, ShieldCheck, Ship, TrendingUp } from 'lucide-react';
 import { formatNumber, formatPct, formatUsd, trend, yoy } from '@/lib/format';
 import type { TradeProduct } from '@/lib/types';
 import { ShareBars, TrendColumns } from '../charts';
@@ -135,6 +135,12 @@ export function LogisticsLanes({ product }: { product: TradeProduct }) {
                 <dd className="text-right text-slate-600 dark:text-slate-300">{p(l.frequency)}</dd>
               </dl>
               {l.note && <p className="mt-2 rounded-lg bg-slate-50 px-2 py-1 text-[11px] text-slate-500 dark:bg-white/[0.04] dark:text-slate-400">{p(l.note)}</p>}
+              {l.scheduleCheck && (
+                <a href={l.scheduleCheck.url} target="_blank" rel="noreferrer" className="mt-2 flex items-center gap-1 text-[10.5px] font-semibold text-sky-700 hover:underline dark:text-sky-300" title={l.scheduleCheck.source}>
+                  <ShieldCheck className="size-3 shrink-0" aria-hidden />
+                  {t('laneSchedule')}: {l.scheduleCheck.carrier.split(' (')[0]} {l.scheduleCheck.service.split(' (')[0]} {t('days').replace('{n}', String(l.scheduleCheck.transitDays))} · {t('laneScheduleNote')}
+                </a>
+              )}
             </div>
           ))}
         </div>
