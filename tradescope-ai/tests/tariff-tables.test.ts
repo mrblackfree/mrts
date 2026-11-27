@@ -31,6 +31,7 @@ ok('coconut oil: crude 1513.11 is 0% under all three agreements (official)', ['A
 ok('coconut oil: the AKFTA reciprocal rate for Philippine 1513.19 is the official 0% and AKFTA is recommended', rate('coconut-oil', 'AKFTA').rate === 0 && rate('coconut-oil', 'AKFTA').level === 'official' && getProduct('coconut-oil')!.bestFta.scheme === 'AKFTA');
 ok('coconut oil: the primary line is refined oil (1513.19.1000) and its RCEP 1.8% is official', getProduct('coconut-oil')!.hs[0].code === '1513.19.1000' && rate('coconut-oil', 'RCEP').rate === 1.8 && rate('coconut-oil', 'RCEP').level === 'official');
 ok('HS rulings read from customs authorities show as official', ['banana-chips', 'dried-mango', 'coconut-oil', 'seasoned-laver', 'k-beauty', 'smart-building'].every((id) => getProduct(id)!.verification!.items.find((i) => i.key === 'hs')!.level === 'official'));
-ok('instant ramen stays a cross-check (authorities disagree: EU 1902.30, US 2104)', getProduct('instant-ramen')!.verification!.items.find((i) => i.key === 'hs')!.level === 'crosscheck');
+ok('instant ramen HS is official: both countries’ schedules name it in 1902.30 (KR 1902.30-1010, PH AHTN 1902.30.40)', getProduct('instant-ramen')!.verification!.items.find((i) => i.key === 'hs')!.level === 'official');
+ok('instant ramen main line maps to AHTN 1902.30.40 (instant noodles), not .20 (rice vermicelli)', getProduct('instant-ramen')!.hs[0].ahtn === '1902.30.40');
 
 done('tariff tables');

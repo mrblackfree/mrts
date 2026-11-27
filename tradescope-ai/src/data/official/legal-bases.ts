@@ -143,6 +143,14 @@ export const LEGAL_BASES: Record<string, LegalBasisEntry> = {
     source: 'DTI Bureau of Philippine Standards (bps.dti.gov.ph)',
     checkedAt: '2026-11-26',
   },
+  'kr-halal-marketing': {
+    citation: b('식품 등의 표시·광고에 관한 법률 제8조 제1항 제4호·제5호 · 필리핀 할랄 수출진흥법(RA 10817) 제9조', 'Act on Labeling and Advertising of Foods, Art. 8(1)4–5 · Philippine Halal Export Development and Promotion Act (RA 10817), Sec. 9'),
+    url: 'https://www.law.go.kr/법령/식품등의표시ㆍ광고에관한법률/제8조',
+    quote:
+      '"누구든지 식품등의 명칭ㆍ제조방법ㆍ성분 등 대통령령으로 정하는 사항에 관하여 다음 각 호의 어느 하나에 해당하는 표시 또는 광고를 하여서는 아니 된다. … 4. 거짓ㆍ과장된 표시 또는 광고 5. 소비자를 기만하는 표시 또는 광고" · RA 10817 Sec. 9: "the Philippine Accreditation Bureau (PAB) is hereby empowered to … grant or deny accreditation of Halal certification bodies"',
+    source: '국가법령정보센터 법령 (한국법제연구원 elaw.klri.re.kr 국영문 원문으로 대조) · Asian Development Bank Law and Policy Reform database (lpr.adb.org) — RA 10817',
+    checkedAt: '2026-11-27',
+  },
   'ph-halal': {
     citation: b('필리핀 할랄 수출진흥법(RA 10817) 제9조·제11조(c)', 'Philippine Halal Export Development and Promotion Act (RA 10817), Sec. 9 and Sec. 11(c)'),
     url: 'https://lpr.adb.org/sites/default/files/2024-07/philippines-ra-10817.pdf',

@@ -1,8 +1,10 @@
 'use client';
 
-import { Anchor, Lightbulb, ShieldCheck, Ship, TrendingUp } from 'lucide-react';
+import { Anchor, Lightbulb, Mail, ShieldCheck, Ship, TrendingUp } from 'lucide-react';
 import { formatNumber, formatPct, formatUsd, trend, yoy } from '@/lib/format';
 import type { TradeProduct } from '@/lib/types';
+import { freightRfq } from '@/lib/rfq';
+import RfqLink from '../RfqLink';
 import { OFFICIAL } from '@/data/official';
 import { ShareBars, TrendColumns } from '../charts';
 import { useI18n } from '../I18nProvider';
@@ -141,6 +143,12 @@ export function LogisticsLanes({ product }: { product: TradeProduct }) {
                   <ShieldCheck className="size-3 shrink-0" aria-hidden />
                   {t('laneSchedule')}: {l.scheduleCheck.carrier.split(' (')[0]} {l.scheduleCheck.service.split(' (')[0]} {t('days').replace('{n}', String(l.scheduleCheck.transitDays))} · {t('laneScheduleNote')}
                 </a>
+              )}
+              {!l.quote && (
+                <RfqLink rfq={freightRfq(product, i, lang)} className="no-print mt-2 inline-flex items-center gap-1 text-[10.5px] font-semibold text-brand-700 hover:underline dark:text-brand-300">
+                  <Mail className="size-3 shrink-0" aria-hidden />
+                  {t('rfqFreight')}
+                </RfqLink>
               )}
             </div>
           ))}

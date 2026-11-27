@@ -101,8 +101,8 @@ export const ROADMAP: RoadmapItem[] = [
     categories: ['hs'],
     title: b('HS 품목분류 확정', 'HS classification'),
     now: b(
-      '세관 공식 품목분류 결정(미국 CBP·영국 HMRC·EU EBTI)과 대조 — 6개 품목 「공식 품목분류 사례」. 라면은 EU(1902.30)와 미국(2104.10) 결정이 엇갈려 교차검증으로 유지. 이 대조로 버진코코넛오일이 조유(1513.11)임을 확인',
-      'Checked against customs authorities’ published rulings (US CBP, UK HMRC, EU EBTI) — 6 products shown as “official classification ruling”. Ramen stays a cross-check because the EU (1902.30) and the US (2104.10) disagree. The same check showed virgin coconut oil is crude oil (1513.11)',
+      '세관 공식 품목분류 결정(미국 CBP·영국 HMRC·EU EBTI)과 대조 — 6개 품목 「공식 품목분류 사례」. 라면은 결정이 엇갈리지만(EU 1902.30, 미국 2104.10) 수출입 양국 관세율표가 모두 1902.30에 즉석면 세번을 둬(한국 1902.30-1010 「라면」, 필리핀 AHTN 1902.30.40) 공식으로 반영 — 7개 품목 모두 공식. 이 대조로 버진코코넛오일이 조유(1513.11)임을 확인',
+      'Checked against customs authorities’ published rulings (US CBP, UK HMRC, EU EBTI) — 6 products shown as “official classification ruling”. Rulings on ramen disagree (EU 1902.30, US 2104.10), but both countries’ tariff schedules carry an instant-noodle line in 1902.30 (Korea 1902.30-1010 “ramen”, Philippine AHTN 1902.30.40), so it is recorded as official too — all 7 products. The same check showed virgin coconut oil is crude oil (1513.11)',
     ),
     steps: [
       b('법적 구속력이 필요하면: 한국 관세청 품목분류 사전심사(관세법 제86조) 또는 필리핀 BOC 사전판정(Advance Ruling) → 결정번호를 overrides(hs)에 입력하면 「품목분류 확정」', 'For a binding decision: a Korea Customs advance ruling (Customs Act art. 86) or a BOC advance ruling → enter its number in overrides (hs)'),
@@ -120,8 +120,8 @@ export const ROADMAP: RoadmapItem[] = [
     categories: ['requirements'],
     title: b('통관·인증 요건 근거 법령', 'Legal basis of permits & customs requirements'),
     now: b(
-      '요건마다 근거 법령·조항을 공식 원문(국가법령정보센터·식약처, 필리핀 FDA·농업부·DTI·재무부, 아세안 사무국 등)에서 인용해 「교차검증」 — 법령이 없는 한국 할랄 마케팅만 시드. 원문과 다르던 문구(해외제조업소 등록 기한, CPR 단위, BOC 수입자 인증 등)도 정정',
-      'Each requirement quotes its law from an official text (law.go.kr, MFDS, PH FDA, DA, DTI, DOF, ASEAN…) and shows as a cross-check — only Korean halal marketing, which has no law, stays seed. Claims that differed from the texts were corrected',
+      '요건마다 근거 법령·조항을 공식 원문(국가법령정보센터·식약처, 필리핀 FDA·농업부·DTI·재무부, 아세안 사무국 등)에서 인용해 「교차검증」 — 모든 요건 대조 완료. 한국 할랄 마케팅은 의무 법령은 없지만 문구의 사실 주장(PAB 인정 — RA 10817 제9조, 거짓·기만 표시 금지 — 식품표시광고법 제8조)을 대조. 원문과 다르던 문구(해외제조업소 등록 기한, CPR 단위, BOC 수입자 인증, 할랄 인증기관 인정 주체 등)도 정정',
+      'Each requirement quotes its law from an official text (law.go.kr, MFDS, PH FDA, DA, DTI, DOF, ASEAN…) and shows as a cross-check — every requirement is now matched. Korean halal marketing has no mandatory law, but its factual claims (PAB accreditation — RA 10817 Sec. 9; no false or deceptive labelling — Food Labeling Act Art. 8) are matched. Claims that differed from the texts were corrected (including who accredits halal bodies)',
     ),
     steps: [
       b('「전문가 검증」은 법무법인·관세사가 특정 거래에 어떻게 적용되는지 검토한 뒤 overrides(requirement)에 기록', 'Expert-verified needs a law firm or broker to review how each rule applies to the shipment, recorded in overrides (requirement)'),

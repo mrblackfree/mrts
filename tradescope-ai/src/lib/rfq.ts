@@ -154,3 +154,13 @@ export function licenceRfq(p: TradeProduct, partner: Partner, lang: RfqLang = 'e
 export function mailto(r: Rfq): string {
   return `mailto:?subject=${encodeURIComponent(r.subject)}&body=${encodeURIComponent(r.body)}`;
 }
+
+/** Some desktop mail clients cut mailto links longer than this (Korean text triples in size when encoded). */
+export const MAILTO_MAX = 1800;
+
+/** A mail link that stays under MAILTO_MAX: too long → subject plus `pasteNote`, and the caller copies the full text. */
+export function mailtoLink(r: Rfq, pasteNote: string): { href: string; tooLong: boolean } {
+  const full = mailto(r);
+  if (full.length <= MAILTO_MAX) return { href: full, tooLong: false };
+  return { href: mailto({ subject: r.subject, body: pasteNote }), tooLong: true };
+}
