@@ -44,6 +44,36 @@ export const LANE_SCHEDULES: Record<string, LaneSchedule> = {
     url: 'https://cms-resources.one-line.com/sites/oneglobal/files/2026-08/2026%20East%20Asia%20-%20Japan%20Service.pdf',
     checkedAt: '2026-11-27',
   },
+  // Maersk service pages give a cumulative transit day for each call from the first port of the loop and no effective
+  // date; the lane figure is the difference of two published calls. PH3's weekly Incheon call is confirmed by the
+  // Incheon Port Authority regular-service list (2026-11-01 version), which has no Incheon–Manila direct service.
+  'Incheon→Manila': {
+    carrier: 'Maersk',
+    service: 'PH3',
+    transitDays: 10,
+    frequency: b('주 1항차 (인천항만공사 정기서비스 목록 2026-11-01)', 'Weekly (Incheon Port Authority service list, 2026-11-01)'),
+    source: 'Maersk PH3 service timetable — Inchon day 11 → Manila day 21, via Shanghai and Ningbo (page shows no effective date)',
+    url: 'https://www.maersk.com/local-information/intra-asia-pacific-shipping-routes/ph3',
+    checkedAt: '2026-11-27',
+  },
+  'Manila→Incheon': {
+    carrier: 'Maersk',
+    service: 'PH3',
+    transitDays: 11,
+    frequency: b('주 1항차 (인천항만공사 정기서비스 목록 2026-11-01)', 'Weekly (Incheon Port Authority service list, 2026-11-01)'),
+    source: 'Maersk PH3 service timetable — Manila day 0 → Inchon day 11 via Qingdao (9 days from the second Manila call; page shows no effective date)',
+    url: 'https://www.maersk.com/local-information/intra-asia-pacific-shipping-routes/ph3',
+    checkedAt: '2026-11-27',
+  },
+  'Davao→Busan': {
+    carrier: 'Maersk',
+    service: 'IA5',
+    transitDays: 9,
+    frequency: b('선사 페이지에 빈도 표기 없음', 'Frequency not stated on the carrier page'),
+    source: 'Maersk IA5 service timetable — Davao City day 40 → Busan day 49, via Cagayan de Oro and Shanghai (page shows no effective date)',
+    url: 'https://www.maersk.com/local-information/intra-asia-pacific-shipping-routes/ia5',
+    checkedAt: '2026-11-27',
+  },
 };
 
 export interface PriceBenchmark {

@@ -236,6 +236,7 @@ ADMIN_SECRET=<openssl rand -base64 32 결과>
 | World Bank WITS TRAINS (MFN) | ✅ 자동 (키 불필요) | MFN HS6 교차검증·자동 보정. 시드 오류 4건 보정(코코넛오일 8→3%, 조미김 15→10%, K-뷰티 10→7%, 도어락 10→1%) |
 | World Bank WITS TRAINS (PREF) | ✅ 자동 (키 불필요) | 필리핀이 한국산에 실제 적용한 특혜세율(2021, 당시 유일 협정 AKFTA)로 AKFTA 검증 — 조미김·라면 5→0% 보정, 수출 4품목 AKFTA "공식 API" 등급 |
 | 공식 통관 단가 | ✅ 자동 (키 불필요) | Comtrade 금액/순중량(USD/kg)으로 시드 단가 교차검증 (0.5~2배 범위면 교차검증 등급) |
+| 필리핀 수출 단가 (PSA OpenSTAT) | ✅ 자동 (키 불필요) | 필리핀 통계청 PXWeb API의 대한(對韓) 수출 FOB 금액·총중량(전년)으로 AHTN 8단위 단가 계산 — 건조 망고(0804.50.22)·바나나칩 품목군(2008.99.40)·버진코코넛오일(1513.11.10). 물량이 5톤 미만이면 직전 값 유지 (`npm run data:sync -- --only=psa`) |
 | HS6 코드 유효성 | ✅ 자동 | 공식 HS6 세번 존재 확인 → 교차검증(분류 판단 확정은 사전심사) |
 | 운임 지수 (KOBC KCCI) | ✅ 자동 | 한국해양진흥공사 주간 컨테이너 운임지수 — 동남아 항로(부산→호찌민·자카르타·싱가포르)를 물류 카드에 참고값으로 표시. 필리핀 노선이 아니므로 점수에는 반영하지 않음 (`npm run data:sync -- --only=kcci`) |
 | 링크 점검 | ✅ 자동 | 소스·근거 법령의 URL(79개)을 ok / protected(봇 차단) / unavailable / unreachable / broken으로 분류. 점검 위치의 네트워크에서 응답이 없을 뿐(unreachable)인 링크는 60일 안의 마지막 응답 결과를 유지합니다(GitHub 미국 러너에서 한국 정부 사이트가 막히는 경우 등) |
@@ -244,10 +245,10 @@ ADMIN_SECRET=<openssl rand -base64 32 결과>
 | 10단위 FTA 협정세율 | ✍️ 검증 입력 | UNI-PASS 「관세율(협정·탄력)」/ 관세청 FTA 포털 / 필리핀 Tariff Finder 조회 → overrides |
 | HS 법적 확정 | ✍️ 검증 입력 | 관세청 품목분류 사전심사(관세법 제86조), 필리핀 BOC Advance Ruling → overrides(hs) |
 | 기업 인허가 | ✍️ 검증 입력 | FDA PH verification 포털·SEC·DTI BNRS / 국세청 사업자 상태조회·DART → overrides(partner) |
-| 운임·단가 | ✍️ 검증 입력 | 포워더 견적서(유효기간 포함) → overrides(logistics, validUntil 지나면 자동으로 시드 복귀) |
+| 운임·단가 | ✍️ 검증 입력 | 포워더 견적서(유효기간 포함) → overrides(logistics, validUntil 지나면 자동으로 시드 복귀). 데이터 신뢰 센터의 「견적·확인 요청서」가 노선·품목·HS가 채워진 요청 메일을 만들어 줍니다 |
 
 ```bash
-npm run data:sync        # 전체 동기화 (Comtrade · WITS · 링크 · 키가 있으면 관세청)
+npm run data:sync        # 전체 동기화 (Comtrade · WITS · KCCI · PSA · 링크 · 키가 있으면 관세청)
 npm run data:links       # 링크만 다시 점검
 npm run data:validate    # verified-overrides.json 검증: 필수 필드·날짜(YYYY-MM-DD)·target 유형별 필드·수치 범위·ID 존재·placeholder 차단 (CI에서 실행)
 ```
@@ -276,7 +277,11 @@ npm run data:validate    # verified-overrides.json 검증: 필수 필드·날짜
 
 **HS 공식 품목분류 사례와 공식 명단(`basis: "official"`):** 세관이 공개한 품목분류 결정(미국 CBP CROSS, 영국 HMRC 사전품목분류, EU EBTI 등)으로 HS 코드를 확인한 경우 `hs` 검증값에, 거래처 인허가를 공식 명단에서 읽은 경우 `partner` 검증값에 `basis: "official"`을 붙일 수 있습니다(「공식 품목분류 사례」·「공식 명단 확인」으로 표시). 결정이 서로 엇갈리면(예: 라면 — EU 1902.30, 미국 2104.10) 공식값으로 올리지 않고 교차검증으로 둡니다.
 
-**운임·단가 교차검증(`src/data/official/public-checks.ts`):** 선사가 공개한 서비스 스케줄의 항구 간 운송 일수가 시드 범위 안이면 해당 FCL 노선을 「교차검증」으로 표시합니다(운임은 견적 전). 단가는 같은 품목의 수출국 공식 통계 단가(필리핀 통계청 PSA FOB)와 비교하며, 없으면 HS6 Comtrade 통관 단가를 씁니다. 실제 포워더·공급사 견적이 들어와야 「전문가 검증」이 됩니다.
+**운임·단가 교차검증(`src/data/official/public-checks.ts`):** 선사가 공개한 서비스 스케줄의 항구 간 운송 일수가 시드 범위 안이면 해당 FCL 노선을 「교차검증」으로 표시합니다(운임은 견적 전). 단가는 같은 품목의 수출국 공식 통계 단가(필리핀 통계청 PSA FOB — 주간 동기화가 OpenSTAT API에서 갱신)와 비교하며, 없으면 HS6 Comtrade 통관 단가를 씁니다. 실제 포워더·공급사 견적이 들어와야 「전문가 검증」이 됩니다.
+
+**거래처 공식 공시·명단(`registry`):** 거래처마다 회사가 실재함을 보여 주는 공식 페이지(필리핀 증권거래소 PSE EDGE 회사정보, 한국 DART 정기공시, 필리핀 정부 공고)를 적을 수 있습니다. 링크 점검에서 응답하면 회사 웹사이트가 내려가 있어도 「교차검증」이 되며, 거래처 카드에 「공식 공시·명단」 배지와 링크가 표시됩니다. 인허가(LTO·영업등록 등)는 별개라 계속 「인허가 미검증」으로 남습니다. 호스트는 `edge.pse.com.ph`·`dart.fss.or.kr`·`.gov.ph`·`.go.kr`만 허용합니다(`tests/public-evidence.test.ts`). 공개 운항 스케줄도 같은 테스트가 실제 노선과 운송 기간 범위에 맞는지 확인합니다.
+
+**견적·확인 요청서(`src/lib/rfq.ts`):** 공개 자료로는 교차검증까지가 한계인 세 항목(운임, 단가·MOQ, 거래처 인허가)을 위해, 데이터 신뢰 센터에서 품목·노선·거래처를 고르면 영문 또는 국문 요청 메일을 만듭니다. 운임은 구간·화물·HS와 부대비용·운송 기간·프리타임을, 단가는 인코텀즈·MOQ·리드타임·결제 조건을, 인허가는 국가·품목에 맞는 자료(필리핀 FDA LTO·SEC/DTI·CPR/CPN, 한국 사업자등록번호·수입식품 영업등록증·화장품책임판매업 등록증)를 요청하고, 검증값 입력에 필요한 금액·유효기간·견적번호를 항상 함께 묻습니다. 받는 사람은 사용자가 메일 앱에서 고르며, 서버로 전송되는 데이터는 없습니다.
 
 자동화하지 않은 것과 그 이유:
 - **필리핀 Tariff Finder·FDA 인증 포털:** 공개 API가 없습니다. 내부 엔드포인트 스크래핑은 하지 않고, 공식 화면 조회 → 검증 입력 경로로 처리합니다.
@@ -403,7 +408,7 @@ npm run build:preview   # → preview-dist/ (index.html · app.js · app.css · 
 tradescope-ai/
 ├─ Dockerfile · docker-compose.yml · .env.example · next.config.mjs (output: 'standalone')
 ├─ deploy/                    Caddyfile · nginx.conf.example · tradescope.service.example
-├─ scripts/sync-official-data.mjs  공식 데이터 동기화 (Comtrade · WITS · 관세청 · 링크 점검 · overrides 검증)
+├─ scripts/sync-official-data.mjs  공식 데이터 동기화 (Comtrade · WITS · 관세청 · KCCI · PSA · 링크 점검 · overrides 검증)
 ├─ public/
 └─ src/
    ├─ app/

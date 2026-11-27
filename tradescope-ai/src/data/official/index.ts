@@ -85,7 +85,7 @@ export interface SourceStatus {
 
 interface Snapshot {
   generatedAt?: string;
-  sources?: Partial<Record<'comtrade' | 'wits' | 'kcs' | 'kcci' | 'links' | 'overrides', SourceStatus>>;
+  sources?: Partial<Record<'comtrade' | 'wits' | 'kcs' | 'kcci' | 'psa' | 'links' | 'overrides', SourceStatus>>;
   comtrade?: { products?: Record<string, SnapProduct>; overview?: { krExportsToPh: YearValue[]; krImportsFromPh: YearValue[] } };
   wits?: Record<string, Record<string, WitsEntry>>;
   witsPref?: Record<string, PrefEntry>;
@@ -93,6 +93,8 @@ interface Snapshot {
   witsPrefByHs?: Record<string, Record<string, PrefEntry>>;
   kcs?: { ytd?: Record<string, { from: string; to: string; expUsd: number; impUsd: number; source: string }>; fx?: { usdKrw: number; appliedFrom: string; source: string } | null };
   links?: Record<string, LinkCheck>;
+  /** PSA export unit values by product (price benchmark, refreshed by the sync) */
+  psa?: { year: number; updated: string | null; url: string; products: Record<string, { year: number; usdPerKg: number; tonnes: number; basis: 'FOB'; line: string }> };
   /** weekly freight index (reference only — never verifies a lane) */
   freightIndex?: { kcci?: FreightIndex };
 }
@@ -372,7 +374,11 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
 
   // Seed price vs an official unit value (USD/kg): the product's own export line when one was read (like for like),
   // else the HS6 customs unit value from Comtrade
-  const bench = PRICE_BENCHMARKS[p.id];
+  // the synced PSA value wins over the one read by hand (src/data/official/public-checks)
+  const psa = SNAP.psa?.products?.[p.id];
+  const bench = psa
+    ? { year: psa.year, usdPerKg: psa.usdPerKg, basis: psa.basis, line: psa.line, source: `Philippine Statistics Authority (PSA) OpenSTAT — FOB value and weight of exports, ${psa.year} (synced)` }
+    : PRICE_BENCHMARKS[p.id];
   const uv = bench ?? snapP?.unitValue;
   if (uv && p.pricing.unitKg) {
     const seedPerKg = Math.round((p.pricing.unitPrice / p.pricing.unitKg) * 100) / 100;
@@ -455,7 +461,10 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     const lb = legalBasisFor(r.id, p.id);
     if (lb) r.legalBasis = lb;
   }
-  for (const pt of p.partners) pt.linkCheck = links[pt.website];
+  for (const pt of p.partners) {
+    pt.linkCheck = links[pt.website];
+    if (pt.registry) pt.registryCheck = links[pt.registry.url];
+  }
   for (const l of p.logistics) {
     const sc = laneSchedule(l.from, l.to, l.mode);
     if (sc) l.scheduleCheck = { carrier: sc.carrier, service: sc.service, transitDays: sc.transitDays, source: sc.source, url: sc.url, checkedAt: sc.checkedAt };
@@ -519,19 +528,27 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
     });
   }
   for (const pt of p.partners) {
-    const webOk = pt.linkCheck && (pt.linkCheck.state === 'ok' || pt.linkCheck.state === 'protected');
+    const answered = (c?: LinkCheck) => !!c && (c.state === 'ok' || c.state === 'protected');
+    const webOk = answered(pt.linkCheck);
+    // an official filing or register page shows the company exists (cross-check); licences still need the LTO etc.
+    const regOk = !!pt.registry && answered(pt.registryCheck);
     items.push({
       key: `partner:${pt.id}`,
       category: 'partners',
       label: b(pt.name, pt.name),
-      level: pt.license ? (pt.license.basis === 'official' ? 'official' : 'verified') : webOk ? 'crosscheck' : 'seed',
-      source: pt.license ? `${pt.license.source} · ${pt.license.verifiedBy}` : undefined,
-      checkedAt: pt.license?.verifiedAt ?? pt.linkCheck?.checkedAt,
+      level: pt.license ? (pt.license.basis === 'official' ? 'official' : 'verified') : regOk || webOk ? 'crosscheck' : 'seed',
+      source: pt.license ? `${pt.license.source} · ${pt.license.verifiedBy}` : regOk ? pt.registry!.label : undefined,
+      checkedAt: pt.license?.verifiedAt ?? (regOk ? pt.registryCheck?.checkedAt : pt.linkCheck?.checkedAt),
       detail: pt.license
         ? b(pt.license.text, pt.license.text)
-        : webOk
-          ? b('공개 웹페이지 응답 확인 · 인허가(LTO 등)는 미검증', 'Public web page responded · licences (e.g. LTO) not yet verified')
-          : b('인허가(LTO 등)는 미검증', 'Licences (e.g. LTO) not yet verified'),
+        : regOk
+          ? b(
+              `공식 공시·명단에서 회사 확인 (${pt.registry!.label})${webOk ? '' : ' · 회사 웹사이트 응답 없음'} · 인허가(LTO 등)는 미검증`,
+              `Company found in an official filing or register (${pt.registry!.label})${webOk ? '' : ' · company website did not respond'} · licences (e.g. LTO) not yet verified`,
+            )
+          : webOk
+            ? b('공개 웹페이지 응답 확인 · 인허가(LTO 등)는 미검증', 'Public web page responded · licences (e.g. LTO) not yet verified')
+            : b('인허가(LTO 등)는 미검증', 'Licences (e.g. LTO) not yet verified'),
     });
   }
   p.logistics.forEach((l, i) => {

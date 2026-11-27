@@ -1,6 +1,6 @@
 'use client';
 
-import { BadgeCheck, Building2, ExternalLink, Globe, Mail, MapPin, ScanSearch, Users } from 'lucide-react';
+import { BadgeCheck, Building2, ExternalLink, Globe, Landmark, Mail, MapPin, ScanSearch, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AGENCY_LINKS } from '@/data/kr-ph-trade-db';
 import { PARTNER_TYPE_LABEL } from '@/lib/i18n';
@@ -106,6 +106,12 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
                       {t('webChecked')} {c.linkCheck.checkedAt.slice(5, 10).replace('-', '.')}
                     </Badge>
                   )}
+                  {c.registry && c.registryCheck && (c.registryCheck.state === 'ok' || c.registryCheck.state === 'protected') && (
+                    <Badge tone="brand" title={`${c.registry.label} · ${c.registryCheck.checkedAt}`}>
+                      <Landmark className="size-3" />
+                      {t('registryChecked')}
+                    </Badge>
+                  )}
                   {c.license ? (
                     <Badge tone="violet" title={`${c.license.source} · ${c.license.verifiedBy} · ${c.license.verifiedAt}`}>
                       <BadgeCheck className="size-3" />
@@ -121,6 +127,11 @@ export default function PartnersModule({ product, intent, onOpen }: { product: T
                   <a href={c.website} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">
                     {c.linkType === 'official' ? t('linkOfficial') : t('linkListing')} <ExternalLink className="size-3" />
                   </a>
+                  {c.registry && (
+                    <a href={c.registry.url} target="_blank" rel="noreferrer" title={c.registry.label} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">
+                      {t('registryLink')} <ExternalLink className="size-3" />
+                    </a>
+                  )}
                   {c.country === 'PH' && !c.license && c.role === 'buyer' && c.type !== 'developer' && (
                     <a href={AGENCY_LINKS.phFdaVerify} target="_blank" rel="noreferrer" className="no-print inline-flex items-center gap-1 text-xs font-semibold text-violet-700 hover:underline dark:text-violet-300">
                       {t('checkLicense')} <ExternalLink className="size-3" />

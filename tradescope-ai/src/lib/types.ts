@@ -271,8 +271,14 @@ export interface Partner {
   strengths: Bilingual[];
   appeal: Bilingual[];
   caution: Bilingual;
+  /**
+   * Official page that shows the company exists: a stock-exchange or DART filing, a government register or notice.
+   * Reachable = the company is cross-checked; it says nothing about the licences a trade needs.
+   */
+  registry?: { label: string; url: string };
   /** attached by the official-data layer */
   linkCheck?: LinkCheck;
+  registryCheck?: LinkCheck;
   license?: { text: string; validUntil?: string; source: string; verifiedBy: string; verifiedAt: string; basis?: 'official' | 'expert' };
 }
 

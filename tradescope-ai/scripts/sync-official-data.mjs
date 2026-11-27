@@ -7,7 +7,7 @@
  * endpoints: every connector below uses a published API.
  *
  *   node scripts/sync-official-data.mjs                  # all keyless sources (Comtrade, WITS, link check)
- *   node scripts/sync-official-data.mjs --only=wits      # one source: comtrade | wits | links | kcs | kcci
+ *   node scripts/sync-official-data.mjs --only=wits      # one source: comtrade | wits | links | kcs | kcci | psa
  *   DATA_GO_KR_SERVICE_KEY=... node scripts/sync-official-data.mjs   # + Korea Customs monthly trade & FX
  *   COMTRADE_API_KEY=...                                  # uses the full Comtrade API (higher limits)
  *   (both keys can also be saved on the /admin page; environment variables win)
@@ -26,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { readSettings } from '../src/lib/settings/core.mjs';
 import { CARRY_OVER_DAYS, mergeLinkResult } from './link-state.mjs';
 import { KCCI_URL, parseKcci } from './kcci.mjs';
+import { countryQuery, PSA_BASE, PSA_LINES, sumByPrefix, tableForYear, unitValue } from './psa.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -56,7 +57,12 @@ const SAVED = (() => {
 })();
 const configured = (name) => process.env[name]?.trim() || SAVED[name]?.trim() || undefined;
 const DB_FILE = path.join(ROOT, 'src/data/kr-ph-trade-db.ts');
-const LINK_FILES = [DB_FILE, path.join(ROOT, 'src/data/official/roadmap.ts'), path.join(ROOT, 'src/data/official/legal-bases.ts')];
+const LINK_FILES = [
+  DB_FILE,
+  path.join(ROOT, 'src/data/official/roadmap.ts'),
+  path.join(ROOT, 'src/data/official/legal-bases.ts'),
+  path.join(ROOT, 'src/data/official/public-checks.ts'),
+];
 const OVERRIDES_FILE = path.join(ROOT, 'src/data/verified-overrides.json');
 const OUT_FILE = path.join(ROOT, 'src/data/official/snapshot.json');
 
@@ -108,12 +114,12 @@ const partnerInfo = (code) => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(...a);
 
-async function getText(url, { headers = {}, timeoutMs = 25_000, retries = 2 } = {}) {
+async function getText(url, { headers = {}, timeoutMs = 25_000, retries = 2, method = 'GET', body } = {}) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': UA, ...headers }, signal: ctrl.signal });
+      const res = await fetch(url, { method, body, headers: { 'User-Agent': UA, ...headers }, signal: ctrl.signal });
       const text = await res.text();
       if (res.status === 429 && attempt < retries) {
         await sleep(3000 * (attempt + 1));
@@ -618,6 +624,47 @@ async function syncKcci(snapshot) {
 }
 
 // ---------------------------------------------------------------------------
+// Philippine Statistics Authority — export unit values (price benchmark; see psa.mjs)
+// ---------------------------------------------------------------------------
+async function syncPsa(snapshot) {
+  const year = new Date().getUTCFullYear() - 1; // the last full year
+  const prev = snapshot.psa?.products ?? {};
+  const errors = [];
+  const list = async (kind) => {
+    const res = await getText(`${PSA_BASE}/${kind}`, { headers: { Accept: 'application/json' } });
+    try {
+      return tableForYear(JSON.parse(res.text), year);
+    } catch {
+      errors.push(`${kind} listing: HTTP ${res.status || res.error}`);
+      return null;
+    }
+  };
+  const fobT = await list('FOB');
+  const kgT = await list('GKE');
+  if (!fobT || !kgT) {
+    if (!errors.length) errors.push(`no ${year} table published yet`);
+    snapshot.sources.psa = { status: 'error', fetchedAt: new Date().toISOString(), errors: errors.map((e) => `${e}${Object.keys(prev).length ? ' — kept previous' : ''}`) };
+    log(`  psa: ${errors.join('; ')}`);
+    return;
+  }
+  const post = (kind, id) => getText(`${PSA_BASE}/${kind}/${id}`, { method: 'POST', body: JSON.stringify(countryQuery()), headers: { 'Content-Type': 'application/json' }, timeoutMs: 120_000, retries: 1 });
+  const fob = await post('FOB', fobT.id);
+  const kg = await post('GKE', kgT.id);
+  const products = { ...prev };
+  if (fob.status !== 200 || kg.status !== 200) errors.push(`table query: HTTP ${fob.status || fob.error} / ${kg.status || kg.error}`);
+  else
+    for (const [id, m] of Object.entries(PSA_LINES)) {
+      const uv = unitValue(sumByPrefix(fob.text, m.prefixes).total, sumByPrefix(kg.text, m.prefixes).total);
+      if (uv) products[id] = { year, ...uv, basis: 'FOB', line: m.line };
+      else errors.push(`${id}: too little volume in ${year}${prev[id] ? ' — kept previous' : ''}`);
+      log(`  psa ${id} ${year}: ${uv ? `$${uv.usdPerKg}/kg (${uv.tonnes} t)` : 'too little volume'}`);
+    }
+  snapshot.psa = { year, updated: fobT.updated, url: 'https://openstat.psa.gov.ph/', products };
+  const fresh = Object.values(products).filter((v) => v.year === year).length;
+  snapshot.sources.psa = { status: errors.length ? (fresh ? 'partial' : 'error') : 'ok', fetchedAt: new Date().toISOString(), errors };
+}
+
+// ---------------------------------------------------------------------------
 async function main() {
   let snapshot;
   try {
@@ -632,6 +679,7 @@ async function main() {
   if (want('wits')) await syncWits(snapshot);
   if (want('kcs')) await syncKcs(snapshot);
   if (want('kcci')) await syncKcci(snapshot);
+  if (want('psa')) await syncPsa(snapshot);
   if (want('links')) await syncLinks(snapshot);
   await validateOverrides(snapshot);
   if (snapshot.sources.overrides?.status === 'error') {
