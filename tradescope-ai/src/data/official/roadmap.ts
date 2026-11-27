@@ -144,6 +144,7 @@ export const ROADMAP: RoadmapItem[] = [
     steps: [
       b('필리핀: FDA verification 포털에서 수입·유통 LTO 번호·유효기간 조회 → overrides(partner)에 basis "official"로 입력하면 「공식 명단 확인」', 'Philippines: look up the importer/distributor LTO number and validity on the FDA portal → enter it in overrides (partner) with basis "official"'),
       b('한국: 수입식품정보마루 수입업소 조회(영업등록), 국세청 사업자 상태조회(data.go.kr API), DART 공시', 'Korea: imported-food business lookup (impfood), NTS business-status API (data.go.kr), DART filings'),
+      b('거래처에 직접 요청: 「견적·확인 요청서」가 국가·품목에 맞는 자료(필리핀 FDA LTO·CPR/CPN, 한국 영업등록증 등)를 요청하는 메일을 생성', 'Ask the partner directly: the request builder drafts an email asking for the right documents for the country and product (PH FDA LTO and CPR/CPN, Korean business registration…)'),
     ],
     links: [
       { label: 'FDA PH verification', url: 'https://verification.fda.gov.ph' },
@@ -163,6 +164,7 @@ export const ROADMAP: RoadmapItem[] = [
     steps: [
       b('포워더 견적을 overrides(logistics)에 validUntil과 함께 입력 → 만료일까지 「전문가 검증」, 만료 시 자동 복귀', 'Enter forwarder quotes in overrides (logistics) with validUntil → verified until they expire'),
       b('세부·다바오 노선은 공개 스케줄을 찾지 못함 — 견적으로 운송 기간까지 확인', 'No published schedule was found for Cebu and Davao — confirm transit with the quote'),
+      b('데이터 신뢰 센터의 「견적·확인 요청서」로 노선·화물·HS가 채워진 운임 견적 요청 메일(영문·국문)을 바로 생성', 'The Data Trust Center’s request builder drafts a freight RFQ (English or Korean) with lane, cargo and HS filled in'),
     ],
     links: [
       { label: 'KOBC KCCI', url: 'https://www.kobc.or.kr/ebz/shippinginfo/kcci/gridList.do?mId=0304000000' },
@@ -175,12 +177,13 @@ export const ROADMAP: RoadmapItem[] = [
     categories: ['pricing'],
     title: b('기준 단가·MOQ', 'Reference price & MOQ'),
     now: b(
-      '같은 품목의 공식 수출 단가와 비교(필리핀 통계청 PSA FOB — 건조 망고·바나나칩 품목군·버진코코넛오일, 그 밖은 UN Comtrade 통관 단가) — 교차검증. 실제 단가·MOQ는 견적이 필요',
+      '같은 품목의 공식 수출 단가와 비교(필리핀 통계청 PSA FOB — 건조 망고·바나나칩 품목군·버진코코넛오일, 주간 자동 갱신 / 그 밖은 UN Comtrade 통관 단가) — 교차검증. 실제 단가·MOQ는 견적이 필요',
       'Compared with the official export unit value of the same line (PSA FOB for dried mango, the banana-chip line and virgin coconut oil; UN Comtrade unit values otherwise) — cross-check. Actual price and MOQ need a quotation',
     ),
     steps: [
       b('바이어·공급사 견적서를 overrides(pricing)에 입력 → 「전문가 검증」', 'Enter buyer / supplier quotations in overrides (pricing) → verified'),
-      b('PSA 단가는 연 1회(전년 확정치 공개 후) 갱신', 'Refresh the PSA unit values once a year, after the final figures are published'),
+      b('PSA 단가는 주간 데이터 동기화가 OpenSTAT API에서 자동 갱신(키 불필요, 전년 확정치 기준)', 'The weekly data sync refreshes the PSA unit values from the OpenSTAT API (no key; last full year)'),
+      b('데이터 신뢰 센터의 「견적·확인 요청서」로 품목·조건이 채워진 단가·MOQ 견적 요청 메일을 바로 만들 수 있음', 'The Data Trust Center’s request builder drafts a price & MOQ request with the product and terms filled in'),
     ],
     links: [{ label: 'PSA OpenSTAT', url: 'https://openstat.psa.gov.ph' }],
   },

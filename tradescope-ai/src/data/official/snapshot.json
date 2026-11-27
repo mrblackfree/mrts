@@ -45,6 +45,11 @@
     "kcci": {
       "status": "ok",
       "fetchedAt": "2026-11-27T10:48:52.694Z"
+    },
+    "psa": {
+      "status": "ok",
+      "fetchedAt": "2026-11-27T11:37:35.090Z",
+      "errors": []
     }
   },
   "comtrade": {
@@ -1300,7 +1305,7 @@
       "checkedAt": "2026-11-26T16:51:02.086Z"
     }
   },
-  "generatedAt": "2026-11-27T10:48:52.701Z",
+  "generatedAt": "2026-11-27T11:37:35.094Z",
   "witsPref": {
     "seasoned-laver": {
       "reporter": 608,
@@ -1399,6 +1404,34 @@
         }
       },
       "url": "https://www.kobc.or.kr/ebz/shippinginfo/kcci/gridList.do?mId=0304000000"
+    }
+  },
+  "psa": {
+    "year": 2025,
+    "updated": "2026-07-15T10:54:08",
+    "url": "https://openstat.psa.gov.ph/",
+    "products": {
+      "dried-mango": {
+        "year": 2025,
+        "usdPerKg": 12.66,
+        "tonnes": 63.3,
+        "basis": "FOB",
+        "line": "AHTN 0804.50.22 Mangoes, dried — Philippines → Korea"
+      },
+      "banana-chips": {
+        "year": 2025,
+        "usdPerKg": 2.41,
+        "tonnes": 851.2,
+        "basis": "FOB",
+        "line": "AHTN 2008.99.40 other prepared fruit with added sugar (incl. banana chips) — Philippines → Korea"
+      },
+      "coconut-oil": {
+        "year": 2025,
+        "usdPerKg": 5.88,
+        "tonnes": 25.4,
+        "basis": "FOB",
+        "line": "AHTN 1513.11.10 virgin coconut oil — Philippines → Korea"
+      }
     }
   }
 }

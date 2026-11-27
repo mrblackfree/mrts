@@ -85,7 +85,7 @@ export interface SourceStatus {
 
 interface Snapshot {
   generatedAt?: string;
-  sources?: Partial<Record<'comtrade' | 'wits' | 'kcs' | 'kcci' | 'links' | 'overrides', SourceStatus>>;
+  sources?: Partial<Record<'comtrade' | 'wits' | 'kcs' | 'kcci' | 'psa' | 'links' | 'overrides', SourceStatus>>;
   comtrade?: { products?: Record<string, SnapProduct>; overview?: { krExportsToPh: YearValue[]; krImportsFromPh: YearValue[] } };
   wits?: Record<string, Record<string, WitsEntry>>;
   witsPref?: Record<string, PrefEntry>;
@@ -93,6 +93,8 @@ interface Snapshot {
   witsPrefByHs?: Record<string, Record<string, PrefEntry>>;
   kcs?: { ytd?: Record<string, { from: string; to: string; expUsd: number; impUsd: number; source: string }>; fx?: { usdKrw: number; appliedFrom: string; source: string } | null };
   links?: Record<string, LinkCheck>;
+  /** PSA export unit values by product (price benchmark, refreshed by the sync) */
+  psa?: { year: number; updated: string | null; url: string; products: Record<string, { year: number; usdPerKg: number; tonnes: number; basis: 'FOB'; line: string }> };
   /** weekly freight index (reference only — never verifies a lane) */
   freightIndex?: { kcci?: FreightIndex };
 }
@@ -372,7 +374,11 @@ export function applyOfficialLayer(seed: TradeProduct): TradeProduct {
 
   // Seed price vs an official unit value (USD/kg): the product's own export line when one was read (like for like),
   // else the HS6 customs unit value from Comtrade
-  const bench = PRICE_BENCHMARKS[p.id];
+  // the synced PSA value wins over the one read by hand (src/data/official/public-checks)
+  const psa = SNAP.psa?.products?.[p.id];
+  const bench = psa
+    ? { year: psa.year, usdPerKg: psa.usdPerKg, basis: psa.basis, line: psa.line, source: `Philippine Statistics Authority (PSA) OpenSTAT — FOB value and weight of exports, ${psa.year} (synced)` }
+    : PRICE_BENCHMARKS[p.id];
   const uv = bench ?? snapP?.unitValue;
   if (uv && p.pricing.unitKg) {
     const seedPerKg = Math.round((p.pricing.unitPrice / p.pricing.unitKg) * 100) / 100;

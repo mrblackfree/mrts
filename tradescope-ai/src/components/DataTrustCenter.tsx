@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, Clock, ExternalLink, History, KeyRound, Link2, Map as MapIcon, PenLine, RefreshCw, ShieldCheck, TriangleAlert, X, Zap } from 'lucide-react';
+import { ChevronDown, Clock, ExternalLink, History, KeyRound, Link2, Mail, Map as MapIcon, PenLine, RefreshCw, ShieldCheck, TriangleAlert, X, Zap } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useModalDialog } from './useModalDialog';
 import { PRODUCTS } from '@/data/kr-ph-trade-db';
@@ -11,6 +11,7 @@ import type { DictKey } from '@/lib/i18n';
 import type { VerificationLevel } from '@/lib/types';
 import { useI18n } from './I18nProvider';
 import OverrideHelper from './OverrideHelper';
+import RfqHelper from './RfqHelper';
 import { Badge, Button, cx, LevelBadge, ProgressBar, ScoreRing } from './ui';
 
 const CHANGELOG = (changelogJson as { entries: Array<{ date: string; productId: string; field: string; from: string; to: string; source: string }> }).entries;
@@ -71,6 +72,7 @@ export default function DataTrustCenter({
     { id: 'comtrade', name: 'UN Comtrade', st: src.comtrade, extra: src.comtrade?.endpoint },
     { id: 'wits', name: 'World Bank WITS', st: src.wits, extra: 'TRAINS · MFN · HS6' },
     { id: 'kcs', name: lang === 'ko' ? '관세청 (data.go.kr)' : 'Korea Customs (data.go.kr)', st: src.kcs, extra: src.kcs?.status === 'not-configured' ? 'DATA_GO_KR_SERVICE_KEY' : undefined },
+    { id: 'psa', name: lang === 'ko' ? '필리핀 통계청 PSA (수출 단가)' : 'Philippine Statistics Authority (export unit values)', st: src.psa, extra: 'OpenSTAT · FOB · PH→KR' },
     { id: 'kcci', name: lang === 'ko' ? '한국해양진흥공사 KCCI' : 'KOBC KCCI freight index', st: src.kcci, extra: OFFICIAL.kcci ? `${OFFICIAL.kcci.date} · ${lang === 'ko' ? '참고 지수' : 'reference'}` : undefined },
     {
       id: 'links',
@@ -331,6 +333,20 @@ export default function DataTrustCenter({
                 );
               })}
             </div>
+          </section>
+
+          {/* requests for the gaps only a partner can close */}
+          <section className="rounded-2xl border border-brand-200 p-4 dark:border-brand-500/30">
+            <h3 className="mb-1 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-slate-100">
+              <Mail className="size-4 text-brand-500" />
+              {lang === 'ko' ? '견적·확인 요청서 만들기 (운임·단가·인허가)' : 'Request a quote or confirmation (freight, price, licence)'}
+            </h3>
+            <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">
+              {lang === 'ko'
+                ? '공개 자료로는 「교차검증」까지가 한계인 항목입니다. 노선·품목·거래처 정보가 채워진 요청서를 포워더·공급사·거래처에 보내고, 회신을 아래에 입력하세요.'
+                : 'Public data only gets these items to a cross-check. Send a pre-filled request to a forwarder, supplier or partner and enter the reply below.'}
+            </p>
+            <RfqHelper defaultProductId={focusProductId} />
           </section>
 
           {/* verified-value entry helper */}
