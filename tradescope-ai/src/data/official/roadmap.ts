@@ -138,18 +138,19 @@ export const ROADMAP: RoadmapItem[] = [
     categories: ['partners'],
     title: b('거래처 실재·인허가 확인', 'Partner existence & licences'),
     now: b(
-      '공개 웹페이지 응답은 주간 자동 점검(교차검증). 인허가(LTO 등)는 필리핀 FDA 조회 포털이 자동 접속을 차단하고(403), FDA 공개 자료·한국 식약처 조회에는 번호·유효기간이 없어 자동 확인 불가 — 사람이 공식 포털에서 조회해 입력',
-      'Public web pages are checked weekly (cross-check). Licences (LTO etc.) cannot be checked automatically: the PH FDA verification portal blocks automated clients (403) and other official pages give no number or validity — look them up on the official portals and enter them',
+      '회사 실재는 공식 공시·명단 페이지로 교차검증 — 필리핀 증권거래소 PSE EDGE 회사정보, 한국 DART 정기공시, 필리핀 정부 공고(30개사 중 18개사, 주간 링크 점검). 공식 페이지가 없는 곳은 회사 웹페이지 응답으로 교차검증. 인허가(LTO 등)는 필리핀 FDA 조회 포털이 자동 접속을 차단(403)해 자동 확인 불가 — 사람이 포털에서 조회해 입력',
+      'Company existence is cross-checked on official filing and register pages — PSE EDGE company information, Korean DART filings, Philippine government notices (18 of 30 companies, link-checked weekly); others by their own web page. Licences (LTO etc.) cannot be checked automatically: the PH FDA verification portal blocks automated clients (403) — look them up on the portal and enter them',
     ),
     steps: [
       b('필리핀: FDA verification 포털에서 수입·유통 LTO 번호·유효기간 조회 → overrides(partner)에 basis "official"로 입력하면 「공식 명단 확인」', 'Philippines: look up the importer/distributor LTO number and validity on the FDA portal → enter it in overrides (partner) with basis "official"'),
-      b('한국: 수입식품정보마루 수입업소 조회(영업등록), 국세청 사업자 상태조회(data.go.kr API), DART 공시', 'Korea: imported-food business lookup (impfood), NTS business-status API (data.go.kr), DART filings'),
+      b('한국: 수입식품정보마루 수입업소 조회(영업등록), 국세청 사업자 상태조회(data.go.kr API) — 회사 실재는 DART 공시로 이미 교차검증', 'Korea: imported-food business lookup (impfood), NTS business-status API (data.go.kr) — existence is already cross-checked on DART'),
       b('거래처에 직접 요청: 「견적·확인 요청서」가 국가·품목에 맞는 자료(필리핀 FDA LTO·CPR/CPN, 한국 영업등록증 등)를 요청하는 메일을 생성', 'Ask the partner directly: the request builder drafts an email asking for the right documents for the country and product (PH FDA LTO and CPR/CPN, Korean business registration…)'),
     ],
     links: [
       { label: 'FDA PH verification', url: 'https://verification.fda.gov.ph' },
       { label: '수입식품정보마루', url: 'https://impfood.mfds.go.kr' },
       { label: 'DART', url: 'https://dart.fss.or.kr' },
+      { label: 'PSE EDGE', url: 'https://edge.pse.com.ph/' },
     ],
   },
   {
@@ -158,17 +159,19 @@ export const ROADMAP: RoadmapItem[] = [
     categories: ['logistics'],
     title: b('운임·운송 기간', 'Freight & transit'),
     now: b(
-      '운송 기간은 선사 공개 스케줄과 대조(ONE JPH: 부산→마닐라 4일·마닐라→부산 3일 — 교차검증), 인천항만공사 정기서비스 목록으로 직항 여부 확인. 운임 수준은 한국해양진흥공사 KCCI 동남아 지수를 주간 자동 수집(참고 지수). 실제 운임은 포워더 견적이 필요',
-      'Transit is checked against carriers’ published schedules (ONE JPH: Busan→Manila 4 days, Manila→Busan 3 days — cross-check) and the Incheon Port Authority service list. The KOBC KCCI Southeast Asia index is collected weekly as a reference level. Actual freight needs a forwarder’s quote',
+      '운송 기간은 선사 공개 스케줄과 대조 — ONE JPH 부산→마닐라 4일·마닐라→부산 3일, 머스크 PH3 인천→마닐라 10일·마닐라→인천 9~11일, 머스크 IA5 다바오→부산 9일(교차검증). 인천↔마닐라는 직항이 없어(인천항만공사 정기서비스 목록) 시드 운송 기간을 공개 스케줄에 맞게 정정. 운임 수준은 KCCI 동남아 지수를 주간 자동 수집(참고). 실제 운임은 포워더 견적이 필요',
+      'Transit is checked against carriers’ published schedules — ONE JPH Busan→Manila 4 days and Manila→Busan 3, Maersk PH3 Incheon→Manila 10 and Manila→Incheon 9–11, Maersk IA5 Davao→Busan 9 (cross-check). Incheon–Manila has no direct service (Incheon Port Authority list), so the seed transit was corrected to the published schedules. The KCCI Southeast Asia index is collected weekly as a reference. Actual freight needs a forwarder’s quote',
     ),
     steps: [
       b('포워더 견적을 overrides(logistics)에 validUntil과 함께 입력 → 만료일까지 「전문가 검증」, 만료 시 자동 복귀', 'Enter forwarder quotes in overrides (logistics) with validUntil → verified until they expire'),
-      b('세부·다바오 노선은 공개 스케줄을 찾지 못함 — 견적으로 운송 기간까지 확인', 'No published schedule was found for Cebu and Davao — confirm transit with the quote'),
+      b('세부↔한국은 공개 스케줄을 찾지 못함(인천항만공사 목록에도 세부 기항 서비스 없음 — 환적) — 견적으로 운송 기간까지 확인', 'No published Cebu–Korea schedule was found (no Incheon service calls Cebu — transhipment) — confirm transit with the quote'),
       b('데이터 신뢰 센터의 「견적·확인 요청서」로 노선·화물·HS가 채워진 운임 견적 요청 메일(영문·국문)을 바로 생성', 'The Data Trust Center’s request builder drafts a freight RFQ (English or Korean) with lane, cargo and HS filled in'),
     ],
     links: [
       { label: 'KOBC KCCI', url: 'https://www.kobc.or.kr/ebz/shippinginfo/kcci/gridList.do?mId=0304000000' },
       { label: 'ONE service maps', url: 'https://www.one-line.com/en/service-maps' },
+      { label: 'Maersk Intra-Asia routes', url: 'https://www.maersk.com/local-information/intra-asia-pacific-shipping-routes' },
+      { label: '인천항만공사 정기서비스', url: 'https://www.icpa.or.kr/content/view.do?menuKey=1942&contentKey=203' },
     ],
   },
   {

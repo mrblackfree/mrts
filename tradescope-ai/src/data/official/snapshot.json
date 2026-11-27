@@ -29,13 +29,14 @@
     },
     "links": {
       "status": "ok",
-      "fetchedAt": "2026-11-26T16:51:02.088Z",
+      "fetchedAt": "2026-11-27T12:04:34.889Z",
       "counts": {
-        "ok": 64,
-        "protected": 12,
-        "unavailable": 3
+        "ok": 90,
+        "protected": 13,
+        "unavailable": 2,
+        "unreachable": 4
       },
-      "note": "protected = site answered but blocks automated clients (401/403/429); unavailable = server error (5xx, may be bot protection or downtime); unreachable = no answer from the checker network."
+      "note": "protected = site answered but blocks automated clients (401/403/429); unavailable = server error (5xx, may be bot protection or downtime); unreachable = no answer from the checker network. A link that answered within the last 60 days keeps that check while it is unreachable."
     },
     "overrides": {
       "status": "ok",
@@ -912,400 +913,550 @@
     "https://www.foodsafetykorea.go.kr": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:43.407Z"
+      "checkedAt": "2026-11-27T12:04:09.142Z"
     },
     "https://www.kmf.or.kr": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:44.026Z"
-    },
-    "https://www.customs.go.kr/ftaportalkor": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:44.065Z"
-    },
-    "https://www.fda.gov.ph": {
-      "status": 403,
-      "state": "protected",
-      "checkedAt": "2026-11-26T16:50:44.564Z"
-    },
-    "https://unipass.customs.go.kr": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:44.767Z"
+      "checkedAt": "2026-11-27T12:04:09.674Z"
     },
     "https://cert.korcham.net": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:45.356Z"
+      "checkedAt": "2026-11-27T12:04:10.810Z"
+    },
+    "https://unipass.customs.go.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:10.863Z"
+    },
+    "https://www.fda.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-27T12:04:11.053Z"
     },
     "https://verification.fda.gov.ph": {
       "status": 403,
       "state": "protected",
-      "checkedAt": "2026-11-26T16:50:45.381Z"
-    },
-    "https://www.mfds.go.kr": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:45.534Z"
-    },
-    "https://customs.gov.ph": {
-      "status": 403,
-      "state": "protected",
-      "checkedAt": "2026-11-26T16:50:45.737Z"
-    },
-    "https://ntc.gov.ph": {
-      "status": 403,
-      "state": "protected",
-      "checkedAt": "2026-11-26T16:50:46.073Z"
-    },
-    "https://ncmf.gov.ph": {
-      "status": 403,
-      "state": "protected",
-      "checkedAt": "2026-11-26T16:50:46.331Z"
+      "checkedAt": "2026-11-27T12:04:11.649Z"
     },
     "https://impfood.mfds.go.kr": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:46.371Z"
+      "checkedAt": "2026-11-27T12:04:11.721Z"
     },
-    "https://bps.dti.gov.ph": {
+    "https://www.mfds.go.kr": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:46.481Z"
+      "checkedAt": "2026-11-27T12:04:11.750Z"
+    },
+    "https://customs.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-27T12:04:11.941Z"
+    },
+    "https://ntc.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-27T12:04:12.208Z"
+    },
+    "https://ncmf.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-27T12:04:12.636Z"
     },
     "https://bfp.gov.ph": {
       "status": 403,
       "state": "protected",
-      "checkedAt": "2026-11-26T16:50:46.683Z"
+      "checkedAt": "2026-11-27T12:04:12.720Z"
+    },
+    "https://bps.dti.gov.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:12.829Z"
     },
     "https://www.da.gov.ph": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:46.984Z"
+      "checkedAt": "2026-11-27T12:04:13.394Z"
     },
     "https://finder.tariffcommission.gov.ph/akfta": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:47.466Z"
-    },
-    "https://finder.tariffcommission.gov.ph/rcep": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:47.554Z"
+      "checkedAt": "2026-11-27T12:04:13.637Z"
     },
     "https://finder.tariffcommission.gov.ph/phkrfta": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:47.567Z"
+      "checkedAt": "2026-11-27T12:04:13.700Z"
     },
-    "https://freshcocebu.com": {
+    "https://finder.tariffcommission.gov.ph/rcep": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:47.731Z"
+      "checkedAt": "2026-11-27T12:04:13.705Z"
     },
     "https://sialparis.com/EXHIBITORS-2024/exhibitor/SEE-S-INTERNATIONAL-FOOD-MANUFACTURING-CORP": {
       "status": 403,
       "state": "protected",
-      "checkedAt": "2026-11-26T16:50:47.804Z"
+      "checkedAt": "2026-11-27T12:04:13.923Z"
+    },
+    "https://freshcocebu.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:14.021Z"
     },
     "https://nutrada.com/suppliers/four-seasons-fruits-corp": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:47.985Z"
-    },
-    "https://www.costco.co.kr": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:48.194Z"
+      "checkedAt": "2026-11-27T12:04:14.366Z"
     },
     "https://comtradeplus.un.org": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:48.254Z"
+      "checkedAt": "2026-11-27T12:04:14.935Z"
     },
     "https://www.dti.gov.ph/regions/mimaropa/mimaropa-success-stories/success-story-decades-success-banana-chips/": {
       "status": 403,
       "state": "protected",
-      "checkedAt": "2026-11-26T16:50:48.459Z"
+      "checkedAt": "2026-11-27T12:04:14.985Z"
     },
-    "https://emart.ssg.com": {
-      "status": 403,
-      "state": "protected",
-      "checkedAt": "2026-11-26T16:50:48.637Z"
+    "https://www.costco.co.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:15.182Z"
     },
     "https://www.kurly.com": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:48.645Z"
+      "checkedAt": "2026-11-27T12:04:15.734Z"
     },
-    "https://www.7dmangoes.com": {
-      "status": 503,
-      "state": "unavailable",
-      "checkedAt": "2026-11-26T16:50:48.746Z"
-    },
-    "https://www.franklinbaker.com": {
+    "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261117000072": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:48.931Z"
+      "checkedAt": "2026-11-27T12:04:16.155Z"
     },
-    "https://www.cjfreshway.com": {
+    "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261110000224": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:49.288Z"
-    },
-    "https://www.peterpaul.com.ph": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:49.497Z"
-    },
-    "https://smmarkets.ph": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:49.534Z"
+      "checkedAt": "2026-11-27T12:04:16.158Z"
     },
     "https://www.kita.net": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:49.777Z"
+      "checkedAt": "2026-11-27T12:04:16.422Z"
+    },
+    "https://emart.ssg.com": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-27T12:04:16.459Z"
+    },
+    "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261116001087": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:16.747Z"
+    },
+    "https://www.franklinbaker.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:16.899Z"
+    },
+    "https://7dfoods.com": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:17.112Z"
     },
     "https://www.qia.go.kr": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:50.247Z"
+      "checkedAt": "2026-11-27T12:04:17.184Z"
     },
-    "https://www.kolmar.co.kr": {
+    "https://www.peterpaul.com.ph": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:50.648Z"
+      "checkedAt": "2026-11-27T12:04:17.244Z"
     },
-    "https://www.watsons.com.ph": {
+    "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261116000895": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:50.945Z"
+      "checkedAt": "2026-11-27T12:04:17.494Z"
     },
-    "https://beautymnl.com": {
+    "https://www.cjfreshway.com": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:50.967Z"
+      "checkedAt": "2026-11-27T12:04:17.509Z"
     },
-    "https://www.cosmax.com": {
-      "status": 403,
-      "state": "protected",
-      "checkedAt": "2026-11-26T16:50:51.138Z"
+    "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261116001508": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:17.597Z"
+    },
+    "https://smmarkets.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:17.756Z"
+    },
+    "https://edge.pse.com.ph/companyInformation/form.do?cmpy_id=599": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:18.269Z"
+    },
+    "https://edge.pse.com.ph/companyInformation/form.do?cmpy_id=659": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:18.742Z"
     },
     "https://www.metroretail.com.ph": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:51.142Z"
+      "checkedAt": "2026-11-27T12:04:19.341Z"
+    },
+    "https://edge.pse.com.ph/companyInformation/form.do?cmpy_id=629": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:19.414Z"
+    },
+    "https://www.kolmar.co.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:19.424Z"
     },
     "https://pkorientaltrading.odoo.com": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:51.202Z"
+      "checkedAt": "2026-11-27T12:04:19.589Z"
     },
-    "https://www.sgfood.co.kr": {
+    "https://www.watsons.com.ph": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:51.467Z"
+      "checkedAt": "2026-11-27T12:04:19.716Z"
     },
-    "https://www.landers.ph": {
+    "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260409003126": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:51.552Z"
+      "checkedAt": "2026-11-27T12:04:19.798Z"
     },
-    "https://www.wilcon.com.ph": {
+    "https://www.cosmax.com": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-27T12:04:20.072Z"
+    },
+    "https://www.customs.go.kr/ftaportalkor": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:51.617Z"
+      "checkedAt": "2026-11-27T12:01:20.367Z"
     },
     "https://www.robinsonsretail.com.ph": {
       "status": 503,
       "state": "unavailable",
-      "checkedAt": "2026-11-26T16:50:51.704Z"
+      "checkedAt": "2026-11-27T12:04:20.354Z"
+    },
+    "https://edge.pse.com.ph/companyInformation/form.do?cmpy_id=646": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:20.420Z"
+    },
+    "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261113001208": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:20.654Z"
+    },
+    "https://www.landers.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:20.736Z"
+    },
+    "https://www.sgfood.co.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:20.910Z"
+    },
+    "https://www.wilcon.com.ph": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:20.925Z"
     },
     "https://smdc.com": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:51.814Z"
+      "checkedAt": "2026-11-27T12:04:21.119Z"
+    },
+    "https://edge.pse.com.ph/companyInformation/form.do?cmpy_id=665": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:21.616Z"
+    },
+    "https://edge.pse.com.ph/companyInformation/form.do?cmpy_id=112": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:21.824Z"
     },
     "https://ayalaland.com": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:51.925Z"
-    },
-    "https://www.acehardware.ph": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:52.263Z"
-    },
-    "https://www.lxhausys.com": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:52.607Z"
-    },
-    "https://wits.worldbank.org/witsapiintro.aspx": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:52.848Z"
-    },
-    "https://www.cwhomedepot.com": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:52.984Z"
+      "checkedAt": "2026-11-27T12:04:22.035Z"
     },
     "https://www.puregold.com.ph": {
       "status": 503,
       "state": "unavailable",
-      "checkedAt": "2026-11-26T16:50:53.339Z"
+      "checkedAt": "2026-11-27T12:04:22.091Z"
+    },
+    "https://edge.pse.com.ph/companyInformation/form.do?cmpy_id=180": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:22.506Z"
     },
     "https://www.snrshopping.com": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:53.347Z"
+      "checkedAt": "2026-11-27T12:04:22.518Z"
     },
-    "https://comtradedeveloper.un.org": {
+    "https://www.acehardware.ph": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:53.377Z"
+      "checkedAt": "2026-11-27T12:04:22.762Z"
     },
-    "https://www.sec.gov.ph": {
-      "status": 403,
-      "state": "protected",
-      "checkedAt": "2026-11-26T16:50:53.573Z"
-    },
-    "https://www.data.go.kr/data/15101230/openapi.do": {
+    "https://www.lxhausys.com": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:54.519Z"
+      "checkedAt": "2026-11-27T12:04:23.002Z"
     },
-    "https://www.data.go.kr/data/15100475/openapi.do": {
+    "https://wits.worldbank.org/witsapiintro.aspx": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:54.617Z"
+      "checkedAt": "2026-11-27T12:04:23.193Z"
     },
-    "https://unipass.customs.go.kr/csp/index.do?tgMenuId=MYC_MNU_00000148": {
+    "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261116002161": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:54.918Z"
+      "checkedAt": "2026-11-27T12:04:23.278Z"
     },
-    "https://dart.fss.or.kr": {
+    "https://www.cwhomedepot.com": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:54.978Z"
-    },
-    "https://unipass.customs.go.kr/csp/index.do?tgMenuId=MYC_MNU_00000337": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:55.008Z"
-    },
-    "https://www.kobc.or.kr": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:55.958Z"
-    },
-    "https://asean.org/wp-content/uploads/2012/10/20707.pdf": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:56.353Z"
+      "checkedAt": "2026-11-27T12:04:23.301Z"
     },
     "https://fdi.com.ph": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:56.528Z"
+      "checkedAt": "2026-11-27T12:04:23.639Z"
+    },
+    "https://comtradedeveloper.un.org": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:23.728Z"
+    },
+    "https://rulings.cbp.gov": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:24.089Z"
+    },
+    "https://ec.europa.eu/taxation_customs/dds2/ebti/ebti_consultation.jsp": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:24.578Z"
+    },
+    "https://www.data.go.kr/data/15101230/openapi.do": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:24.827Z"
+    },
+    "https://www.law.go.kr/법령/자유무역협정의이행을위한관세법의특례에관한법률시행령": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:25.053Z"
+    },
+    "https://unipass.customs.go.kr/csp/index.do?tgMenuId=MYC_MNU_00000337": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:25.201Z"
+    },
+    "https://www.law.go.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:25.431Z"
+    },
+    "https://www.data.go.kr/data/15100475/openapi.do": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:25.674Z"
+    },
+    "https://edge.pse.com.ph/": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:25.879Z"
+    },
+    "https://dart.fss.or.kr": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:25.970Z"
+    },
+    "https://unipass.customs.go.kr/csp/index.do?tgMenuId=MYC_MNU_00000148": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:26.188Z"
+    },
+    "https://openstat.psa.gov.ph": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-27T12:04:26.345Z"
+    },
+    "https://www.one-line.com/en/service-maps": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:26.877Z"
+    },
+    "https://www.kobc.or.kr/ebz/shippinginfo/kcci/gridList.do?mId=0304000000": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:26.894Z"
+    },
+    "https://www.maersk.com/local-information/intra-asia-pacific-shipping-routes": {
+      "status": 0,
+      "state": "unreachable",
+      "checkedAt": "2026-11-27T12:04:27.061Z"
     },
     "https://www.fda.gov.ph/wp-content/uploads/2021/03/Administrative-Order-No.-2014-0029.pdf": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:56.775Z"
+      "checkedAt": "2026-11-27T12:04:28.382Z"
+    },
+    "https://www.icpa.or.kr/content/view.do?menuKey=1942&contentKey=203": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:28.458Z"
     },
     "https://www.fda.gov.ph/wp-content/uploads/2021/03/Administrative-Order-No.-2014-0030.pdf": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:56.803Z"
+      "checkedAt": "2026-11-27T12:04:28.687Z"
     },
-    "https://lic-public.wto.org/en/product-categories/692/procedure": {
-      "status": 403,
-      "state": "protected",
-      "checkedAt": "2026-11-26T16:50:57.032Z"
+    "https://asean.org/wp-content/uploads/2012/10/20707.pdf": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:28.837Z"
     },
     "https://www.fda.gov.ph/wp-content/uploads/2024/04/15.-License-to-Operate-LTO.pdf": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:57.303Z"
+      "checkedAt": "2026-11-27T12:04:29.123Z"
     },
-    "https://file.go.gov.sg/appendix-ii-asean-cosmetic-labelling-requirements.pdf": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:57.412Z"
+    "https://lic-public.wto.org/en/product-categories/692/procedure": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-27T12:04:29.212Z"
     },
     "https://www.da.gov.ph/wp-content/uploads/2022/11/ac06_s2022.pdf": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:57.901Z"
+      "checkedAt": "2026-11-27T12:04:29.623Z"
     },
-    "https://bps.dti.gov.ph/component/edocman/225-republic-act-no-7394-consumer-act-of-the-philippines/download": {
+    "https://lpr.adb.org/sites/default/files/2024-07/philippines-ra-10817.pdf": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:57.911Z"
+      "checkedAt": "2026-11-27T12:04:29.677Z"
+    },
+    "https://file.go.gov.sg/appendix-ii-asean-cosmetic-labelling-requirements.pdf": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:29.681Z"
     },
     "https://bps.dti.gov.ph/product-certification/product-certification-schemes": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:57.920Z"
+      "checkedAt": "2026-11-27T12:04:29.687Z"
+    },
+    "https://lpr.adb.org/sites/default/files/2024-05/philippines-ra-09514.pdf": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:29.914Z"
+    },
+    "https://bps.dti.gov.ph/component/edocman/225-republic-act-no-7394-consumer-act-of-the-philippines/download": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:30.175Z"
     },
     "https://www.law.go.kr/법령/수입식품안전관리특별법/제5조": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:58.515Z"
+      "checkedAt": "2026-11-27T12:04:31.016Z"
     },
     "https://www.law.go.kr/법령/수입식품안전관리특별법/제15조": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:58.650Z"
+      "checkedAt": "2026-11-27T12:04:31.040Z"
     },
     "https://www.law.go.kr/법령/수입식품안전관리특별법/제21조": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:58.805Z"
-    },
-    "https://www.law.go.kr/법령/관세법시행령/제250조": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:59.267Z"
-    },
-    "https://www.law.go.kr/법령/자유무역협정의이행을위한관세법의특례에관한법률/제8조": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:59.342Z"
-    },
-    "https://www.law.go.kr/법령/식물방역법/제2조": {
-      "status": 200,
-      "state": "ok",
-      "checkedAt": "2026-11-26T16:50:59.364Z"
+      "checkedAt": "2026-11-27T12:04:31.260Z"
     },
     "https://www.law.go.kr/법령/식품등의표시ㆍ광고에관한법률/제4조": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:59.469Z"
+      "checkedAt": "2026-11-27T12:04:31.602Z"
+    },
+    "https://www.dof.gov.ph/download/accreditation-of-importers-cao-07-2022/": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:31.969Z"
+    },
+    "https://www.law.go.kr/법령/식물방역법/제2조": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:31.976Z"
+    },
+    "https://www.law.go.kr/법령/관세법시행령/제250조": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:31.997Z"
+    },
+    "https://www.law.go.kr/법령/자유무역협정의이행을위한관세법의특례에관한법률/제8조": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:32.024Z"
+    },
+    "https://www.maersk.com/local-information/intra-asia-pacific-shipping-routes/ph3": {
+      "status": 0,
+      "state": "unreachable",
+      "checkedAt": "2026-11-27T12:04:32.147Z"
+    },
+    "https://cms-resources.one-line.com/sites/oneglobal/files/2026-08/2026%20East%20Asia%20-%20Japan%20Service.pdf": {
+      "status": 200,
+      "state": "ok",
+      "checkedAt": "2026-11-27T12:04:32.607Z"
+    },
+    "https://www.maersk.com/local-information/intra-asia-pacific-shipping-routes/ia5": {
+      "status": 0,
+      "state": "unreachable",
+      "checkedAt": "2026-11-27T12:04:32.610Z"
+    },
+    "https://buplant.da.gov.ph/2026/07/20/da-cswct-2026-0024-license-to-operate-federated-distributors-inc/": {
+      "status": 0,
+      "state": "unreachable",
+      "checkedAt": "2026-11-27T12:04:32.655Z"
+    },
+    "https://openstat.psa.gov.ph/": {
+      "status": 403,
+      "state": "protected",
+      "checkedAt": "2026-11-27T12:04:32.687Z"
     },
     "https://www.law.go.kr/법령/수입식품안전관리특별법/제20조": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:50:59.723Z"
+      "checkedAt": "2026-11-27T12:04:32.895Z"
     },
     "https://www.law.go.kr/행정규칙/자유무역협정의이행을위한관세법의특례에관한법률사무처리에관한고시": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:51:01.409Z"
+      "checkedAt": "2026-11-27T12:04:34.086Z"
     },
     "https://www.mfds.go.kr/eng/brd/m_15/down.do?brd_id=eng0001&seq=72436&data_tp=A&file_seq=1": {
       "status": 200,
       "state": "ok",
-      "checkedAt": "2026-11-26T16:51:02.086Z"
+      "checkedAt": "2026-11-27T12:04:34.887Z"
     }
   },
-  "generatedAt": "2026-11-27T11:37:35.094Z",
+  "generatedAt": "2026-11-27T12:04:34.896Z",
   "witsPref": {
     "seasoned-laver": {
       "reporter": 608,
