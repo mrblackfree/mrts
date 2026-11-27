@@ -39,8 +39,12 @@
     },
     "overrides": {
       "status": "ok",
-      "entries": 23,
+      "entries": 76,
       "errors": []
+    },
+    "kcci": {
+      "status": "ok",
+      "fetchedAt": "2026-11-27T10:48:52.694Z"
     }
   },
   "comtrade": {
@@ -1296,7 +1300,7 @@
       "checkedAt": "2026-11-26T16:51:02.086Z"
     }
   },
-  "generatedAt": "2026-11-26T16:51:02.104Z",
+  "generatedAt": "2026-11-27T10:48:52.701Z",
   "witsPref": {
     "seasoned-laver": {
       "reporter": 608,
@@ -1361,6 +1365,40 @@
         "prefLines": 3,
         "url": "https://wits.worldbank.org/API/V1/SDMX/V21/datasource/TRN/reporter/608/partner/410/product/391810/year/2021/datatype/reported"
       }
+    }
+  },
+  "freightIndex": {
+    "kcci": {
+      "date": "2026-11-23",
+      "prevDate": "2026-11-16",
+      "unit": "USD/FEU",
+      "routes": {
+        "KCCI": {
+          "route": "Comprehensive Index",
+          "weight": "100%",
+          "value": 4429,
+          "prev": 4608
+        },
+        "KSEI": {
+          "route": "South East Asia",
+          "weight": "10%",
+          "value": 1679,
+          "prev": 1686
+        },
+        "KCI": {
+          "route": "China",
+          "weight": "15%",
+          "value": 52,
+          "prev": 52
+        },
+        "KJI": {
+          "route": "Japan",
+          "weight": "10%",
+          "value": 217,
+          "prev": 217
+        }
+      },
+      "url": "https://www.kobc.or.kr/ebz/shippinginfo/kcci/gridList.do?mId=0304000000"
     }
   }
 }

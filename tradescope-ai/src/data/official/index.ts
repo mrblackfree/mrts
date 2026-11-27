@@ -85,7 +85,7 @@ export interface SourceStatus {
 
 interface Snapshot {
   generatedAt?: string;
-  sources?: Partial<Record<'comtrade' | 'wits' | 'kcs' | 'links' | 'overrides', SourceStatus>>;
+  sources?: Partial<Record<'comtrade' | 'wits' | 'kcs' | 'kcci' | 'links' | 'overrides', SourceStatus>>;
   comtrade?: { products?: Record<string, SnapProduct>; overview?: { krExportsToPh: YearValue[]; krImportsFromPh: YearValue[] } };
   wits?: Record<string, Record<string, WitsEntry>>;
   witsPref?: Record<string, PrefEntry>;
@@ -93,6 +93,16 @@ interface Snapshot {
   witsPrefByHs?: Record<string, Record<string, PrefEntry>>;
   kcs?: { ytd?: Record<string, { from: string; to: string; expUsd: number; impUsd: number; source: string }>; fx?: { usdKrw: number; appliedFrom: string; source: string } | null };
   links?: Record<string, LinkCheck>;
+  /** weekly freight index (reference only — never verifies a lane) */
+  freightIndex?: { kcci?: FreightIndex };
+}
+
+export interface FreightIndex {
+  date: string;
+  prevDate: string;
+  unit: string;
+  url: string;
+  routes: Record<string, { route: string; weight: string; value: number; prev: number }>;
 }
 
 type PrefEntry = WitsEntry & { partner: number; hs6: string; prefLines: number };
@@ -112,6 +122,8 @@ export interface OverrideEntry {
   reference: string;
   verifiedBy: string;
   verifiedAt: string;
+  /** first day the value applies (e.g. next year's scheduled rate, read ahead from the same schedule) */
+  validFrom?: string;
   validUntil?: string;
   /**
    * What the check was. Left out: confirmed by an expert or partner (customs broker, law firm, forwarder…) — shown
@@ -140,9 +152,14 @@ export const OFFICIAL = {
   sources: SNAP.sources ?? {},
   overview: SNAP.comtrade?.overview,
   fx: SNAP.kcs?.fx ?? null,
+  kcci: SNAP.freightIndex?.kcci ?? null,
   links: SNAP.links ?? {},
+  /** entries in force today (a value scheduled for next year is not counted until it applies) */
   get overrideCount() {
-    return allOverrides().length;
+    return allOverrides().filter(isActive).length;
+  },
+  get scheduledCount() {
+    return allOverrides().filter((e) => !!e.validFrom && e.validFrom > today()).length;
   },
   /** overrides that are currently applied (entry not expired; partner licence not expired) */
   activeOverrideCount: () => allOverrides().filter((e) => isActive(e) && licenceActive(e)).length,
@@ -151,7 +168,8 @@ export const OFFICIAL = {
 const ymd = (iso?: string) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : undefined);
 const today = () => todayIso();
 function isActive(e: OverrideEntry) {
-  return !e.validUntil || e.validUntil >= today();
+  const d = today();
+  return (!e.validFrom || e.validFrom <= d) && (!e.validUntil || e.validUntil >= d);
 }
 function licenceActive(e: OverrideEntry) {
   return e.target.type !== 'partner' || !e.target.licenseValidUntil || e.target.licenseValidUntil >= today();

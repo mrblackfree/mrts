@@ -25,9 +25,11 @@ const STATUS_TONE: Record<SourceStatus['status'], 'green' | 'amber' | 'red' | 's
 const RM_META: Record<RoadmapStatus, { key: DictKey; tone: 'green' | 'brand' | 'amber'; icon: React.ReactNode }> = {
   live: { key: 'rmLive', tone: 'green', icon: <Zap className="size-3" /> },
   key: { key: 'rmKey', tone: 'brand', icon: <KeyRound className="size-3" /> },
+  checked: { key: 'rmChecked', tone: 'green', icon: <ShieldCheck className="size-3" /> },
   manual: { key: 'rmManual', tone: 'amber', icon: <PenLine className="size-3" /> },
 };
 const LEVELS: VerificationLevel[] = ['official', 'verified', 'crosscheck', 'seed'];
+const LEVEL_KEY: Record<VerificationLevel, DictKey> = { official: 'lvOfficial', verified: 'lvVerified', crosscheck: 'lvCrosscheck', seed: 'lvSeed' };
 /** which roadmap item closes the gap of each category */
 const CATEGORY_ROADMAP: Record<string, string> = {
   stats: 'kcs-trade',
@@ -39,7 +41,7 @@ const CATEGORY_ROADMAP: Record<string, string> = {
   requirements: 'regulation',
   partners: 'partners',
   logistics: 'freight',
-  pricing: 'freight',
+  pricing: 'pricing',
 };
 const LEVEL_BAR: Record<VerificationLevel, string> = { official: 'bg-emerald-500', verified: 'bg-violet-500', crosscheck: 'bg-brand-400', seed: 'bg-amber-300 dark:bg-amber-500/60' };
 
@@ -69,6 +71,7 @@ export default function DataTrustCenter({
     { id: 'comtrade', name: 'UN Comtrade', st: src.comtrade, extra: src.comtrade?.endpoint },
     { id: 'wits', name: 'World Bank WITS', st: src.wits, extra: 'TRAINS · MFN · HS6' },
     { id: 'kcs', name: lang === 'ko' ? '관세청 (data.go.kr)' : 'Korea Customs (data.go.kr)', st: src.kcs, extra: src.kcs?.status === 'not-configured' ? 'DATA_GO_KR_SERVICE_KEY' : undefined },
+    { id: 'kcci', name: lang === 'ko' ? '한국해양진흥공사 KCCI' : 'KOBC KCCI freight index', st: src.kcci, extra: OFFICIAL.kcci ? `${OFFICIAL.kcci.date} · ${lang === 'ko' ? '참고 지수' : 'reference'}` : undefined },
     {
       id: 'links',
       name: t('linkHealth'),
@@ -294,6 +297,23 @@ export default function DataTrustCenter({
                     </div>
                     <p className="mt-2 text-sm font-bold text-slate-900 dark:text-white">{p(r.title)}</p>
                     <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{p(r.now)}</p>
+                    {(() => {
+                      // live coverage: how the items this step covers stand today across all products
+                      const counts: Record<VerificationLevel, number> = { official: 0, verified: 0, crosscheck: 0, seed: 0 };
+                      for (const prod of PRODUCTS) for (const it of prod.verification?.items ?? []) if (r.categories.includes(it.category)) counts[it.level]++;
+                      const total = LEVELS.reduce((n, lv) => n + counts[lv], 0);
+                      if (!total) return null;
+                      return (
+                        <div className="mt-2" aria-label={t('rmCoverage')}>
+                          <div className="flex h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.06]">
+                            {LEVELS.map((lv) => (counts[lv] ? <span key={lv} className={LEVEL_BAR[lv]} style={{ width: `${(counts[lv] / total) * 100}%` }} /> : null))}
+                          </div>
+                          <p className="mt-1 text-[10.5px] text-slate-400">
+                            {t('rmCoverage')}: {LEVELS.filter((lv) => counts[lv]).map((lv) => `${t(LEVEL_KEY[lv])} ${counts[lv]}`).join(' · ')}
+                          </p>
+                        </div>
+                      );
+                    })()}
                     <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
                       {r.steps.map((s, i) => (
                         <li key={i}>{p(s)}</li>

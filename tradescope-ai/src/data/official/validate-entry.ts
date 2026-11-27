@@ -42,6 +42,11 @@ export function validateEntry(input: unknown, products: TradeProduct[], today: s
   }
   if (!isDate(x.verifiedAt)) errors.push('verifiedAt: YYYY-MM-DD');
   else if (today !== null && x.verifiedAt > today) errors.push('verifiedAt: in the future');
+  if (x.validFrom !== undefined && x.validFrom !== '') {
+    // may lie in the future: a scheduled rate read ahead from the same official schedule
+    if (!isDate(x.validFrom)) errors.push('validFrom: YYYY-MM-DD');
+    else if (isDate(x.validUntil) && x.validUntil < x.validFrom) errors.push('validUntil: before validFrom');
+  }
   if (x.validUntil !== undefined && x.validUntil !== '') {
     if (!isDate(x.validUntil)) errors.push('validUntil: YYYY-MM-DD');
     else if (today !== null && x.validUntil < today) errors.push('validUntil: already expired');
@@ -129,6 +134,7 @@ export function validateEntry(input: unknown, products: TradeProduct[], today: s
       reference,
       verifiedBy,
       verifiedAt: x.verifiedAt as string,
+      ...(isDate(x.validFrom) ? { validFrom: x.validFrom } : {}),
       ...(isDate(x.validUntil) ? { validUntil: x.validUntil } : {}),
       ...(x.basis === 'official' ? { basis: 'official' as const } : {}),
     },
