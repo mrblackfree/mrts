@@ -3,6 +3,7 @@
 import { Anchor, Lightbulb, ShieldCheck, Ship, TrendingUp } from 'lucide-react';
 import { formatNumber, formatPct, formatUsd, trend, yoy } from '@/lib/format';
 import type { TradeProduct } from '@/lib/types';
+import { OFFICIAL } from '@/data/official';
 import { ShareBars, TrendColumns } from '../charts';
 import { useI18n } from '../I18nProvider';
 import { Card, cx, ModuleHeader, SourceTag } from '../ui';
@@ -98,7 +99,7 @@ export default function MarketModule({ product, withLanes = true }: { product: T
 
 /** Container lanes with indicative freight, transit time and frequency. */
 export function LogisticsLanes({ product }: { product: TradeProduct }) {
-  const { t, p } = useI18n();
+  const { t, p, lang } = useI18n();
   return (
       <div className="border-t border-slate-100 p-5 dark:border-white/[0.07]">
         <p className="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-slate-100">
@@ -144,6 +145,17 @@ export function LogisticsLanes({ product }: { product: TradeProduct }) {
             </div>
           ))}
         </div>
+        {OFFICIAL.kcci?.routes.KSEI && (
+          <p className="mt-3 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
+            <a href={OFFICIAL.kcci.url} target="_blank" rel="noreferrer" className="font-semibold text-brand-700 hover:underline dark:text-brand-400">
+              KCCI {lang === 'ko' ? '동남아 항로' : 'South East Asia'}
+            </a>{' '}
+            ${formatNumber(OFFICIAL.kcci.routes.KSEI.value)}/FEU · {OFFICIAL.kcci.date} ({lang === 'ko' ? '전주' : 'prev.'} ${formatNumber(OFFICIAL.kcci.routes.KSEI.prev)}) —{' '}
+            {lang === 'ko'
+              ? '한국해양진흥공사 주간 지수, 부산→호찌민·자카르타·싱가포르 기준이라 필리핀 노선의 참고값일 뿐 견적이 아닙니다'
+              : 'KOBC weekly index for Busan → Ho Chi Minh, Jakarta, Singapore — a reference level for Philippine lanes, not a quote'}
+          </p>
+        )}
         <SourceTag meta={product.logisticsMeta} className="mt-3" />
       </div>
   );

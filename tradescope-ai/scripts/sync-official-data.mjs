@@ -7,7 +7,7 @@
  * endpoints: every connector below uses a published API.
  *
  *   node scripts/sync-official-data.mjs                  # all keyless sources (Comtrade, WITS, link check)
- *   node scripts/sync-official-data.mjs --only=wits      # one source: comtrade | wits | links | kcs
+ *   node scripts/sync-official-data.mjs --only=wits      # one source: comtrade | wits | links | kcs | kcci
  *   DATA_GO_KR_SERVICE_KEY=... node scripts/sync-official-data.mjs   # + Korea Customs monthly trade & FX
  *   COMTRADE_API_KEY=...                                  # uses the full Comtrade API (higher limits)
  *   (both keys can also be saved on the /admin page; environment variables win)
@@ -25,6 +25,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readSettings } from '../src/lib/settings/core.mjs';
 import { CARRY_OVER_DAYS, mergeLinkResult } from './link-state.mjs';
+import { KCCI_URL, parseKcci } from './kcci.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -555,6 +556,8 @@ async function validateOverrides(snapshot) {
     if (e.productId && !MANIFEST.some((m) => m.id === e.productId)) errors.push(`${at} unknown productId ${e.productId}`);
     if (e.verifiedAt && !isDate(e.verifiedAt)) errors.push(`${at} verifiedAt must be YYYY-MM-DD`);
     if (e.validUntil !== undefined && !isDate(e.validUntil)) errors.push(`${at} validUntil must be YYYY-MM-DD`);
+    if (e.validFrom !== undefined && !isDate(e.validFrom)) errors.push(`${at} validFrom must be YYYY-MM-DD`);
+    else if (e.validFrom && e.validUntil && e.validUntil < e.validFrom) errors.push(`${at} validUntil is before validFrom`);
     if (e.basis !== undefined && e.basis !== 'official') errors.push(`${at} basis must be 'official' or left out`);
     else if (e.basis !== undefined && !['tariff', 'hs', 'partner'].includes(e.target?.type)) errors.push(`${at} basis is only for tariff, hs and partner entries`);
     for (const k of ['source', 'reference', 'verifiedBy']) if (placeholder(e[k])) errors.push(`${at} ${k} looks like a placeholder`);
@@ -598,6 +601,23 @@ async function validateOverrides(snapshot) {
 }
 
 // ---------------------------------------------------------------------------
+// KOBC KCCI weekly container freight index (reference level only; see kcci.mjs)
+// ---------------------------------------------------------------------------
+async function syncKcci(snapshot) {
+  const res = await getText(KCCI_URL, { headers: { Accept: 'text/html,*/*' } });
+  const parsed = res.status === 200 ? parseKcci(res.text) : null;
+  if (!parsed) {
+    const why = res.status === 200 ? 'page layout not recognised' : `HTTP ${res.status || res.error || 'error'}`;
+    snapshot.sources.kcci = { status: 'error', fetchedAt: new Date().toISOString(), errors: [`${why}${snapshot.freightIndex?.kcci ? ' — kept previous' : ''}`] };
+    log(`  kcci: ${why}`);
+    return;
+  }
+  snapshot.freightIndex = { ...(snapshot.freightIndex ?? {}), kcci: { ...parsed, url: KCCI_URL } };
+  snapshot.sources.kcci = { status: 'ok', fetchedAt: new Date().toISOString() };
+  log(`  kcci ${parsed.date}: composite ${parsed.routes.KCCI?.value ?? '?'} · South East Asia ${parsed.routes.KSEI.value} ${parsed.unit}`);
+}
+
+// ---------------------------------------------------------------------------
 async function main() {
   let snapshot;
   try {
@@ -611,6 +631,7 @@ async function main() {
   if (want('comtrade')) await syncComtrade(snapshot);
   if (want('wits')) await syncWits(snapshot);
   if (want('kcs')) await syncKcs(snapshot);
+  if (want('kcci')) await syncKcci(snapshot);
   if (want('links')) await syncLinks(snapshot);
   await validateOverrides(snapshot);
   if (snapshot.sources.overrides?.status === 'error') {
