@@ -46,11 +46,11 @@ services:
       - |
         cat > /etc/caddy/Caddyfile <<'CADDYFILE'
         trade.xn--3e0b707e {
-            encode zstd gzip
-            reverse_proxy app:3000
+        	encode zstd gzip
+        	reverse_proxy app:3000
         }
         www.trade.xn--3e0b707e {
-            redir https://trade.xn--3e0b707e{uri} permanent
+        	redir https://trade.xn--3e0b707e{uri} permanent
         }
         CADDYFILE
         exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile

@@ -121,11 +121,11 @@ ${env ? `${env}\n` : ''}    volumes:
       - |
         cat > /etc/caddy/Caddyfile <<'CADDYFILE'
         ${host} {
-            encode zstd gzip
-            reverse_proxy app:3000
+        \tencode zstd gzip
+        \treverse_proxy app:3000
         }
         www.${host} {
-            redir https://${host}{uri} permanent
+        \tredir https://${host}{uri} permanent
         }
         CADDYFILE
         exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
