@@ -366,6 +366,39 @@ docker load < tradescope-ai.tar.gz && docker run -d -p 3000:3000 --env-file .env
 ```
 `-v tradescope_data:/app/.data`(이름 있는 볼륨)를 빼면 `/admin`에서 저장한 값이 컨테이너를 교체할 때 사라집니다 — 이미지가 선언한 익명 볼륨은 새 컨테이너에 다시 연결되지 않습니다.
 
+### C-1. Hostinger VPS — trade.한국 (API로 DNS·배포 자동화)
+
+`trade.한국`(ASCII: `trade.xn--3e0b707e`)은 Hostinger DNS에 있습니다. Hostinger API로 도메인을 VPS에 연결하고, Docker Manager에 앱을 배포합니다. 서버에 접속하거나 파일을 올릴 필요가 없습니다.
+
+- **구성(`deploy/hostinger/compose.yml`, `scripts/hostinger.mjs`가 생성):**
+  - 공개 GitHub 저장소의 지정 커밋을 VPS에서 바로 빌드합니다(git 빌드 컨텍스트, `pull_policy: build`).
+  - Caddy가 `trade.한국` 인증서를 자동 발급하고, `www`는 apex로 리다이렉트합니다.
+  - 앱 포트는 외부에 열지 않습니다.
+- **데이터:**
+  - 공식 데이터 스냅샷·검증값은 이미지에 포함됩니다. 주간 데이터 동기화 PR을 병합하면 자동 재배포됩니다.
+  - DB(관리자 설정 — 암호화, 검증값 입력, 전문가 요청, 측정 지표, 세션)는 VPS의 `/opt/tradescope/data`에 저장됩니다.
+  - 인증서는 `/opt/tradescope/caddy`에 저장됩니다.
+  - 둘 다 Compose 볼륨이 아니라 호스트 폴더라서, 프로젝트를 다시 배포하거나 지워도 남고 Hostinger VPS 백업·스냅샷에 포함됩니다.
+- **준비:**
+  1. Docker를 쓸 수 있는 Hostinger VPS(KVM 1 이상, 빌드에 RAM 4GB 권장)를 준비하고, 방화벽에서 80·443 포트를 엽니다. 스크립트는 VPS를 구매·재설치하지 않습니다.
+  2. hPanel → 계정 → API에서 토큰을 발급합니다.
+- **자동 배포(권장):** GitHub 저장소 Secrets에 다음을 등록합니다.
+  - `HOSTINGER_API_TOKEN`
+  - `HOSTINGER_VM_ID`(VPS가 1대면 생략)
+  - `ADMIN_PASSWORD`(10자 이상)
+  - `ADMIN_SECRET`(32자 이상 무작위)
+  - 필요한 API 키(선택)
+
+  등록 후 Actions → **TradeScope · deploy to Hostinger** → Run workflow(첫 실행은 `dns` 체크)를 실행합니다. 이후에는 `main`에 병합될 때마다 그 커밋이 배포됩니다. 토큰이 없으면 워크플로는 건너뜁니다.
+- **직접 실행:**
+  ```bash
+  export HOSTINGER_API_TOKEN=…  ADMIN_PASSWORD=…  ADMIN_SECRET=…
+  node scripts/hostinger-deploy.mjs --list                    # VPS 목록
+  node scripts/hostinger-deploy.mjs --dns --deploy --dry-run  # 바뀔 DNS·배포 내용 미리 보기
+  node scripts/hostinger-deploy.mjs --dns --deploy            # DNS 연결 + 빌드·시작 → https://trade.한국/api/health 까지 대기
+  ```
+- **수동:** hPanel → VPS → Docker Manager에서 `deploy/hostinger/compose.yml`을 붙여넣고, 환경 변수 `ADMIN_PASSWORD`·`ADMIN_SECRET`를 넣은 뒤 DNS A 레코드를 VPS IP로 바꿉니다.
+
 ### D. 자체 Linux 서버 (Docker 없이, Node 22)
 ```bash
 npm ci && npm run build

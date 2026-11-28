@@ -1,0 +1,82 @@
+# TradeScope AI — deploy to a Hostinger VPS (trade.한국) through the Hostinger API.
+#
+# Runs on every push to main that touches the app (merged features and weekly data-sync PRs alike) and on demand.
+# Does nothing until the HOSTINGER_API_TOKEN secret exists, so it never fails before Hostinger is set up.
+#
+# Repository secrets (Settings → Secrets and variables → Actions):
+#   HOSTINGER_API_TOKEN   hPanel → Account → API → new token (required)
+#   HOSTINGER_VM_ID       the VPS id (optional when the account has exactly one VPS)
+#   ADMIN_PASSWORD        ≥ 10 characters — enables /admin on the server
+#   ADMIN_SECRET          ≥ 32 random characters — encrypts saved settings and signs sessions
+#   optional: AI_API_KEY AI_BASE_URL AI_MODEL CONSULT_WEBHOOK_URL CONSULT_CONTACT_EMAIL DATA_GO_KR_SERVICE_KEY
+#             COMTRADE_API_KEY TRACK_SHIPSGO_TOKEN TRACK_HLAG_CLIENT_ID TRACK_HLAG_CLIENT_SECRET TRACK_CMACGM_KEY
+#             UNIPASS_CARGO_KEY
+# First run: Actions → this workflow → Run workflow, with "dns" ticked to point trade.한국 at the VPS.
+
+name: TradeScope · deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tradescope-ai/**'
+      - '.github/workflows/tradescope-deploy-hostinger.yml'
+  workflow_dispatch:
+    inputs:
+      dns:
+        description: 'Also point trade.한국 (A/AAAA, www) at the VPS'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: tradescope-ai
+    env:
+      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+      HOSTINGER_VM_ID: ${{ secrets.HOSTINGER_VM_ID }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+      AI_API_KEY: ${{ secrets.AI_API_KEY }}
+      AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+      AI_MODEL: ${{ secrets.AI_MODEL }}
+      CONSULT_WEBHOOK_URL: ${{ secrets.CONSULT_WEBHOOK_URL }}
+      CONSULT_CONTACT_EMAIL: ${{ secrets.CONSULT_CONTACT_EMAIL }}
+      DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+      COMTRADE_API_KEY: ${{ secrets.COMTRADE_API_KEY }}
+      TRACK_SHIPSGO_TOKEN: ${{ secrets.TRACK_SHIPSGO_TOKEN }}
+      TRACK_HLAG_CLIENT_ID: ${{ secrets.TRACK_HLAG_CLIENT_ID }}
+      TRACK_HLAG_CLIENT_SECRET: ${{ secrets.TRACK_HLAG_CLIENT_SECRET }}
+      TRACK_CMACGM_KEY: ${{ secrets.TRACK_CMACGM_KEY }}
+      UNIPASS_CARGO_KEY: ${{ secrets.UNIPASS_CARGO_KEY }}
+    steps:
+      - name: Check configuration
+        id: cfg
+        run: |
+          if [ -z "$HOSTINGER_API_TOKEN" ]; then
+            echo "::notice::HOSTINGER_API_TOKEN is not set — skipping the Hostinger deploy."
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
+        working-directory: .
+
+      - uses: actions/checkout@v5
+        if: steps.cfg.outputs.skip != '1'
+
+      - uses: actions/setup-node@v5
+        if: steps.cfg.outputs.skip != '1'
+        with:
+          node-version: 22
+
+      - name: Deploy (build ${{ github.sha }} on the VPS)
+        if: steps.cfg.outputs.skip != '1'
+        run: node scripts/hostinger-deploy.mjs --deploy ${{ inputs.dns && '--dns' || '' }} --ref=${{ github.sha }}
