@@ -20,8 +20,11 @@ ENV NEXT_TELEMETRY_DISABLED=1
 #   docker compose build --build-arg NEXT_PUBLIC_DATA_FEEDBACK_URL=... (or set them in the shell for compose)
 ARG NEXT_PUBLIC_DATA_FEEDBACK_URL=
 ARG NEXT_PUBLIC_OVERRIDES_EDIT_URL=
+# public address for absolute URLs in link previews, e.g. https://trade.xn--3e0b707e (trade.한국)
+ARG NEXT_PUBLIC_SITE_URL=
 ENV NEXT_PUBLIC_DATA_FEEDBACK_URL=${NEXT_PUBLIC_DATA_FEEDBACK_URL} \
-    NEXT_PUBLIC_OVERRIDES_EDIT_URL=${NEXT_PUBLIC_OVERRIDES_EDIT_URL}
+    NEXT_PUBLIC_OVERRIDES_EDIT_URL=${NEXT_PUBLIC_OVERRIDES_EDIT_URL} \
+    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

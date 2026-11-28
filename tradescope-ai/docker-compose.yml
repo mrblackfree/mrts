@@ -12,6 +12,7 @@ services:
       args:
         NEXT_PUBLIC_DATA_FEEDBACK_URL: ${NEXT_PUBLIC_DATA_FEEDBACK_URL:-}
         NEXT_PUBLIC_OVERRIDES_EDIT_URL: ${NEXT_PUBLIC_OVERRIDES_EDIT_URL:-}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-}
     image: tradescope-ai:latest
     container_name: tradescope-ai
     restart: unless-stopped
